@@ -1,0 +1,68 @@
+name: Release MVP
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers when you push a tag like v0.1.0
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest] # Uses macOS 14 (Apple Silicon) runners
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Explicitly target Apple Silicon
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Build and Create Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NOTE: For a simple MVP without a paid Apple Developer Account ($99/yr),
+          # we DO NOT set APPLE_CERTIFICATE. The app will be "Ad-hoc" signed.
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'SiliconMonitor ${{ github.ref_name }}'
+          releaseBody: |
+            ## SiliconMonitor - Apple Silicon System Monitor
+            
+            A lightweight menu bar system monitor for macOS (Apple Silicon).
+            
+            ### Installation
+            
+            1. Download the `.dmg` file below
+            2. Open the DMG and drag SiliconMonitor to Applications
+            3. **Important**: Run this command in Terminal to allow the app to run:
+               ```bash
+               xattr -cr /Applications/SiliconMonitor.app
+               ```
+            4. Launch SiliconMonitor from Applications
+            
+            ### Features
+            - Real-time CPU, RAM, and Network speed monitoring
+            - "Start at Login" option
+            - Lightweight and efficient
+          releaseDraft: true
+          prerelease: false
+          # Arguments to force Apple Silicon build
+          args: --target aarch64-apple-darwin
