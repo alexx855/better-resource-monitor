@@ -2,6 +2,7 @@ use sysinfo::{Networks, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
+    ActivationPolicy,
     AppHandle,
 };
 
@@ -180,6 +181,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
+            // Set Activation Policy to Accessory to hide the dock icon on macOS
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(ActivationPolicy::Accessory);
+
             // Initialize autostart plugin
             #[cfg(desktop)]
             {
