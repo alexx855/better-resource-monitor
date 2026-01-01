@@ -66,6 +66,7 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = Menu::with_items(app, &[&autostart_item, &separator, &quit_item])?;
 
     // Build the tray icon with ID so we can reference it later
+    // Note: We need a valid icon. The template provides icons/icon.png.
     let _tray = TrayIconBuilder::with_id("main")
         .menu(&menu)
         .show_menu_on_left_click(true)
@@ -119,7 +120,7 @@ fn start_monitoring(app: AppHandle, running: Arc<AtomicBool>) {
             
             // Refresh memory and network
             sys.refresh_memory();
-            networks.refresh();
+            networks.refresh(true);
 
             // Calculate CPU usage (global average)
             let cpu_usage = sys.global_cpu_usage();

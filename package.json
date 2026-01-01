@@ -1,18 +1,13 @@
 {
-  "name": "silicon-monitor",
+  "name": "sillicon-resources-monitor",
+  "private": true,
   "version": "0.1.0",
   "description": "A lightweight macOS menu bar system monitor for Apple Silicon",
   "type": "module",
   "scripts": {
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-autostart": "^2"
   }
 }

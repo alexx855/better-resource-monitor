@@ -1,28 +1,27 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "SiliconMonitor",
+  "productName": "sillicon-resources-monitor",
   "version": "0.1.0",
-  "identifier": "com.siliconmonitor.app",
+  "identifier": "dev.alexpedersen.sillicon-resourrces-monitor",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
     "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": []
+    "windows": [],
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "app"],
+    "targets": "all",
     "icon": [
-      "icons/icon.png",
       "icons/32x32.png",
       "icons/128x128.png",
-      "icons/128x128@2x.png"
-    ],
-    "macOS": {
-      "minimumSystemVersion": "11.0"
-    }
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   }
 }
