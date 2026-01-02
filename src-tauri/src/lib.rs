@@ -4,14 +4,28 @@ use tauri::{
     tray::TrayIconBuilder,
     ActivationPolicy,
     AppHandle,
+    image::Image,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use image::{ImageBuffer, Rgba};
+use rusttype::{Font, Scale};
 
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
+
+/// Font data embedded at compile time
+const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
+
+/// Fixed widths for each segment (in pixels at 2x scale for Retina)
+const SEGMENT_CPU: u32 = 105;
+const SEGMENT_MEM: u32 = 110;
+const SEGMENT_NET: u32 = 100;
+const SEPARATOR_WIDTH: u32 = 24;
+const ICON_HEIGHT: u32 = 32;
+const FONT_SIZE: f32 = 24.0;
 
 /// Format bytes per second - compact format
 fn format_speed(bytes_per_sec: f64) -> String {
@@ -26,9 +40,9 @@ fn format_speed(bytes_per_sec: f64) -> String {
     }
 }
 
-
-/// Format the tray title text
-fn format_tray_title(
+/// Render tray icon as a fixed-width image
+fn render_tray_icon(
+    font: &Font,
     cpu_usage: f32,
     mem_percent: f32,
     down_speed: f64,
@@ -37,25 +51,84 @@ fn format_tray_title(
     show_mem: bool,
     show_net_down: bool,
     show_net_up: bool,
-) -> String {
-    let mut parts = Vec::new();
-    
+) -> Image<'static> {
+    // Calculate total width based on enabled segments
+    let mut segments: Vec<(String, u32)> = Vec::new();
+
     if show_cpu {
-        // Fixed width: icon + space + 3-char value
-        parts.push(format!("◎ {:>3.0}%", cpu_usage));
+        segments.push((format!("CPU {:>3.0}%", cpu_usage), SEGMENT_CPU));
     }
     if show_mem {
-        parts.push(format!("▣ {:>3.0}%", mem_percent));
+        segments.push((format!("MEM {:>3.0}%", mem_percent), SEGMENT_MEM));
     }
     if show_net_down {
-        parts.push(format!("▼ {:>5}", format_speed(down_speed)));
+        segments.push((format!("D {:>5}", format_speed(down_speed)), SEGMENT_NET));
     }
     if show_net_up {
-        parts.push(format!("▲ {:>5}", format_speed(up_speed)));
+        segments.push((format!("U {:>5}", format_speed(up_speed)), SEGMENT_NET));
     }
-    
-    // Use vertical bar as separator for consistent visual spacing
-    parts.join("  │  ")
+
+    // Calculate total width
+    let total_width = if segments.is_empty() {
+        50 // Minimum width
+    } else {
+        segments.iter().map(|(_, w)| w).sum::<u32>()
+            + SEPARATOR_WIDTH * (segments.len() as u32).saturating_sub(1)
+    };
+
+    // Create image buffer with transparent background
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, ICON_HEIGHT);
+
+    // Fill with transparent
+    for pixel in img.pixels_mut() {
+        *pixel = Rgba([0, 0, 0, 0]);
+    }
+
+    let scale = Scale::uniform(FONT_SIZE);
+    let v_metrics = font.v_metrics(scale);
+    let baseline = (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0) - 2.0;
+
+    // Draw each segment at fixed positions
+    let mut x_offset = 0u32;
+    for (i, (text, width)) in segments.iter().enumerate() {
+        // Draw separator before segment (except first)
+        if i > 0 {
+            let sep_x = x_offset + SEPARATOR_WIDTH / 2;
+            // Draw a thicker vertical line as separator (2px wide)
+            for y in (ICON_HEIGHT / 4)..(ICON_HEIGHT * 3 / 4) {
+                for dx in 0..2 {
+                    let x = sep_x + dx;
+                    if x < total_width {
+                        img.put_pixel(x, y, Rgba([0, 0, 0, 200]));
+                    }
+                }
+            }
+            x_offset += SEPARATOR_WIDTH;
+        }
+
+        // Left-align text with padding
+        let text_start_x = x_offset as f32 + 8.0;
+
+        for glyph in font.layout(&text, scale, rusttype::point(text_start_x, baseline)) {
+            if let Some(bb) = glyph.pixel_bounding_box() {
+                glyph.draw(|gx, gy, v| {
+                    let x = (bb.min.x + gx as i32) as u32;
+                    let y = (bb.min.y + gy as i32) as u32;
+                    if x < total_width && y < ICON_HEIGHT {
+                        let alpha = (v * 255.0) as u8;
+                        // Black text for template image (macOS will invert for dark mode)
+                        img.put_pixel(x, y, Rgba([0, 0, 0, alpha]));
+                    }
+                });
+            }
+        }
+
+        x_offset += width;
+    }
+
+    // Convert to tauri Image
+    let raw_pixels = img.into_raw();
+    Image::new_owned(raw_pixels, total_width, ICON_HEIGHT)
 }
 
 fn setup_tray(
@@ -171,18 +244,22 @@ fn start_monitoring(
     show_net_up: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
+        // Load font once at thread start
+        let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
+
         let mut sys = System::new();
         let mut networks = Networks::new_with_refreshed_list();
-        
+
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
         let mut first_run = true;
+        let mut prev_display: Option<String> = None;
 
         while running.load(Ordering::SeqCst) {
             sys.refresh_cpu_usage();
             thread::sleep(Duration::from_millis(200));
             sys.refresh_cpu_usage();
-            
+
             sys.refresh_memory();
             networks.refresh(true);
 
@@ -198,7 +275,7 @@ fn start_monitoring(
 
             let mut total_rx: u64 = 0;
             let mut total_tx: u64 = 0;
-            
+
             for (_interface_name, data) in networks.iter() {
                 total_rx += data.total_received();
                 total_tx += data.total_transmitted();
@@ -217,19 +294,37 @@ fn start_monitoring(
                 (rx_delta, tx_delta)
             };
 
-            let title = format_tray_title(
-                cpu_usage,
-                mem_percent,
-                down_speed,
-                up_speed,
-                show_cpu.load(Ordering::SeqCst),
-                show_mem.load(Ordering::SeqCst),
-                show_net_down.load(Ordering::SeqCst),
-                show_net_up.load(Ordering::SeqCst),
+            let sc = show_cpu.load(Ordering::SeqCst);
+            let sm = show_mem.load(Ordering::SeqCst);
+            let sd = show_net_down.load(Ordering::SeqCst);
+            let su = show_net_up.load(Ordering::SeqCst);
+
+            // Build display key for comparison (rounded values to reduce flickering)
+            let display_key = format!(
+                "{:.0}|{:.0}|{}|{}|{}{}{}{}",
+                cpu_usage, mem_percent,
+                format_speed(down_speed), format_speed(up_speed),
+                sc, sm, sd, su
             );
-            
-            if let Some(tray) = app.tray_by_id("main") {
-                let _ = tray.set_title(Some(&title));
+
+            // Only update icon if display changed
+            if prev_display.as_ref() != Some(&display_key) {
+                prev_display = Some(display_key);
+
+                let icon = render_tray_icon(
+                    &font,
+                    cpu_usage,
+                    mem_percent,
+                    down_speed,
+                    up_speed,
+                    sc, sm, sd, su,
+                );
+
+                if let Some(tray) = app.tray_by_id("main") {
+                    let _ = tray.set_icon(Some(icon));
+                    #[cfg(target_os = "macos")]
+                    let _ = tray.set_icon_as_template(true);
+                }
             }
 
             thread::sleep(Duration::from_millis(800));
