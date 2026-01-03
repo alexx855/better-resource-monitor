@@ -1,3 +1,5 @@
+mod gpu;
+
 use sysinfo::{Networks, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
@@ -13,6 +15,8 @@ use std::time::Duration;
 use image::{ImageBuffer, Rgba};
 use rusttype::{Font, Scale};
 
+use gpu::GpuSampler;
+
 #[cfg(desktop)]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
@@ -22,8 +26,11 @@ const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
 /// Fixed widths for each segment (in pixels at 2x scale for Retina)
 const SEGMENT_CPU: u32 = 105;
 const SEGMENT_MEM: u32 = 110;
+const SEGMENT_GPU: u32 = 105;
 const SEGMENT_NET: u32 = 100;
-const SEPARATOR_WIDTH: u32 = 24;
+const EDGE_PADDING: u32 = 8;
+const SEPARATOR_GAP: u32 = 10;
+const SEPARATOR_LINE: u32 = 2;
 const ICON_HEIGHT: u32 = 32;
 const FONT_SIZE: f32 = 24.0;
 
@@ -45,10 +52,12 @@ fn render_tray_icon(
     font: &Font,
     cpu_usage: f32,
     mem_percent: f32,
+    gpu_usage: f32,
     down_speed: f64,
     up_speed: f64,
     show_cpu: bool,
     show_mem: bool,
+    show_gpu: bool,
     show_net_down: bool,
     show_net_up: bool,
 ) -> (Vec<u8>, u32, u32) {
@@ -61,6 +70,9 @@ fn render_tray_icon(
     if show_mem {
         segments.push((format!("MEM {:>3.0}%", mem_percent), SEGMENT_MEM));
     }
+    if show_gpu {
+        segments.push((format!("GPU {:>3.0}%", gpu_usage), SEGMENT_GPU));
+    }
     if show_net_down {
         segments.push((format!("D {:>5}", format_speed(down_speed)), SEGMENT_NET));
     }
@@ -68,12 +80,15 @@ fn render_tray_icon(
         segments.push((format!("U {:>5}", format_speed(up_speed)), SEGMENT_NET));
     }
 
-    // Calculate total width
+    // Calculate total width with symmetric edge padding and separator gaps
+    let separator_total = SEPARATOR_GAP * 2 + SEPARATOR_LINE;
     let total_width = if segments.is_empty() {
         50 // Minimum width
     } else {
-        segments.iter().map(|(_, w)| w).sum::<u32>()
-            + SEPARATOR_WIDTH * (segments.len() as u32).saturating_sub(1)
+        EDGE_PADDING
+            + segments.iter().map(|(_, w)| w).sum::<u32>()
+            + separator_total * (segments.len() as u32).saturating_sub(1)
+            + EDGE_PADDING
     };
 
     // Create image buffer with transparent background
@@ -89,27 +104,32 @@ fn render_tray_icon(
     let baseline = (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0) - 2.0;
 
     // Draw each segment at fixed positions
-    let mut x_offset = 0u32;
+    let mut x_offset = EDGE_PADDING;
     for (i, (text, width)) in segments.iter().enumerate() {
         // Draw separator before segment (except first)
         if i > 0 {
-            let sep_x = x_offset + SEPARATOR_WIDTH / 2;
-            // Draw a thicker vertical line as separator (2px wide)
+            x_offset += SEPARATOR_GAP;
+            let sep_x = x_offset;
+            // Draw separator line
             for y in (ICON_HEIGHT / 4)..(ICON_HEIGHT * 3 / 4) {
-                for dx in 0..2 {
-                    let x = sep_x + dx;
-                    if x < total_width {
-                        img.put_pixel(x, y, Rgba([0, 0, 0, 200]));
+                for dx in 0..SEPARATOR_LINE {
+                    if sep_x + dx < total_width {
+                        img.put_pixel(sep_x + dx, y, Rgba([0, 0, 0, 200]));
                     }
                 }
             }
-            x_offset += SEPARATOR_WIDTH;
+            x_offset += SEPARATOR_LINE + SEPARATOR_GAP;
         }
 
-        // Left-align text with padding
-        let text_start_x = x_offset as f32 + 8.0;
+        // Center text within segment
+        let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, 0.0)).collect();
+        let text_width = glyphs.last()
+            .and_then(|g| g.pixel_bounding_box())
+            .map(|bb| bb.max.x as f32)
+            .unwrap_or(0.0);
+        let text_start_x = x_offset as f32 + (*width as f32 - text_width) / 2.0;
 
-        for glyph in font.layout(&text, scale, rusttype::point(text_start_x, baseline)) {
+        for glyph in font.layout(text, scale, rusttype::point(text_start_x, baseline)) {
             if let Some(bb) = glyph.pixel_bounding_box() {
                 glyph.draw(|gx, gy, v| {
                     let x = (bb.min.x + gx as i32) as u32;
@@ -132,6 +152,7 @@ fn setup_tray(
     app: &AppHandle,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
+    show_gpu: Arc<AtomicBool>,
     show_net_down: Arc<AtomicBool>,
     show_net_up: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -157,6 +178,10 @@ fn setup_tray(
         app, "show_mem", "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
     )?;
 
+    let show_gpu_item = CheckMenuItem::with_id(
+        app, "show_gpu", "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
+    )?;
+
     let show_net_down_item = CheckMenuItem::with_id(
         app, "show_net_down", "Show Download", true, show_net_down.load(Relaxed), None::<&str>,
     )?;
@@ -175,6 +200,7 @@ fn setup_tray(
             &separator1,
             &show_cpu_item,
             &show_mem_item,
+            &show_gpu_item,
             &show_net_down_item,
             &show_net_up_item,
             &separator2,
@@ -186,9 +212,10 @@ fn setup_tray(
     let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
     let (pixels, width, height) = render_tray_icon(
         &font,
-        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
+        show_gpu.load(Relaxed),
         show_net_down.load(Relaxed),
         show_net_up.load(Relaxed),
     );
@@ -222,6 +249,10 @@ fn setup_tray(
                     let current = show_mem.load(Relaxed);
                     show_mem.store(!current, Relaxed);
                 }
+                "show_gpu" => {
+                    let current = show_gpu.load(Relaxed);
+                    show_gpu.store(!current, Relaxed);
+                }
                 "show_net_down" => {
                     let current = show_net_down.load(Relaxed);
                     show_net_down.store(!current, Relaxed);
@@ -245,6 +276,7 @@ fn start_monitoring(
     app: AppHandle,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
+    show_gpu: Arc<AtomicBool>,
     show_net_down: Arc<AtomicBool>,
     show_net_up: Arc<AtomicBool>,
 ) {
@@ -254,11 +286,13 @@ fn start_monitoring(
 
         let mut sys = System::new();
         let mut networks = Networks::new_with_refreshed_list();
+        let gpu_sampler = GpuSampler::new();
 
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
         let mut first_run = true;
         let mut prev_display: Option<String> = None;
+        let mut gpu_usage: f32 = 0.0;
 
         loop {
             sys.refresh_cpu_usage();
@@ -299,17 +333,23 @@ fn start_monitoring(
                 (rx_delta, tx_delta)
             };
 
+            // Sample GPU usage (non-blocking sample using short duration)
+            if let Some(ref sampler) = gpu_sampler {
+                gpu_usage = sampler.sample(100);
+            }
+
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
+            let sg = show_gpu.load(Relaxed);
             let sd = show_net_down.load(Relaxed);
             let su = show_net_up.load(Relaxed);
 
             // Build display key for comparison (rounded values to reduce flickering)
             let display_key = format!(
-                "{:.0}|{:.0}|{}|{}|{}{}{}{}",
-                cpu_usage, mem_percent,
+                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
+                cpu_usage, mem_percent, gpu_usage,
                 format_speed(down_speed), format_speed(up_speed),
-                sc, sm, sd, su
+                sc, sm, sg, sd, su
             );
 
             // Only update icon if display changed
@@ -320,9 +360,10 @@ fn start_monitoring(
                     &font,
                     cpu_usage,
                     mem_percent,
+                    gpu_usage,
                     down_speed,
                     up_speed,
-                    sc, sm, sd, su,
+                    sc, sm, sg, sd, su,
                 );
 
                 if let Some(tray) = app.tray_by_id("main") {
@@ -342,11 +383,13 @@ fn start_monitoring(
 pub fn run() {
     let show_cpu = Arc::new(AtomicBool::new(true));
     let show_mem = Arc::new(AtomicBool::new(true));
+    let show_gpu = Arc::new(AtomicBool::new(true));
     let show_net_down = Arc::new(AtomicBool::new(true));
     let show_net_up = Arc::new(AtomicBool::new(true));
 
     let show_cpu_tray = show_cpu.clone();
     let show_mem_tray = show_mem.clone();
+    let show_gpu_tray = show_gpu.clone();
     let show_net_down_tray = show_net_down.clone();
     let show_net_up_tray = show_net_up.clone();
 
@@ -368,6 +411,7 @@ pub fn run() {
                 app.handle(),
                 show_cpu_tray.clone(),
                 show_mem_tray.clone(),
+                show_gpu_tray.clone(),
                 show_net_down_tray.clone(),
                 show_net_up_tray.clone(),
             )?;
@@ -376,6 +420,7 @@ pub fn run() {
                 app.handle().clone(),
                 show_cpu,
                 show_mem,
+                show_gpu,
                 show_net_down,
                 show_net_up,
             );
