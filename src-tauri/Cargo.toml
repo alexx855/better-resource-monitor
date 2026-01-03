@@ -19,16 +19,11 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sysinfo = "0.37.2"
 tauri-plugin-shell = "2.3.3"
 tauri-plugin-autostart = "2.5.1"
+sysinfo = "0.37.2"
 image = "0.24"
 rusttype = "0.9"
-resvg = "0.44"
-tiny-skia = "0.11"
-font-kit = "0.11"
+tray-icon = "0.21"
 
 

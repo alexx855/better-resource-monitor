@@ -6,7 +6,7 @@ use tauri::{
     AppHandle,
     image::Image,
 };
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -14,7 +14,7 @@ use image::{ImageBuffer, Rgba};
 use rusttype::{Font, Scale};
 
 #[cfg(desktop)]
-use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 /// Font data embedded at compile time
 const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
@@ -40,7 +40,7 @@ fn format_speed(bytes_per_sec: f64) -> String {
     }
 }
 
-/// Render tray icon as a fixed-width image
+/// Render tray icon as a fixed-width template image (black with alpha)
 fn render_tray_icon(
     font: &Font,
     cpu_usage: f32,
@@ -51,7 +51,7 @@ fn render_tray_icon(
     show_mem: bool,
     show_net_down: bool,
     show_net_up: bool,
-) -> Image<'static> {
+) -> (Vec<u8>, u32, u32) {
     // Calculate total width based on enabled segments
     let mut segments: Vec<(String, u32)> = Vec::new();
 
@@ -116,7 +116,6 @@ fn render_tray_icon(
                     let y = (bb.min.y + gy as i32) as u32;
                     if x < total_width && y < ICON_HEIGHT {
                         let alpha = (v * 255.0) as u8;
-                        // Black text for template image (macOS will invert for dark mode)
                         img.put_pixel(x, y, Rgba([0, 0, 0, alpha]));
                     }
                 });
@@ -126,9 +125,7 @@ fn render_tray_icon(
         x_offset += width;
     }
 
-    // Convert to tauri Image
-    let raw_pixels = img.into_raw();
-    Image::new_owned(raw_pixels, total_width, ICON_HEIGHT)
+    (img.into_raw(), total_width, ICON_HEIGHT)
 }
 
 fn setup_tray(
@@ -139,10 +136,7 @@ fn setup_tray(
     show_net_up: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(desktop)]
-    let autostart_manager = {
-        use tauri_plugin_autostart::ManagerExt;
-        app.autolaunch()
-    };
+    let autostart_manager = app.autolaunch();
 
     #[cfg(desktop)]
     let is_autostart_enabled = autostart_manager.is_enabled().unwrap_or(false);
@@ -156,19 +150,19 @@ fn setup_tray(
     let separator1 = PredefinedMenuItem::separator(app)?;
 
     let show_cpu_item = CheckMenuItem::with_id(
-        app, "show_cpu", "Show CPU", true, show_cpu.load(Ordering::SeqCst), None::<&str>,
+        app, "show_cpu", "Show CPU", true, show_cpu.load(Relaxed), None::<&str>,
     )?;
 
     let show_mem_item = CheckMenuItem::with_id(
-        app, "show_mem", "Show Memory", true, show_mem.load(Ordering::SeqCst), None::<&str>,
+        app, "show_mem", "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
     )?;
 
     let show_net_down_item = CheckMenuItem::with_id(
-        app, "show_net_down", "Show Download", true, show_net_down.load(Ordering::SeqCst), None::<&str>,
+        app, "show_net_down", "Show Download", true, show_net_down.load(Relaxed), None::<&str>,
     )?;
 
     let show_net_up_item = CheckMenuItem::with_id(
-        app, "show_net_up", "Show Upload", true, show_net_up.load(Ordering::SeqCst), None::<&str>,
+        app, "show_net_up", "Show Upload", true, show_net_up.load(Relaxed), None::<&str>,
     )?;
 
     let separator2 = PredefinedMenuItem::separator(app)?;
@@ -188,17 +182,29 @@ fn setup_tray(
         ],
     )?;
 
+    // Render initial icon as template
+    let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
+    let (pixels, width, height) = render_tray_icon(
+        &font,
+        0.0, 0.0, 0.0, 0.0,
+        show_cpu.load(Relaxed),
+        show_mem.load(Relaxed),
+        show_net_down.load(Relaxed),
+        show_net_up.load(Relaxed),
+    );
+    let initial_icon = Image::new_owned(pixels, width, height);
+
     let _tray = TrayIconBuilder::with_id("main")
+        .icon(initial_icon)
+        .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .title("")
         .tooltip("System Monitor")
         .on_menu_event(move |app, event| {
             match event.id.as_ref() {
                 "autostart" => {
                     #[cfg(desktop)]
                     {
-                        use tauri_plugin_autostart::ManagerExt;
                         let manager = app.autolaunch();
                         let is_enabled = manager.is_enabled().unwrap_or(false);
                         if is_enabled {
@@ -209,20 +215,20 @@ fn setup_tray(
                     }
                 }
                 "show_cpu" => {
-                    let current = show_cpu.load(Ordering::SeqCst);
-                    show_cpu.store(!current, Ordering::SeqCst);
+                    let current = show_cpu.load(Relaxed);
+                    show_cpu.store(!current, Relaxed);
                 }
                 "show_mem" => {
-                    let current = show_mem.load(Ordering::SeqCst);
-                    show_mem.store(!current, Ordering::SeqCst);
+                    let current = show_mem.load(Relaxed);
+                    show_mem.store(!current, Relaxed);
                 }
                 "show_net_down" => {
-                    let current = show_net_down.load(Ordering::SeqCst);
-                    show_net_down.store(!current, Ordering::SeqCst);
+                    let current = show_net_down.load(Relaxed);
+                    show_net_down.store(!current, Relaxed);
                 }
                 "show_net_up" => {
-                    let current = show_net_up.load(Ordering::SeqCst);
-                    show_net_up.store(!current, Ordering::SeqCst);
+                    let current = show_net_up.load(Relaxed);
+                    show_net_up.store(!current, Relaxed);
                 }
                 "quit" => {
                     app.exit(0);
@@ -237,7 +243,6 @@ fn setup_tray(
 
 fn start_monitoring(
     app: AppHandle,
-    running: Arc<AtomicBool>,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_net_down: Arc<AtomicBool>,
@@ -255,7 +260,7 @@ fn start_monitoring(
         let mut first_run = true;
         let mut prev_display: Option<String> = None;
 
-        while running.load(Ordering::SeqCst) {
+        loop {
             sys.refresh_cpu_usage();
             thread::sleep(Duration::from_millis(200));
             sys.refresh_cpu_usage();
@@ -294,10 +299,10 @@ fn start_monitoring(
                 (rx_delta, tx_delta)
             };
 
-            let sc = show_cpu.load(Ordering::SeqCst);
-            let sm = show_mem.load(Ordering::SeqCst);
-            let sd = show_net_down.load(Ordering::SeqCst);
-            let su = show_net_up.load(Ordering::SeqCst);
+            let sc = show_cpu.load(Relaxed);
+            let sm = show_mem.load(Relaxed);
+            let sd = show_net_down.load(Relaxed);
+            let su = show_net_up.load(Relaxed);
 
             // Build display key for comparison (rounded values to reduce flickering)
             let display_key = format!(
@@ -311,7 +316,7 @@ fn start_monitoring(
             if prev_display.as_ref() != Some(&display_key) {
                 prev_display = Some(display_key);
 
-                let icon = render_tray_icon(
+                let (pixels, width, height) = render_tray_icon(
                     &font,
                     cpu_usage,
                     mem_percent,
@@ -321,9 +326,10 @@ fn start_monitoring(
                 );
 
                 if let Some(tray) = app.tray_by_id("main") {
-                    let _ = tray.set_icon(Some(icon));
-                    #[cfg(target_os = "macos")]
-                    let _ = tray.set_icon_as_template(true);
+                    let _ = tray.with_inner_tray_icon(move |inner| {
+                        let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
+                        inner.set_icon_with_as_template(icon, true)
+                    });
                 }
             }
 
@@ -334,9 +340,6 @@ fn start_monitoring(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let running = Arc::new(AtomicBool::new(true));
-    let running_clone = running.clone();
-
     let show_cpu = Arc::new(AtomicBool::new(true));
     let show_mem = Arc::new(AtomicBool::new(true));
     let show_net_down = Arc::new(AtomicBool::new(true));
@@ -346,11 +349,6 @@ pub fn run() {
     let show_mem_tray = show_mem.clone();
     let show_net_down_tray = show_net_down.clone();
     let show_net_up_tray = show_net_up.clone();
-
-    let show_cpu_mon = show_cpu.clone();
-    let show_mem_mon = show_mem.clone();
-    let show_net_down_mon = show_net_down.clone();
-    let show_net_up_mon = show_net_up.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -376,17 +374,14 @@ pub fn run() {
 
             start_monitoring(
                 app.handle().clone(),
-                running_clone.clone(),
-                show_cpu_mon.clone(),
-                show_mem_mon.clone(),
-                show_net_down_mon.clone(),
-                show_net_up_mon.clone(),
+                show_cpu,
+                show_mem,
+                show_net_down,
+                show_net_up,
             );
 
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-
-    running.store(false, Ordering::SeqCst);
 }
