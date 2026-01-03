@@ -111,6 +111,7 @@ fn cfdict_get_val(dict: CFDictionaryRef, key: &str) -> Option<CFTypeRef> {
 pub struct GpuSampler {
     subs: IOReportSubscriptionRef,
     chan: CFMutableDictionaryRef,
+    prev_sample: Option<CFDictionaryRef>,
 }
 
 impl GpuSampler {
@@ -147,36 +148,37 @@ impl GpuSampler {
             return None;
         }
 
-        Some(Self { subs, chan })
+        Some(Self { subs, chan, prev_sample: None })
     }
 
-    /// Sample GPU utilization over the given duration (in milliseconds).
+    /// Sample GPU utilization using delta from previous sample (non-blocking).
+    /// On first call, returns 0.0 and stores the initial sample.
+    /// On subsequent calls, computes delta from previous sample.
     /// Returns the GPU usage percentage (0.0 - 100.0).
-    pub fn sample(&self, duration_ms: u64) -> f32 {
+    pub fn sample(&mut self) -> f32 {
         unsafe {
-            let sample1 = IOReportCreateSamples(self.subs, self.chan, null());
-            if sample1.is_null() {
+            let current = IOReportCreateSamples(self.subs, self.chan, null());
+            if current.is_null() {
                 return 0.0;
             }
 
-            std::thread::sleep(std::time::Duration::from_millis(duration_ms));
+            let usage = if let Some(prev) = self.prev_sample {
+                let delta = IOReportCreateSamplesDelta(prev, current, null());
+                CFRelease(prev as _);
+                
+                if delta.is_null() {
+                    0.0
+                } else {
+                    let usage = self.calculate_gpu_usage(delta);
+                    CFRelease(delta as _);
+                    usage
+                }
+            } else {
+                // First sample - no delta possible yet
+                0.0
+            };
 
-            let sample2 = IOReportCreateSamples(self.subs, self.chan, null());
-            if sample2.is_null() {
-                CFRelease(sample1 as _);
-                return 0.0;
-            }
-
-            let delta = IOReportCreateSamplesDelta(sample1, sample2, null());
-            CFRelease(sample1 as _);
-            CFRelease(sample2 as _);
-
-            if delta.is_null() {
-                return 0.0;
-            }
-
-            let usage = self.calculate_gpu_usage(delta);
-            CFRelease(delta as _);
+            self.prev_sample = Some(current);
             usage
         }
     }
@@ -254,8 +256,13 @@ impl GpuSampler {
 impl Drop for GpuSampler {
     fn drop(&mut self) {
         unsafe {
+            if let Some(prev) = self.prev_sample {
+                CFRelease(prev as _);
+            }
             CFRelease(self.chan as _);
-            // Note: IOReportSubscriptionRef doesn't need explicit release
+            if !self.subs.is_null() {
+                CFRelease(self.subs as _);
+            }
         }
     }
 }

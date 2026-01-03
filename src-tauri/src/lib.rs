@@ -24,20 +24,22 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
 
 /// Fixed widths for each segment (in pixels at 2x scale for Retina)
-const SEGMENT_CPU: u32 = 105;
-const SEGMENT_MEM: u32 = 110;
-const SEGMENT_GPU: u32 = 105;
-const SEGMENT_NET: u32 = 100;
+const SEGMENT_CPU: u32 = 95;
+const SEGMENT_MEM: u32 = 100;
+const SEGMENT_GPU: u32 = 95;
+const SEGMENT_NET: u32 = 160;
 const EDGE_PADDING: u32 = 8;
 const SEPARATOR_GAP: u32 = 10;
 const SEPARATOR_LINE: u32 = 2;
 const ICON_HEIGHT: u32 = 32;
 const FONT_SIZE: f32 = 24.0;
+const LABEL_VALUE_GAP: u32 = 6; // Minimum gap between label and value
 
-/// Format bytes per second - compact format
+/// Format bytes per second - compact format (max 4 chars like "999M")
 fn format_speed(bytes_per_sec: f64) -> String {
     if bytes_per_sec >= 1_000_000_000.0 {
-        format!("{:.0}G", bytes_per_sec / 1_000_000_000.0)
+        let val = (bytes_per_sec / 1_000_000_000.0).min(99.0);
+        format!("{:.0}G", val)
     } else if bytes_per_sec >= 1_000_000.0 {
         format!("{:.0}M", bytes_per_sec / 1_000_000.0)
     } else if bytes_per_sec >= 1_000.0 {
@@ -45,6 +47,11 @@ fn format_speed(bytes_per_sec: f64) -> String {
     } else {
         format!("{:.0}B", bytes_per_sec)
     }
+}
+
+/// Cap percentage at 99% when > 99% (indicates "maxed out")
+fn cap_percent(value: f32) -> f32 {
+    if value > 99.0 { 99.0 } else { value }
 }
 
 /// Render tray icon as a fixed-width template image (black with alpha)
@@ -58,35 +65,59 @@ fn render_tray_icon(
     show_cpu: bool,
     show_mem: bool,
     show_gpu: bool,
-    show_net_down: bool,
-    show_net_up: bool,
+    show_net: bool,
 ) -> (Vec<u8>, u32, u32) {
+    // Segment types: Regular (label + value) or Network (two label+value pairs)
+    enum Segment {
+        Regular { label: &'static str, value: String, width: u32 },
+        Network { down_label: &'static str, down_value: String, up_label: &'static str, up_value: String, width: u32 },
+    }
+
     // Calculate total width based on enabled segments
-    let mut segments: Vec<(String, u32)> = Vec::new();
+    let mut segments: Vec<Segment> = Vec::new();
 
     if show_cpu {
-        segments.push((format!("CPU {:>3.0}%", cpu_usage), SEGMENT_CPU));
+        segments.push(Segment::Regular {
+            label: "CPU",
+            value: format!("{:.0}%", cap_percent(cpu_usage)),
+            width: SEGMENT_CPU,
+        });
     }
     if show_mem {
-        segments.push((format!("MEM {:>3.0}%", mem_percent), SEGMENT_MEM));
+        segments.push(Segment::Regular {
+            label: "MEM",
+            value: format!("{:.0}%", cap_percent(mem_percent)),
+            width: SEGMENT_MEM,
+        });
     }
     if show_gpu {
-        segments.push((format!("GPU {:>3.0}%", gpu_usage), SEGMENT_GPU));
+        segments.push(Segment::Regular {
+            label: "GPU",
+            value: format!("{:.0}%", cap_percent(gpu_usage)),
+            width: SEGMENT_GPU,
+        });
     }
-    if show_net_down {
-        segments.push((format!("D {:>5}", format_speed(down_speed)), SEGMENT_NET));
-    }
-    if show_net_up {
-        segments.push((format!("U {:>5}", format_speed(up_speed)), SEGMENT_NET));
+    if show_net {
+        segments.push(Segment::Network {
+            down_label: "↓",
+            down_value: format_speed(down_speed),
+            up_label: "↑",
+            up_value: format_speed(up_speed),
+            width: SEGMENT_NET,
+        });
     }
 
     // Calculate total width with symmetric edge padding and separator gaps
     let separator_total = SEPARATOR_GAP * 2 + SEPARATOR_LINE;
+    let segment_widths: u32 = segments.iter().map(|s| match s {
+        Segment::Regular { width, .. } => *width,
+        Segment::Network { width, .. } => *width,
+    }).sum();
     let total_width = if segments.is_empty() {
         50 // Minimum width
     } else {
         EDGE_PADDING
-            + segments.iter().map(|(_, w)| w).sum::<u32>()
+            + segment_widths
             + separator_total * (segments.len() as u32).saturating_sub(1)
             + EDGE_PADDING
     };
@@ -103,9 +134,39 @@ fn render_tray_icon(
     let v_metrics = font.v_metrics(scale);
     let baseline = (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0) - 2.0;
 
+    // Helper to measure text width
+    let measure_text = |text: &str| -> f32 {
+        let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, 0.0)).collect();
+        glyphs.last()
+            .and_then(|g| g.pixel_bounding_box())
+            .map(|bb| bb.max.x as f32)
+            .unwrap_or(0.0)
+    };
+
+    // Helper to draw text at a position
+    let mut draw_text = |text: &str, start_x: f32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+        for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
+            if let Some(bb) = glyph.pixel_bounding_box() {
+                glyph.draw(|gx, gy, v| {
+                    let x = (bb.min.x + gx as i32) as u32;
+                    let y = (bb.min.y + gy as i32) as u32;
+                    if x < total_width && y < ICON_HEIGHT {
+                        let alpha = (v * 255.0) as u8;
+                        img.put_pixel(x, y, Rgba([0, 0, 0, alpha]));
+                    }
+                });
+            }
+        }
+    };
+
     // Draw each segment at fixed positions
     let mut x_offset = EDGE_PADDING;
-    for (i, (text, width)) in segments.iter().enumerate() {
+    for (i, segment) in segments.iter().enumerate() {
+        let width = match segment {
+            Segment::Regular { width, .. } => *width,
+            Segment::Network { width, .. } => *width,
+        };
+
         // Draw separator before segment (except first)
         if i > 0 {
             x_offset += SEPARATOR_GAP;
@@ -121,24 +182,39 @@ fn render_tray_icon(
             x_offset += SEPARATOR_LINE + SEPARATOR_GAP;
         }
 
-        // Center text within segment
-        let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, 0.0)).collect();
-        let text_width = glyphs.last()
-            .and_then(|g| g.pixel_bounding_box())
-            .map(|bb| bb.max.x as f32)
-            .unwrap_or(0.0);
-        let text_start_x = x_offset as f32 + (*width as f32 - text_width) / 2.0;
-
-        for glyph in font.layout(text, scale, rusttype::point(text_start_x, baseline)) {
-            if let Some(bb) = glyph.pixel_bounding_box() {
-                glyph.draw(|gx, gy, v| {
-                    let x = (bb.min.x + gx as i32) as u32;
-                    let y = (bb.min.y + gy as i32) as u32;
-                    if x < total_width && y < ICON_HEIGHT {
-                        let alpha = (v * 255.0) as u8;
-                        img.put_pixel(x, y, Rgba([0, 0, 0, alpha]));
-                    }
-                });
+        match segment {
+            Segment::Regular { label, value, width: seg_width } => {
+                // Label at left, value right-aligned (but respecting min gap from label)
+                draw_text(label, x_offset as f32, &mut img);
+                let label_width = measure_text(label);
+                let value_width = measure_text(value);
+                let min_value_x = x_offset as f32 + label_width + LABEL_VALUE_GAP as f32;
+                let right_aligned_x = x_offset as f32 + *seg_width as f32 - value_width;
+                let value_x = right_aligned_x.max(min_value_x);
+                draw_text(value, value_x, &mut img);
+            }
+            Segment::Network { down_label, down_value, up_label, up_value, width: seg_width } => {
+                // Split segment in half for download and upload
+                let half_width = seg_width / 2;
+                
+                // Download: label at left, value right-aligned (with min gap)
+                draw_text(down_label, x_offset as f32, &mut img);
+                let down_label_width = measure_text(down_label);
+                let down_value_width = measure_text(down_value);
+                let down_min_x = x_offset as f32 + down_label_width + LABEL_VALUE_GAP as f32;
+                let down_right_x = x_offset as f32 + half_width as f32 - down_value_width - LABEL_VALUE_GAP as f32;
+                let down_value_x = down_right_x.max(down_min_x);
+                draw_text(down_value, down_value_x, &mut img);
+                
+                // Upload: label at left of second half, value right-aligned (with min gap)
+                let up_start = x_offset + half_width;
+                draw_text(up_label, up_start as f32, &mut img);
+                let up_label_width = measure_text(up_label);
+                let up_value_width = measure_text(up_value);
+                let up_min_x = up_start as f32 + up_label_width + LABEL_VALUE_GAP as f32;
+                let up_right_x = up_start as f32 + half_width as f32 - up_value_width;
+                let up_value_x = up_right_x.max(up_min_x);
+                draw_text(up_value, up_value_x, &mut img);
             }
         }
 
@@ -153,8 +229,7 @@ fn setup_tray(
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
-    show_net_down: Arc<AtomicBool>,
-    show_net_up: Arc<AtomicBool>,
+    show_net: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(desktop)]
     let autostart_manager = app.autolaunch();
@@ -182,12 +257,8 @@ fn setup_tray(
         app, "show_gpu", "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
     )?;
 
-    let show_net_down_item = CheckMenuItem::with_id(
-        app, "show_net_down", "Show Download", true, show_net_down.load(Relaxed), None::<&str>,
-    )?;
-
-    let show_net_up_item = CheckMenuItem::with_id(
-        app, "show_net_up", "Show Upload", true, show_net_up.load(Relaxed), None::<&str>,
+    let show_net_item = CheckMenuItem::with_id(
+        app, "show_net", "Show Network", true, show_net.load(Relaxed), None::<&str>,
     )?;
 
     let separator2 = PredefinedMenuItem::separator(app)?;
@@ -201,8 +272,7 @@ fn setup_tray(
             &show_cpu_item,
             &show_mem_item,
             &show_gpu_item,
-            &show_net_down_item,
-            &show_net_up_item,
+            &show_net_item,
             &separator2,
             &quit_item,
         ],
@@ -216,8 +286,7 @@ fn setup_tray(
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
         show_gpu.load(Relaxed),
-        show_net_down.load(Relaxed),
-        show_net_up.load(Relaxed),
+        show_net.load(Relaxed),
     );
     let initial_icon = Image::new_owned(pixels, width, height);
 
@@ -253,13 +322,9 @@ fn setup_tray(
                     let current = show_gpu.load(Relaxed);
                     show_gpu.store(!current, Relaxed);
                 }
-                "show_net_down" => {
-                    let current = show_net_down.load(Relaxed);
-                    show_net_down.store(!current, Relaxed);
-                }
-                "show_net_up" => {
-                    let current = show_net_up.load(Relaxed);
-                    show_net_up.store(!current, Relaxed);
+                "show_net" => {
+                    let current = show_net.load(Relaxed);
+                    show_net.store(!current, Relaxed);
                 }
                 "quit" => {
                     app.exit(0);
@@ -277,8 +342,7 @@ fn start_monitoring(
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
-    show_net_down: Arc<AtomicBool>,
-    show_net_up: Arc<AtomicBool>,
+    show_net: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
         // Load font once at thread start
@@ -286,7 +350,7 @@ fn start_monitoring(
 
         let mut sys = System::new();
         let mut networks = Networks::new_with_refreshed_list();
-        let gpu_sampler = GpuSampler::new();
+        let mut gpu_sampler = GpuSampler::new();
 
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
@@ -333,23 +397,21 @@ fn start_monitoring(
                 (rx_delta, tx_delta)
             };
 
-            // Sample GPU usage (non-blocking sample using short duration)
-            if let Some(ref sampler) = gpu_sampler {
-                gpu_usage = sampler.sample(100);
+            // Sample GPU usage
+            if let Some(ref mut sampler) = gpu_sampler {
+                gpu_usage = sampler.sample();
             }
 
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
             let sg = show_gpu.load(Relaxed);
-            let sd = show_net_down.load(Relaxed);
-            let su = show_net_up.load(Relaxed);
+            let sn = show_net.load(Relaxed);
 
-            // Build display key for comparison (rounded values to reduce flickering)
             let display_key = format!(
-                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
+                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}",
                 cpu_usage, mem_percent, gpu_usage,
                 format_speed(down_speed), format_speed(up_speed),
-                sc, sm, sg, sd, su
+                sc, sm, sg, sn
             );
 
             // Only update icon if display changed
@@ -363,7 +425,7 @@ fn start_monitoring(
                     gpu_usage,
                     down_speed,
                     up_speed,
-                    sc, sm, sg, sd, su,
+                    sc, sm, sg, sn,
                 );
 
                 if let Some(tray) = app.tray_by_id("main") {
@@ -384,14 +446,12 @@ pub fn run() {
     let show_cpu = Arc::new(AtomicBool::new(true));
     let show_mem = Arc::new(AtomicBool::new(true));
     let show_gpu = Arc::new(AtomicBool::new(true));
-    let show_net_down = Arc::new(AtomicBool::new(true));
-    let show_net_up = Arc::new(AtomicBool::new(true));
+    let show_net = Arc::new(AtomicBool::new(true));
 
     let show_cpu_tray = show_cpu.clone();
     let show_mem_tray = show_mem.clone();
     let show_gpu_tray = show_gpu.clone();
-    let show_net_down_tray = show_net_down.clone();
-    let show_net_up_tray = show_net_up.clone();
+    let show_net_tray = show_net.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -412,8 +472,7 @@ pub fn run() {
                 show_cpu_tray.clone(),
                 show_mem_tray.clone(),
                 show_gpu_tray.clone(),
-                show_net_down_tray.clone(),
-                show_net_up_tray.clone(),
+                show_net_tray.clone(),
             )?;
 
             start_monitoring(
@@ -421,8 +480,7 @@ pub fn run() {
                 show_cpu,
                 show_mem,
                 show_gpu,
-                show_net_down,
-                show_net_up,
+                show_net,
             );
 
             Ok(())
