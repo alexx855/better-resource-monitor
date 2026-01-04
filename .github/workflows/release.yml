@@ -1,29 +1,162 @@
-name: Release MVP
+name: Release
+
+# Required secrets:
+# - APPLE_CERTIFICATE: Base64-encoded .p12 certificate
+# - APPLE_CERTIFICATE_PASSWORD: Certificate password
+# - APPLE_ID: Apple Developer account email
+# - APPLE_PASSWORD: App-specific password for notarization
+# - APPLE_TEAM_ID: Team ID for notarization
 
 on:
-  push:
-    tags:
-      - 'v*' # Triggers when you push a tag like v0.1.0
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
-  release:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest] # Uses macOS 14 (Apple Silicon) runners
-
-    runs-on: ${{ matrix.platform }}
-
+  version-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+      release_notes: ${{ steps.notes.outputs.release_notes }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version and bump
+        id: bump
+        run: |
+          CURRENT=$(jq -r '.version' package.json)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "${{ inputs.version_type }}" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumping from $CURRENT to $NEW_VERSION"
+
+      - name: Update version in all files
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+
+          # Update package.json
+          jq ".version = \"$NEW_VERSION\"" package.json > tmp.json && mv tmp.json package.json
+
+          # Update tauri.conf.json
+          jq ".version = \"$NEW_VERSION\"" src-tauri/tauri.conf.json > tmp.json && mv tmp.json src-tauri/tauri.conf.json
+
+          # Update Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Escape for GitHub Actions output
+          NOTES=$(echo "$COMMITS" | sed 's/"/\\"/g')
+
+          # Write to file for multiline output
+          echo "## What's Changed" > release_notes.md
+          echo "" >> release_notes.md
+          if [ -z "$COMMITS" ]; then
+            echo "- Version bump to ${{ steps.bump.outputs.new_version }}" >> release_notes.md
+          else
+            echo "$COMMITS" >> release_notes.md
+          fi
+          echo "" >> release_notes.md
+          if [ -n "$LAST_TAG" ]; then
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...v${{ steps.bump.outputs.new_version }}" >> release_notes.md
+          fi
+
+          # Output using delimiter for multiline
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Commit and tag
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin main
+          git push origin "v$NEW_VERSION"
+
+  build-and-release:
+    needs: version-bump
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Import Apple Developer Certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm certificate.p12
+
+      - name: Get signing identity
+        id: cert
+        run: |
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" || security find-identity -v -p codesigning build.keychain | grep "Apple Development" || security find-identity -v -p codesigning build.keychain | head -2 | tail -1)
+          CERT_ID=$(echo "$CERT_INFO" | sed 's/.*"\(.*\)".*/\1/')
+          echo "identity=$CERT_ID" >> $GITHUB_OUTPUT
+          echo "Found signing identity: $CERT_ID"
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Explicitly target Apple Silicon
           targets: aarch64-apple-darwin
 
       - name: Rust cache
@@ -31,38 +164,34 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Frontend Dependencies
-        run: npm install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
-      - name: Build and Create Release
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build and create release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NOTE: For a simple MVP without a paid Apple Developer Account ($99/yr),
-          # we DO NOT set APPLE_CERTIFICATE. The app will be "Ad-hoc" signed.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.cert.outputs.identity }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'SiliconMonitor ${{ github.ref_name }}'
-          releaseBody: |
-            ## SiliconMonitor - Apple Silicon System Monitor
-            
-            A lightweight menu bar system monitor for macOS (Apple Silicon).
-            
-            ### Installation
-            
-            1. Download the `.dmg` file below
-            2. Open the DMG and drag SiliconMonitor to Applications
-            3. **Important**: Run this command in Terminal to allow the app to run:
-               ```bash
-               xattr -cr /Applications/SiliconMonitor.app
-               ```
-            4. Launch SiliconMonitor from Applications
-            
-            ### Features
-            - Real-time CPU, RAM, and Network speed monitoring
-            - "Start at Login" option
-            - Lightweight and efficient
-          releaseDraft: true
+          tagName: v${{ needs.version-bump.outputs.new_version }}
+          releaseName: 'Silicon Resources Monitor v${{ needs.version-bump.outputs.new_version }}'
+          releaseBody: ${{ needs.version-bump.outputs.release_notes }}
+          releaseDraft: false
           prerelease: false
-          # Arguments to force Apple Silicon build
           args: --target aarch64-apple-darwin

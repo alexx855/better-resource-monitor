@@ -6,12 +6,15 @@ use tauri::{
     tray::TrayIconBuilder,
     ActivationPolicy,
     AppHandle,
+    Manager,
     image::Image,
 };
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use std::path::PathBuf;
+use std::fs;
 use image::{ImageBuffer, Rgba};
 use rusttype::{Font, Scale};
 use font_kit::source::SystemSource;
@@ -32,7 +35,9 @@ fn load_system_font() -> Font<'static> {
     let handle = source.select_best_match(
         &[FamilyName::SansSerif],
         &Properties::new().weight(Weight::MEDIUM)
-    ).expect("Failed to select a font");
+    ).or_else(|_| {
+        source.select_best_match(&[FamilyName::SansSerif], &Properties::new())
+    }).expect("Failed to select a system font");
 
     let font_data = match &handle {
         Handle::Path { path, .. } => std::fs::read(path).expect("Failed to read font file"),
@@ -231,7 +236,7 @@ fn render_tray_icon(
 
     let draw_chevron = |img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, is_up: bool| {
         // Much Larger 15x8 chevron
-        let c = Rgba([255, 255, 255, 255]); 
+        let c = Rgba([0, 0, 0, 255]); 
         
         let center_y = ICON_HEIGHT / 2;
         // Center the 8px height icon
@@ -329,8 +334,30 @@ fn setup_tray(
     #[cfg(desktop)]
     let autostart_manager = app.autolaunch();
 
+    // Check if this is the first run by looking for a marker file.
+    // If it doesn't exist, enable autostart by default and create the marker.
     #[cfg(desktop)]
-    let is_autostart_enabled = autostart_manager.is_enabled().unwrap_or(false);
+    let is_autostart_enabled = {
+        let marker_path: PathBuf = app
+            .path()
+            .app_data_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(".autostart_configured");
+        
+        if !marker_path.exists() {
+            // First run: enable autostart by default
+            let _ = autostart_manager.enable();
+            // Create parent directory if needed and write the marker file
+            if let Some(parent) = marker_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            let _ = fs::write(&marker_path, "1");
+            true
+        } else {
+            // Subsequent run: read current state (respects user's choice)
+            autostart_manager.is_enabled().unwrap_or(false)
+        }
+    };
     #[cfg(not(desktop))]
     let is_autostart_enabled = false;
 

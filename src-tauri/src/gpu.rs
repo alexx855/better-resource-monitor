@@ -134,17 +134,18 @@ impl GpuSampler {
         }
 
         let size = unsafe { CFDictionaryGetCount(chan) };
-        let chan = unsafe { CFDictionaryCreateMutableCopy(kCFAllocatorDefault, size, chan) };
+        let mutable_chan = unsafe { CFDictionaryCreateMutableCopy(kCFAllocatorDefault, size, chan) };
+        unsafe { CFRelease(chan as _) };
 
         let mut s: MaybeUninit<CFMutableDictionaryRef> = MaybeUninit::uninit();
-        let subs = unsafe { IOReportCreateSubscription(null(), chan, s.as_mut_ptr(), 0, null()) };
+        let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, s.as_mut_ptr(), 0, null()) };
 
         if subs.is_null() {
-            unsafe { CFRelease(chan as _) };
+            unsafe { CFRelease(mutable_chan as _) };
             return None;
         }
 
-        Some(Self { subs, chan, prev_sample: None })
+        Some(Self { subs, chan: mutable_chan, prev_sample: None })
     }
 
     pub fn sample(&mut self) -> f32 {
@@ -243,9 +244,6 @@ impl Drop for GpuSampler {
                 CFRelease(prev as _);
             }
             CFRelease(self.chan as _);
-            if !self.subs.is_null() {
-                CFRelease(self.subs as _);
-            }
         }
     }
 }
