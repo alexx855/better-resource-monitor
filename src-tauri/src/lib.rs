@@ -20,41 +20,94 @@ use gpu::GpuSampler;
 #[cfg(desktop)]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-/// Font data embedded at compile time
+
 const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
 
-/// Fixed widths for each segment (in pixels at 2x scale for Retina)
-const SEGMENT_CPU: u32 = 95;
-const SEGMENT_MEM: u32 = 100;
-const SEGMENT_GPU: u32 = 95;
-const SEGMENT_NET: u32 = 160;
+
+const SEGMENT_WIDTH_CPU: u32 = 110;  // "CPU" + value
+const SEGMENT_WIDTH_MEM: u32 = 114; // "MEM" is wider
+const SEGMENT_WIDTH_GPU: u32 = 108;  // "GPU" + value
+const SEGMENT_WIDTH_NET: u32 = 102;  // Arrow + network speed
 const EDGE_PADDING: u32 = 8;
 const SEPARATOR_GAP: u32 = 10;
 const SEPARATOR_LINE: u32 = 2;
 const ICON_HEIGHT: u32 = 32;
-const FONT_SIZE: f32 = 24.0;
-const LABEL_VALUE_GAP: u32 = 6; // Minimum gap between label and value
+const FONT_SIZE: f32 = 26.0;
+const LABEL_VALUE_GAP: u32 = 6;
 
-/// Format bytes per second - compact format (max 4 chars like "999M")
+
 fn format_speed(bytes_per_sec: f64) -> String {
-    if bytes_per_sec >= 1_000_000_000.0 {
-        let val = (bytes_per_sec / 1_000_000_000.0).min(99.0);
-        format!("{:.0}G", val)
-    } else if bytes_per_sec >= 1_000_000.0 {
-        format!("{:.0}M", bytes_per_sec / 1_000_000.0)
-    } else if bytes_per_sec >= 1_000.0 {
-        format!("{:.0}K", bytes_per_sec / 1_000.0)
+    const THRESHOLD_KB: f64 = 99_500.0;
+    const THRESHOLD_MB: f64 = 99_500_000.0;
+    const THRESHOLD_GB: f64 = 99_500_000_000.0;
+    
+    let (value, unit) = if bytes_per_sec >= THRESHOLD_GB {
+        let val = bytes_per_sec / 1_000_000_000_000.0;
+        if val > 9.9 {
+             (9.9, "TB")
+        } else {
+             (val, "TB")
+        }
+    } else if bytes_per_sec >= THRESHOLD_MB {
+        (bytes_per_sec / 1_000_000_000.0, "GB")
+    } else if bytes_per_sec >= THRESHOLD_KB {
+        (bytes_per_sec / 1_000_000.0, "MB")
     } else {
-        format!("{:.0}B", bytes_per_sec)
+        (bytes_per_sec / 1_000.0, "KB")
+    };
+
+    let value_str = if value < 10.0 {
+        format!("{:.1}", value)
+    } else {
+        format!("{:.0}", value.round().min(99.0))
+    };
+
+    format!("{} {}", value_str, unit)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_speed_strict() {
+        // KB range (0 - 99)
+        assert_eq!(format_speed(0.0),        "0.0 KB");
+        assert_eq!(format_speed(500.0),      "0.5 KB");
+        assert_eq!(format_speed(1_500.0),    "1.5 KB");
+        assert_eq!(format_speed(10_000.0),   "10 KB");
+        assert_eq!(format_speed(99_000.0),   "99 KB");
+        assert_eq!(format_speed(99_400.0),   "99 KB"); // Rounds down
+
+        // Endpoint: 99.5 KB -> 0.1 MB
+        assert_eq!(format_speed(99_500.0),   "0.1 MB");
+        
+        // MB range
+        assert_eq!(format_speed(100_000.0),  "0.1 MB");
+        assert_eq!(format_speed(1_500_000.0), "1.5 MB");
+        assert_eq!(format_speed(10_000_000.0), "10 MB");
+        
+        // Endpoint: 99.5 MB -> 0.1 GB
+        assert_eq!(format_speed(99_500_000.0), "0.1 GB");
+
+        // GB range
+        assert_eq!(format_speed(100_000_000.0), "0.1 GB");
+        assert_eq!(format_speed(1_500_000_000.0), "1.5 GB");
+        assert_eq!(format_speed(10_000_000_000.0), "10 GB");
+
+        // TB range and Cap
+        // 99.5 GB -> 0.1 TB
+        assert_eq!(format_speed(99_500_000_000.0), "0.1 TB");
+        assert_eq!(format_speed(1_000_000_000_000.0), "1.0 TB");
+        assert_eq!(format_speed(9_900_000_000_000.0), "9.9 TB");
+        assert_eq!(format_speed(15_000_000_000_000.0), "9.9 TB"); // Cap
     }
 }
 
-/// Cap percentage at 99% when > 99% (indicates "maxed out")
 fn cap_percent(value: f32) -> f32 {
     if value > 99.0 { 99.0 } else { value }
 }
 
-/// Render tray icon as a fixed-width template image (black with alpha)
 fn render_tray_icon(
     font: &Font,
     cpu_usage: f32,
@@ -67,52 +120,50 @@ fn render_tray_icon(
     show_gpu: bool,
     show_net: bool,
 ) -> (Vec<u8>, u32, u32) {
-    // Segment types: Regular (label + value) or Network (two label+value pairs)
-    enum Segment {
-        Regular { label: &'static str, value: String, width: u32 },
-        Network { down_label: &'static str, down_value: String, up_label: &'static str, up_value: String, width: u32 },
+    struct Segment {
+        label: &'static str,
+        value: String,
+        width: u32,
     }
 
-    // Calculate total width based on enabled segments
     let mut segments: Vec<Segment> = Vec::new();
 
     if show_cpu {
-        segments.push(Segment::Regular {
+        segments.push(Segment {
             label: "CPU",
             value: format!("{:.0}%", cap_percent(cpu_usage)),
-            width: SEGMENT_CPU,
+            width: SEGMENT_WIDTH_CPU,
         });
     }
     if show_mem {
-        segments.push(Segment::Regular {
+        segments.push(Segment {
             label: "MEM",
             value: format!("{:.0}%", cap_percent(mem_percent)),
-            width: SEGMENT_MEM,
+            width: SEGMENT_WIDTH_MEM,
         });
     }
     if show_gpu {
-        segments.push(Segment::Regular {
+        segments.push(Segment {
             label: "GPU",
             value: format!("{:.0}%", cap_percent(gpu_usage)),
-            width: SEGMENT_GPU,
+            width: SEGMENT_WIDTH_GPU,
         });
     }
     if show_net {
-        segments.push(Segment::Network {
-            down_label: "↓",
-            down_value: format_speed(down_speed),
-            up_label: "↑",
-            up_value: format_speed(up_speed),
-            width: SEGMENT_NET,
+        segments.push(Segment {
+            label: "↓",
+            value: format_speed(down_speed),
+            width: SEGMENT_WIDTH_NET,
+        });
+        segments.push(Segment {
+            label: "↑",
+            value: format_speed(up_speed),
+            width: SEGMENT_WIDTH_NET,
         });
     }
 
-    // Calculate total width with symmetric edge padding and separator gaps
     let separator_total = SEPARATOR_GAP * 2 + SEPARATOR_LINE;
-    let segment_widths: u32 = segments.iter().map(|s| match s {
-        Segment::Regular { width, .. } => *width,
-        Segment::Network { width, .. } => *width,
-    }).sum();
+    let segment_widths: u32 = segments.iter().map(|s| s.width).sum();
     let total_width = if segments.is_empty() {
         50 // Minimum width
     } else {
@@ -122,10 +173,8 @@ fn render_tray_icon(
             + EDGE_PADDING
     };
 
-    // Create image buffer with transparent background
     let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, ICON_HEIGHT);
 
-    // Fill with transparent
     for pixel in img.pixels_mut() {
         *pixel = Rgba([0, 0, 0, 0]);
     }
@@ -134,17 +183,13 @@ fn render_tray_icon(
     let v_metrics = font.v_metrics(scale);
     let baseline = (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0) - 2.0;
 
-    // Helper to measure text width
     let measure_text = |text: &str| -> f32 {
-        let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, 0.0)).collect();
-        glyphs.last()
-            .and_then(|g| g.pixel_bounding_box())
-            .map(|bb| bb.max.x as f32)
-            .unwrap_or(0.0)
+        font.layout(text, scale, rusttype::point(0.0, 0.0))
+            .map(|g| g.unpositioned().h_metrics().advance_width)
+            .sum()
     };
 
-    // Helper to draw text at a position
-    let mut draw_text = |text: &str, start_x: f32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+    let draw_text = |text: &str, start_x: f32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
             if let Some(bb) = glyph.pixel_bounding_box() {
                 glyph.draw(|gx, gy, v| {
@@ -159,19 +204,11 @@ fn render_tray_icon(
         }
     };
 
-    // Draw each segment at fixed positions
     let mut x_offset = EDGE_PADDING;
     for (i, segment) in segments.iter().enumerate() {
-        let width = match segment {
-            Segment::Regular { width, .. } => *width,
-            Segment::Network { width, .. } => *width,
-        };
-
-        // Draw separator before segment (except first)
         if i > 0 {
             x_offset += SEPARATOR_GAP;
             let sep_x = x_offset;
-            // Draw separator line
             for y in (ICON_HEIGHT / 4)..(ICON_HEIGHT * 3 / 4) {
                 for dx in 0..SEPARATOR_LINE {
                     if sep_x + dx < total_width {
@@ -182,43 +219,17 @@ fn render_tray_icon(
             x_offset += SEPARATOR_LINE + SEPARATOR_GAP;
         }
 
-        match segment {
-            Segment::Regular { label, value, width: seg_width } => {
-                // Label at left, value right-aligned (but respecting min gap from label)
-                draw_text(label, x_offset as f32, &mut img);
-                let label_width = measure_text(label);
-                let value_width = measure_text(value);
-                let min_value_x = x_offset as f32 + label_width + LABEL_VALUE_GAP as f32;
-                let right_aligned_x = x_offset as f32 + *seg_width as f32 - value_width;
-                let value_x = right_aligned_x.max(min_value_x);
-                draw_text(value, value_x, &mut img);
-            }
-            Segment::Network { down_label, down_value, up_label, up_value, width: seg_width } => {
-                // Split segment in half for download and upload
-                let half_width = seg_width / 2;
-                
-                // Download: label at left, value right-aligned (with min gap)
-                draw_text(down_label, x_offset as f32, &mut img);
-                let down_label_width = measure_text(down_label);
-                let down_value_width = measure_text(down_value);
-                let down_min_x = x_offset as f32 + down_label_width + LABEL_VALUE_GAP as f32;
-                let down_right_x = x_offset as f32 + half_width as f32 - down_value_width - LABEL_VALUE_GAP as f32;
-                let down_value_x = down_right_x.max(down_min_x);
-                draw_text(down_value, down_value_x, &mut img);
-                
-                // Upload: label at left of second half, value right-aligned (with min gap)
-                let up_start = x_offset + half_width;
-                draw_text(up_label, up_start as f32, &mut img);
-                let up_label_width = measure_text(up_label);
-                let up_value_width = measure_text(up_value);
-                let up_min_x = up_start as f32 + up_label_width + LABEL_VALUE_GAP as f32;
-                let up_right_x = up_start as f32 + half_width as f32 - up_value_width;
-                let up_value_x = up_right_x.max(up_min_x);
-                draw_text(up_value, up_value_x, &mut img);
-            }
-        }
+        let label_width = measure_text(&segment.label);
+        draw_text(&segment.label, x_offset as f32, &mut img);
+        
+        let value_width = measure_text(&segment.value);
+        let segment_end = x_offset as f32 + segment.width as f32;
+        let right_aligned_x = segment_end - value_width;
+        let min_gap_x = x_offset as f32 + label_width + LABEL_VALUE_GAP as f32;
+        let value_x = right_aligned_x.max(min_gap_x);
+        draw_text(&segment.value, value_x, &mut img);
 
-        x_offset += width;
+        x_offset += segment.width;
     }
 
     (img.into_raw(), total_width, ICON_HEIGHT)
@@ -278,7 +289,6 @@ fn setup_tray(
         ],
     )?;
 
-    // Render initial icon as template
     let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
     let (pixels, width, height) = render_tray_icon(
         &font,
@@ -345,7 +355,6 @@ fn start_monitoring(
     show_net: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
-        // Load font once at thread start
         let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
 
         let mut sys = System::new();
@@ -397,7 +406,6 @@ fn start_monitoring(
                 (rx_delta, tx_delta)
             };
 
-            // Sample GPU usage
             if let Some(ref mut sampler) = gpu_sampler {
                 gpu_usage = sampler.sample();
             }
@@ -414,7 +422,6 @@ fn start_monitoring(
                 sc, sm, sg, sn
             );
 
-            // Only update icon if display changed
             if prev_display.as_ref() != Some(&display_key) {
                 prev_display = Some(display_key);
 

@@ -18,7 +18,7 @@ use core_foundation::string::{
     kCFStringEncodingUTF8, CFStringCreateWithBytesNoCopy, CFStringGetCString, CFStringRef,
 };
 
-// Type aliases
+
 type CVoidRef = *const c_void;
 
 #[repr(C)]
@@ -29,7 +29,7 @@ struct IOReportSubscription {
 
 type IOReportSubscriptionRef = *const IOReportSubscription;
 
-// IOReport bindings - these are in libIOReport.dylib, not IOKit.framework
+
 #[link(name = "IOReport")]
 unsafe extern "C" {
     fn IOReportCopyChannelsInGroup(
@@ -39,7 +39,7 @@ unsafe extern "C" {
         d: u64,
         e: u64,
     ) -> CFDictionaryRef;
-    fn IOReportMergeChannels(a: CFDictionaryRef, b: CFDictionaryRef, nil: CFTypeRef);
+
     fn IOReportCreateSubscription(
         a: CVoidRef,
         b: CFMutableDictionaryRef,
@@ -107,7 +107,6 @@ fn cfdict_get_val(dict: CFDictionaryRef, key: &str) -> Option<CFTypeRef> {
     }
 }
 
-/// GPU sampler that uses IOReport to measure GPU utilization
 pub struct GpuSampler {
     subs: IOReportSubscriptionRef,
     chan: CFMutableDictionaryRef,
@@ -115,9 +114,7 @@ pub struct GpuSampler {
 }
 
 impl GpuSampler {
-    /// Create a new GPU sampler. Returns None if IOReport initialization fails.
     pub fn new() -> Option<Self> {
-        // Get GPU Stats channels with "GPU Performance States" subgroup
         let group_name = cfstr("GPU Stats");
         let subgroup_name = cfstr("GPU Performance States");
 
@@ -131,7 +128,6 @@ impl GpuSampler {
             return None;
         }
 
-        // Check if we got valid channels
         if cfdict_get_val(chan, "IOReportChannels").is_none() {
             unsafe { CFRelease(chan as _) };
             return None;
@@ -151,10 +147,6 @@ impl GpuSampler {
         Some(Self { subs, chan, prev_sample: None })
     }
 
-    /// Sample GPU utilization using delta from previous sample (non-blocking).
-    /// On first call, returns 0.0 and stores the initial sample.
-    /// On subsequent calls, computes delta from previous sample.
-    /// Returns the GPU usage percentage (0.0 - 100.0).
     pub fn sample(&mut self) -> f32 {
         unsafe {
             let current = IOReportCreateSamples(self.subs, self.chan, null());
@@ -174,7 +166,6 @@ impl GpuSampler {
                     usage
                 }
             } else {
-                // First sample - no delta possible yet
                 0.0
             };
 
@@ -183,8 +174,6 @@ impl GpuSampler {
         }
     }
 
-    /// Calculate GPU usage from delta sample
-    /// Looks for GPUPH channel in "GPU Performance States" subgroup
     fn calculate_gpu_usage(&self, delta: CFDictionaryRef) -> f32 {
         let items = match cfdict_get_val(delta, "IOReportChannels") {
             Some(v) => v as CFArrayRef,
@@ -199,29 +188,24 @@ impl GpuSampler {
                 continue;
             }
 
-            // Check subgroup
             let subgroup = unsafe { IOReportChannelGetSubGroup(item) };
             let subgroup_str = from_cfstr(subgroup);
             if subgroup_str != "GPU Performance States" {
                 continue;
             }
 
-            // Check channel name - we want GPUPH
             let channel_name = unsafe { IOReportChannelGetChannelName(item) };
             let channel_str = from_cfstr(channel_name);
             if channel_str != "GPUPH" {
                 continue;
             }
 
-            // Found GPUPH - calculate usage from residencies
             return self.calc_residency_usage(item);
         }
 
         0.0
     }
 
-    /// Calculate usage percentage from state residencies
-    /// OFF/IDLE states are idle, everything else is active
     fn calc_residency_usage(&self, item: CFDictionaryRef) -> f32 {
         let state_count = unsafe { IOReportStateGetCount(item) };
         if state_count <= 0 {
@@ -236,7 +220,6 @@ impl GpuSampler {
             let state_name_str = from_cfstr(state_name);
             let residency = unsafe { IOReportStateGetResidency(item, s) };
 
-            // OFF, IDLE are idle states - everything else is an active frequency state
             if state_name_str == "OFF" || state_name_str == "IDLE" || state_name_str == "DOWN" {
                 total_idle += residency;
             } else {
@@ -267,5 +250,5 @@ impl Drop for GpuSampler {
     }
 }
 
-// Safety: GpuSampler can be sent between threads
+
 unsafe impl Send for GpuSampler {}
