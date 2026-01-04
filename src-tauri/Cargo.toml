@@ -26,5 +26,6 @@ image = "0.24"
 rusttype = "0.9"
 tray-icon = "0.21"
 core-foundation = "0.10"
+font-kit = "0.13"
 
 

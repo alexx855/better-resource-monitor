@@ -14,6 +14,10 @@ use std::thread;
 use std::time::Duration;
 use image::{ImageBuffer, Rgba};
 use rusttype::{Font, Scale};
+use font_kit::source::SystemSource;
+use font_kit::family_name::FamilyName;
+use font_kit::properties::{Properties, Weight};
+use font_kit::handle::Handle;
 
 use gpu::GpuSampler;
 
@@ -21,13 +25,28 @@ use gpu::GpuSampler;
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 
-const FONT_DATA: &[u8] = include_bytes!("../fonts/Inter-Medium.ttf");
+
+fn load_system_font() -> Font<'static> {
+    let source = SystemSource::new();
+    
+    let handle = source.select_best_match(
+        &[FamilyName::SansSerif],
+        &Properties::new().weight(Weight::MEDIUM)
+    ).expect("Failed to select a font");
+
+    let font_data = match &handle {
+        Handle::Path { path, .. } => std::fs::read(path).expect("Failed to read font file"),
+        Handle::Memory { bytes, .. } => bytes.to_vec(),
+    };
+
+    Font::try_from_vec(font_data).expect("Error constructing font")
+}
 
 
 const SEGMENT_WIDTH_CPU: u32 = 110;  // "CPU" + value
 const SEGMENT_WIDTH_MEM: u32 = 114; // "MEM" is wider
 const SEGMENT_WIDTH_GPU: u32 = 108;  // "GPU" + value
-const SEGMENT_WIDTH_NET: u32 = 102;  // Arrow + network speed
+const SEGMENT_WIDTH_NET: u32 = 98;  // Arrow + network speed
 const EDGE_PADDING: u32 = 8;
 const SEPARATOR_GAP: u32 = 10;
 const SEPARATOR_LINE: u32 = 2;
@@ -120,8 +139,14 @@ fn render_tray_icon(
     show_gpu: bool,
     show_net: bool,
 ) -> (Vec<u8>, u32, u32) {
+    enum SegmentLabel {
+        Text(&'static str),
+        IconDown,
+        IconUp,
+    }
+
     struct Segment {
-        label: &'static str,
+        label: SegmentLabel,
         value: String,
         width: u32,
     }
@@ -130,33 +155,33 @@ fn render_tray_icon(
 
     if show_cpu {
         segments.push(Segment {
-            label: "CPU",
+            label: SegmentLabel::Text("CPU"),
             value: format!("{:.0}%", cap_percent(cpu_usage)),
             width: SEGMENT_WIDTH_CPU,
         });
     }
     if show_mem {
         segments.push(Segment {
-            label: "MEM",
+            label: SegmentLabel::Text("MEM"),
             value: format!("{:.0}%", cap_percent(mem_percent)),
             width: SEGMENT_WIDTH_MEM,
         });
     }
     if show_gpu {
         segments.push(Segment {
-            label: "GPU",
+            label: SegmentLabel::Text("GPU"),
             value: format!("{:.0}%", cap_percent(gpu_usage)),
             width: SEGMENT_WIDTH_GPU,
         });
     }
     if show_net {
         segments.push(Segment {
-            label: "↓",
+            label: SegmentLabel::IconDown,
             value: format_speed(down_speed),
             width: SEGMENT_WIDTH_NET,
         });
         segments.push(Segment {
-            label: "↑",
+            label: SegmentLabel::IconUp,
             value: format_speed(up_speed),
             width: SEGMENT_WIDTH_NET,
         });
@@ -204,23 +229,82 @@ fn render_tray_icon(
         }
     };
 
+    let draw_chevron = |img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, is_up: bool| {
+        // Much Larger 15x8 chevron
+        let c = Rgba([255, 255, 255, 255]); 
+        
+        let center_y = ICON_HEIGHT / 2;
+        // Center the 8px height icon
+        let base_y = if is_up { center_y - 4 } else { center_y - 4 };
+        
+        // 15px wide, 8px high. 2px thick strokes.
+        let offsets = if is_up {
+             // ^ shape
+            vec![
+                (7, 0),                         // Tip
+                (6, 1), (8, 1),                 // Row 2
+                (5, 2), (9, 2),                 // Row 3
+                (4, 3), (10, 3),                // Row 4
+                (3, 4), (11, 4),                // Row 5
+                (2, 5), (12, 5),                // Row 6
+                (1, 6), (13, 6),                // Row 7
+                (0, 7), (14, 7),                // Row 8
+                
+                // Second layer for thickness (inner adjacent)
+                (7, 1),
+                (6, 2), (8, 2),
+                (5, 3), (9, 3),
+                (4, 4), (10, 4),
+                (3, 5), (11, 5),
+                (2, 6), (12, 6),
+                (1, 7), (13, 7),
+            ]
+        } else {
+             // v shape
+             vec![
+                (0, 0), (14, 0),                // Row 1
+                (1, 1), (13, 1),                // Row 2
+                (2, 2), (12, 2),                // Row 3
+                (3, 3), (11, 3),                // Row 4
+                (4, 4), (10, 4),                // Row 5
+                (5, 5), (9, 5),                 // Row 6
+                (6, 6), (8, 6),                 // Row 7
+                (7, 7),                         // Tip
+
+                // Second layer for thickness (inner adjacent)
+                (1, 0), (13, 0),
+                (2, 1), (12, 1),
+                (3, 2), (11, 2),
+                (4, 3), (10, 3),
+                (5, 4), (9, 4),
+                (6, 5), (8, 5),
+                (7, 6)
+            ]
+        };
+
+        for (dx, dy) in offsets {
+           if x + dx < total_width {
+               img.put_pixel(x + dx, base_y + dy, c);
+           }
+        }
+    };
+
     let mut x_offset = EDGE_PADDING;
     for (i, segment) in segments.iter().enumerate() {
         if i > 0 {
-            x_offset += SEPARATOR_GAP;
-            let sep_x = x_offset;
-            for y in (ICON_HEIGHT / 4)..(ICON_HEIGHT * 3 / 4) {
-                for dx in 0..SEPARATOR_LINE {
-                    if sep_x + dx < total_width {
-                        img.put_pixel(sep_x + dx, y, Rgba([0, 0, 0, 200]));
-                    }
-                }
-            }
-            x_offset += SEPARATOR_LINE + SEPARATOR_GAP;
+            x_offset += SEPARATOR_GAP * 2 + SEPARATOR_LINE;
         }
 
-        let label_width = measure_text(&segment.label);
-        draw_text(&segment.label, x_offset as f32, &mut img);
+        let label_width = match segment.label {
+            SegmentLabel::IconDown | SegmentLabel::IconUp => 16.0,
+            SegmentLabel::Text(text) => measure_text(text),
+        };
+
+        match segment.label {
+            SegmentLabel::IconDown => draw_chevron(&mut img, x_offset, false),
+            SegmentLabel::IconUp => draw_chevron(&mut img, x_offset, true),
+            SegmentLabel::Text(text) => draw_text(text, x_offset as f32, &mut img),
+        }
         
         let value_width = measure_text(&segment.value);
         let segment_end = x_offset as f32 + segment.width as f32;
@@ -289,7 +373,7 @@ fn setup_tray(
         ],
     )?;
 
-    let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
+    let font = load_system_font();
     let (pixels, width, height) = render_tray_icon(
         &font,
         0.0, 0.0, 0.0, 0.0, 0.0,
@@ -355,7 +439,7 @@ fn start_monitoring(
     show_net: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
-        let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
+        let font = load_system_font();
 
         let mut sys = System::new();
         let mut networks = Networks::new_with_refreshed_list();
