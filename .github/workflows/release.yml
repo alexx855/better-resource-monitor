@@ -116,11 +116,18 @@ jobs:
           git push origin main
           git push origin "v$NEW_VERSION"
 
-  build-and-release:
+  publish-tauri:
     needs: version-bump
-    runs-on: macos-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
     env:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -131,33 +138,16 @@ jobs:
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
-      - name: Import Apple Developer Certificate
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          rm certificate.p12
-
-      - name: Get signing identity
-        id: cert
-        run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" || security find-identity -v -p codesigning build.keychain | grep "Apple Development" || security find-identity -v -p codesigning build.keychain | head -2 | tail -1)
-          CERT_ID=$(echo "$CERT_INFO" | sed 's/.*"\(.*\)".*/\1/')
-          echo "identity=$CERT_ID" >> $GITHUB_OUTPUT
-          echo "Found signing identity: $CERT_ID"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -169,12 +159,6 @@ jobs:
         with:
           version: latest
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'pnpm'
-
       - name: Install frontend dependencies
         run: pnpm install
 
@@ -184,14 +168,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ steps.cert.outputs.identity }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: v${{ needs.version-bump.outputs.new_version }}
-          releaseName: 'Silicon Resources Monitor v${{ needs.version-bump.outputs.new_version }}'
+          releaseName: 'Silicon Monitor v${{ needs.version-bump.outputs.new_version }}'
           releaseBody: ${{ needs.version-bump.outputs.release_notes }}
           releaseDraft: false
           prerelease: false
-          args: --target aarch64-apple-darwin
+          args: ${{ matrix.args }}
