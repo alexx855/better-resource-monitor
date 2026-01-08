@@ -22,6 +22,8 @@ on:
 jobs:
   version-bump:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
       release_notes: ${{ steps.notes.outputs.release_notes }}
