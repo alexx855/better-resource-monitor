@@ -3,20 +3,14 @@
 </p>
 
 <p align="center">
-  <strong>A native macOS menu bar system monitor for Apple Silicon.</strong><br>
-  Blazing-fast. Native. Rust-powered.
+  <strong>A native macOS menu bar system monitor for Apple Silicon.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.apple.com/macos/">
-    <img src="https://img.shields.io/badge/macOS-15.0%2B_(Sequoia)-0078d7?logo=apple&logoColor=white&style=flat-square" alt="macOS 15.0+ (Sequoia)">
-  </a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15.0%2B_(Sequoia)-0078d7?logo=apple&logoColor=white&style=flat-square" alt="macOS 15.0+ (Sequoia)"></a>
   <img src="https://img.shields.io/badge/Apple_Silicon-M--Series-orange?logo=apple&logoColor=white&style=flat-square" alt="Apple Silicon M-Series">
-
-  <a href="https://github.com/alexx855/silicon-monitor/releases/latest">
-    <img src="https://img.shields.io/badge/Download-macOS-000000?logo=apple&logoColor=white&style=flat-square" alt="Download macOS">
-  </a>
-    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License">
+  <a href="https://github.com/alexx855/silicon-monitor/releases/latest"><img src="https://img.shields.io/badge/Download-macOS-000000?logo=apple&logoColor=white&style=flat-square" alt="Download macOS"></a>
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License">
 </p>
 
 <p align="center">
