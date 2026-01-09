@@ -34,7 +34,7 @@ fn load_system_font() -> Font<'static> {
     
     let handle = source.select_best_match(
         &[FamilyName::SansSerif],
-        &Properties::new().weight(Weight::MEDIUM)
+        Properties::new().weight(Weight::MEDIUM)
     ).or_else(|_| {
         source.select_best_match(&[FamilyName::SansSerif], &Properties::new())
     }).expect("Failed to select a system font");
@@ -81,12 +81,12 @@ fn format_speed(bytes_per_sec: f64) -> String {
     };
 
     let value_str = if value < 10.0 {
-        format!("{:.1}", value)
+        format!("{value:.1}")
     } else {
         format!("{:.0}", value.round().min(99.0))
     };
 
-    format!("{} {}", value_str, unit)
+    format!("{value_str} {unit}")
 }
 
 #[cfg(test)]
