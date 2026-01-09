@@ -239,8 +239,7 @@ fn render_tray_icon(
         let c = Rgba([0, 0, 0, 255]); 
         
         let center_y = ICON_HEIGHT / 2;
-        // Center the 8px height icon
-        let base_y = if is_up { center_y - 4 } else { center_y - 4 };
+        let base_y = center_y - 4;
         
         // 15px wide, 8px high. 2px thick strokes.
         let offsets = if is_up {
@@ -431,22 +430,10 @@ fn setup_tray(
                         }
                     }
                 }
-                "show_cpu" => {
-                    let current = show_cpu.load(Relaxed);
-                    show_cpu.store(!current, Relaxed);
-                }
-                "show_mem" => {
-                    let current = show_mem.load(Relaxed);
-                    show_mem.store(!current, Relaxed);
-                }
-                "show_gpu" => {
-                    let current = show_gpu.load(Relaxed);
-                    show_gpu.store(!current, Relaxed);
-                }
-                "show_net" => {
-                    let current = show_net.load(Relaxed);
-                    show_net.store(!current, Relaxed);
-                }
+                "show_cpu" => { show_cpu.fetch_xor(true, Relaxed); }
+                "show_mem" => { show_mem.fetch_xor(true, Relaxed); }
+                "show_gpu" => { show_gpu.fetch_xor(true, Relaxed); }
+                "show_net" => { show_net.fetch_xor(true, Relaxed); }
                 "quit" => {
                     app.exit(0);
                 }
