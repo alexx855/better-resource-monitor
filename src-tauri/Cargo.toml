@@ -21,11 +21,20 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2.3.3"
 tauri-plugin-autostart = "2.5.1"
+tauri-plugin-single-instance = "2"
 sysinfo = "0.37.2"
 image = "0.24"
 rusttype = "0.9"
 tray-icon = "0.21"
-core-foundation = "0.10"
 font-kit = "0.13"
+resvg = "0.44"
+
+# macOS-specific dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+
+# Linux-specific dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+nvml-wrapper = "0.10"
 
 
