@@ -4,7 +4,7 @@
   "version": "0.1.3",
   "identifier": "dev.alexpedersen.silicon-monitor",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": null
   },
   "app": {
     "withGlobalTauri": true,
