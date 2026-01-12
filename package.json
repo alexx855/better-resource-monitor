@@ -32,7 +32,12 @@
   ],
   "type": "module",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "dev:www": "pnpm --filter www dev",
+    "build:www": "pnpm --filter www build",
+    "preview:www": "pnpm --filter www preview"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
