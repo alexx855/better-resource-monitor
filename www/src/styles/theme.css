@@ -1,0 +1,81 @@
+:root {
+  /* ===== Colors: Palette ===== */
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* macOS System Colors (Dark Mode approximation) */
+  --color-system-gray-6: #1c1c1e;
+  --color-system-gray-5: #2c2c2e;
+  --color-system-gray-4: #3a3a3c;
+  --color-system-gray-3: #48484a;
+  --color-system-gray-2: #636366;
+  --color-system-gray: #8e8e93;
+
+  --color-system-blue: #0a84ff;
+  --color-system-green: #30d158;
+  --color-system-indigo: #5e5ce6;
+  --color-system-orange: #ff9f0a;
+  --color-system-pink: #ff375f;
+  --color-system-purple: #bf5af2;
+  --color-system-red: #ff453a;
+  --color-system-teal: #64d2ff;
+  --color-system-yellow: #ffd60a;
+
+  /* ===== Colors: Semantic ===== */
+  --bg-app: var(--color-black);
+  --bg-surface: var(--color-system-gray-6);
+  --bg-surface-hover: var(--color-system-gray-5);
+
+  --text-primary: var(--color-white);
+  --text-secondary: var(--color-system-gray);
+  --text-tertiary: var(--color-system-gray-2);
+
+  --border-subtle: var(--color-system-gray-5);
+  --border-prominent: var(--color-system-gray-4);
+
+  --accent-primary: var(--color-system-blue);
+  --accent-secondary: var(--color-system-indigo);
+  --accent-success: var(--color-system-green);
+  --accent-warning: var(--color-system-orange);
+  --accent-danger: var(--color-system-red);
+
+  /* ===== Typography ===== */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-family-mono: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.1;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* ===== Spacing ===== */
+  --space-2xs: 0.25rem;  /* 4px */
+  --space-xs: 0.5rem;    /* 8px */
+  --space-s: 0.75rem;    /* 12px */
+  --space-m: 1rem;       /* 16px */
+  --space-l: 1.5rem;     /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+  --space-4xl: 6rem;     /* 96px */
+
+  /* ===== Layout ===== */
+  --container-width-max: 1200px;
+  --header-height: 64px;
+
+  /* ===== Effects ===== */
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 20px rgba(10, 132, 255, 0.3); /* Blue glow */
+}

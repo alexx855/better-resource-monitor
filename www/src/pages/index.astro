@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 
 const docs = await getCollection('docs');
 const readme = docs[0];
@@ -11,6 +12,7 @@ const description = 'A blazing-fast, lightweight macOS menu bar system monitor b
 ---
 
 <Layout title={title} description={description}>
+  <Hero />
   <style>
     /* ===== Modern CSS Reset ===== */
     *, *::before, *::after { box-sizing: border-box; }
