@@ -1,0 +1,526 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'Battery Life Estimator - Silicon Monitor';
+const description = 'Estimate battery life for Apple Silicon MacBooks based on workload and brightness.';
+---
+
+<Layout title={title} description={description}>
+  <main class="calculator-container">
+    <header class="page-header">
+      <h1>Battery Life Estimator</h1>
+      <p>Estimate your MacBook's battery life based on real-world usage patterns.</p>
+    </header>
+
+    <div class="calculator-grid">
+      <!-- Input Card -->
+      <section class="card inputs-card">
+        <h2>Configuration</h2>
+
+        <div class="input-group">
+          <label for="model-select">Device Model</label>
+          <select id="model-select" class="form-control">
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+
+        <div class="input-group">
+          <div class="label-row">
+            <label for="brightness-slider">Screen Brightness</label>
+            <span id="brightness-value">50%</span>
+          </div>
+          <input type="range" id="brightness-slider" min="0" max="100" value="50" class="slider">
+        </div>
+
+        <div class="input-group">
+          <div class="label-row">
+            <label for="workload-slider">Average Workload</label>
+            <span id="workload-value">20%</span>
+          </div>
+          <input type="range" id="workload-slider" min="1" max="100" value="20" class="slider">
+          <p class="help-text">1% = Idle, 100% = Max CPU/GPU Load</p>
+        </div>
+
+        <div class="actions">
+          <button id="reset-btn" class="btn secondary">Reset</button>
+          <button id="export-btn" class="btn primary">Export Report</button>
+        </div>
+      </section>
+
+      <!-- Results Card -->
+      <section class="card results-card">
+        <h2>Estimated Results</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Battery Life</span>
+            <span class="stat-value" id="result-hours">--</span>
+            <span class="stat-unit">Hours</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Power Draw</span>
+            <span class="stat-value" id="result-power">--</span>
+            <span class="stat-unit">Watts</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chart Card -->
+      <section class="card chart-card">
+        <h2>Discharge Curve</h2>
+        <div class="chart-container">
+          <canvas id="battery-chart"></canvas>
+        </div>
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .calculator-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .page-header p {
+    color: var(--color-text-muted);
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .chart-card {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+  }
+
+  /* Inputs */
+  .input-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-control:focus {
+    border-color: var(--color-accent);
+  }
+
+  .slider {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .help-text {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.2;
+  }
+
+  .stat-unit {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+  }
+
+  .btn.primary {
+    background: var(--color-accent);
+    color: white;
+  }
+
+  .btn.secondary {
+    background: var(--color-border);
+    color: var(--color-text);
+  }
+
+  /* Chart */
+  .chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+  }
+</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+
+  // --- Data ---
+  interface ModelData {
+    name: string;
+    batteryWh: number;
+    idleW: number; // Base power consumption (screen off, idle)
+    maxW: number;  // Max power consumption
+    screenW: number; // Max screen power consumption
+  }
+
+  const MACBOOK_MODELS: Record<string, ModelData> = {
+    'm1-air': { name: 'MacBook Air (M1)', batteryWh: 49.9, idleW: 3, maxW: 25, screenW: 4 },
+    'm2-air-13': { name: 'MacBook Air (M2, 13")', batteryWh: 52.6, idleW: 4, maxW: 30, screenW: 5 },
+    'm2-air-15': { name: 'MacBook Air (M2, 15")', batteryWh: 66.5, idleW: 5, maxW: 35, screenW: 7 },
+    'm3-air-13': { name: 'MacBook Air (M3, 13")', batteryWh: 52.6, idleW: 4, maxW: 30, screenW: 5 },
+    'm3-air-15': { name: 'MacBook Air (M3, 15")', batteryWh: 66.5, idleW: 5, maxW: 35, screenW: 7 },
+    'm1-pro-14': { name: 'MacBook Pro (M1 Pro, 14")', batteryWh: 70, idleW: 6, maxW: 60, screenW: 10 },
+    'm1-max-16': { name: 'MacBook Pro (M1 Max, 16")', batteryWh: 100, idleW: 10, maxW: 90, screenW: 15 },
+    'm2-pro-14': { name: 'MacBook Pro (M2 Pro, 14")', batteryWh: 70, idleW: 7, maxW: 65, screenW: 10 },
+    'm2-max-16': { name: 'MacBook Pro (M2 Max, 16")', batteryWh: 100, idleW: 11, maxW: 95, screenW: 15 },
+    'm3-pro-14': { name: 'MacBook Pro (M3 Pro, 14")', batteryWh: 72.4, idleW: 7, maxW: 70, screenW: 11 },
+    'm3-max-16': { name: 'MacBook Pro (M3 Max, 16")', batteryWh: 100, idleW: 12, maxW: 100, screenW: 16 },
+  };
+
+  // --- State ---
+  const state = {
+    model: 'm1-air',
+    brightness: 50,
+    workload: 20
+  };
+
+  // --- Elements ---
+  const modelSelect = document.getElementById('model-select') as HTMLSelectElement;
+  const brightnessSlider = document.getElementById('brightness-slider') as HTMLInputElement;
+  const brightnessValue = document.getElementById('brightness-value') as HTMLElement;
+  const workloadSlider = document.getElementById('workload-slider') as HTMLInputElement;
+  const workloadValue = document.getElementById('workload-value') as HTMLElement;
+  const resultHours = document.getElementById('result-hours') as HTMLElement;
+  const resultPower = document.getElementById('result-power') as HTMLElement;
+  const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
+  const resetBtn = document.getElementById('reset-btn') as HTMLButtonElement;
+  const chartCanvas = document.getElementById('battery-chart') as HTMLCanvasElement;
+
+  let chartInstance: Chart | null = null;
+
+  // --- Initialization ---
+  function init() {
+    // Populate Dropdown
+    Object.keys(MACBOOK_MODELS).forEach(key => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = MACBOOK_MODELS[key].name;
+      modelSelect.appendChild(option);
+    });
+
+    // Load State
+    loadState();
+
+    // Attach Listeners
+    modelSelect.addEventListener('change', (e) => {
+      state.model = (e.target as HTMLSelectElement).value;
+      update();
+    });
+
+    brightnessSlider.addEventListener('input', (e) => {
+      state.brightness = parseInt((e.target as HTMLInputElement).value);
+      update();
+    });
+
+    workloadSlider.addEventListener('input', (e) => {
+      state.workload = parseInt((e.target as HTMLInputElement).value);
+      update();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      state.model = 'm1-air';
+      state.brightness = 50;
+      state.workload = 20;
+      updateUIControls();
+      update();
+    });
+
+    exportBtn.addEventListener('click', exportData);
+
+    // Initial Update
+    updateUIControls();
+    update();
+  }
+
+  // --- Logic ---
+  function calculate() {
+    const model = MACBOOK_MODELS[state.model];
+
+    // Power Formula
+    // Base Idle + (Max - Idle) * Workload% + Screen Max * Brightness%
+    const workloadPower = (model.maxW - model.idleW) * (state.workload / 100);
+    const screenPower = model.screenW * (state.brightness / 100);
+    const totalPower = model.idleW + workloadPower + screenPower;
+
+    // Battery Life
+    const batteryLifeHours = model.batteryWh / totalPower;
+
+    return {
+      totalPower,
+      batteryLifeHours
+    };
+  }
+
+  function update() {
+    // Update Labels
+    brightnessValue.textContent = `${state.brightness}%`;
+    workloadValue.textContent = `${state.workload}%`;
+
+    // Save State
+    saveState();
+
+    // Calculate
+    const { totalPower, batteryLifeHours } = calculate();
+
+    // Update Results
+    resultPower.textContent = totalPower.toFixed(1);
+    resultHours.textContent = batteryLifeHours.toFixed(1);
+
+    // Update Chart
+    updateChart(batteryLifeHours);
+  }
+
+  function updateUIControls() {
+    modelSelect.value = state.model;
+    brightnessSlider.value = state.brightness.toString();
+    workloadSlider.value = state.workload.toString();
+  }
+
+  // --- Persistence ---
+  function saveState() {
+    localStorage.setItem('calculator_state', JSON.stringify(state));
+  }
+
+  function loadState() {
+    const saved = localStorage.getItem('calculator_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.model && MACBOOK_MODELS[parsed.model]) state.model = parsed.model;
+        if (typeof parsed.brightness === 'number') state.brightness = parsed.brightness;
+        if (typeof parsed.workload === 'number') state.workload = parsed.workload;
+      } catch (e) {
+        console.error('Failed to load state', e);
+      }
+    }
+  }
+
+  // --- Export ---
+  function exportData() {
+    const { totalPower, batteryLifeHours } = calculate();
+    const data = {
+      timestamp: new Date().toISOString(),
+      inputs: {
+        model: MACBOOK_MODELS[state.model].name,
+        brightness: `${state.brightness}%`,
+        workload: `${state.workload}%`
+      },
+      results: {
+        powerDraw: `${totalPower.toFixed(2)} W`,
+        estimatedBatteryLife: `${batteryLifeHours.toFixed(2)} hours`
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'battery-estimate.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // --- Chart ---
+  function updateChart(hours: number) {
+    const labels: string[] = [];
+    const dataPoints: number[] = [];
+
+    // Create data points for discharge curve
+    const maxHours = Math.ceil(hours);
+    const steps = 20;
+    const stepSize = maxHours / steps;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i * stepSize;
+      labels.push(`${t.toFixed(1)}h`);
+
+      // Linear discharge assumption
+      const charge = 100 - (100 / hours) * t;
+      dataPoints.push(Math.max(0, charge));
+    }
+
+    if (chartInstance) {
+      chartInstance.data.labels = labels;
+      chartInstance.data.datasets[0].data = dataPoints;
+      chartInstance.update();
+    } else {
+      chartInstance = new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Battery Charge (%)',
+            data: dataPoints,
+            borderColor: '#007aff', // var(--color-accent) but hex for Chart.js
+            backgroundColor: 'rgba(0, 122, 255, 0.1)',
+            fill: true,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: {
+                color: '#2a2a2e' // var(--color-border)
+              },
+              ticks: {
+                color: '#9a9a9f' // var(--color-text-muted)
+              }
+            },
+            x: {
+              grid: {
+                color: '#2a2a2e'
+              },
+              ticks: {
+                color: '#9a9a9f'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#fafafa' // var(--color-text)
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Start
+  init();
+</script>

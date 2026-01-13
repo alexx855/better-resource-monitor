@@ -13,7 +13,8 @@
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.12",
 		"@astrojs/sitemap": "^3.6.1",
-		"astro": "^5.16.8"
+		"astro": "^5.16.8",
+		"chart.js": "^4.5.1"
 	},
 	"devDependencies": {
 		"@types/node": "^25.0.5",
