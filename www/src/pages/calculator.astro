@@ -1,0 +1,490 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'Power Usage Calculator - Silicon Monitor';
+const description = 'Calculate your MacBook energy consumption and savings compared to other devices.';
+---
+
+<Layout title={title} description={description}>
+  <main class="container">
+    <div class="header">
+      <a href="/" class="back-link">← Back to Home</a>
+      <h1>Power Usage Calculator</h1>
+      <p class="subtitle">Estimate your daily energy footprint and cost based on your device and usage patterns.</p>
+    </div>
+
+    <div class="calculator-grid">
+      <!-- Inputs -->
+      <div class="card inputs-card">
+        <h2>Configuration</h2>
+
+        <div class="form-group">
+          <label for="device-select">Device Model</label>
+          <select id="device-select" class="input-control">
+            <option value="m1">MacBook Air (M1)</option>
+            <option value="m1pro">MacBook Pro (M1 Pro)</option>
+            <option value="m1max">MacBook Pro (M1 Max)</option>
+            <option value="m2">MacBook Air (M2)</option>
+            <option value="m2pro">MacBook Pro (M2 Pro)</option>
+            <option value="m3">MacBook Air (M3)</option>
+            <option value="m3max">MacBook Pro (M3 Max)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="hours-slider">Daily Usage (Hours)</label>
+            <span id="hours-value" class="value-display">8h</span>
+          </div>
+          <input type="range" id="hours-slider" min="1" max="24" value="8" step="0.5" class="slider">
+          <div class="slider-track"></div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="load-slider">Average CPU Load (%)</label>
+            <span id="load-value" class="value-display">20%</span>
+          </div>
+          <input type="range" id="load-slider" min="0" max="100" value="20" step="5" class="slider">
+          <div class="slider-track"></div>
+        </div>
+
+        <div class="actions">
+            <button id="export-btn" class="btn secondary">Export Results (JSON)</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="card results-card">
+        <h2>Estimated Consumption</h2>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-label">Daily Energy</span>
+                <span id="daily-energy" class="stat-value">0 Wh</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Yearly Cost</span>
+                <span id="yearly-cost" class="stat-value">$0.00</span>
+                <span class="stat-sub">@ $0.15/kWh</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import Chart from 'chart.js/auto';
+
+  // Device Data (Approximate Power in Watts)
+  const devices = {
+    m1: { name: 'MacBook Air (M1)', idle: 5, max: 20 },
+    m1pro: { name: 'MacBook Pro (M1 Pro)', idle: 8, max: 40 },
+    m1max: { name: 'MacBook Pro (M1 Max)', idle: 10, max: 60 },
+    m2: { name: 'MacBook Air (M2)', idle: 6, max: 22 },
+    m2pro: { name: 'MacBook Pro (M2 Pro)', idle: 9, max: 45 },
+    m3: { name: 'MacBook Air (M3)', idle: 5, max: 22 },
+    m3max: { name: 'MacBook Pro (M3 Max)', idle: 12, max: 70 },
+  };
+
+  // State
+  let state = {
+    device: 'm1',
+    hours: 8,
+    load: 20
+  };
+
+  // DOM Elements
+  const deviceSelect = document.getElementById('device-select') as HTMLSelectElement;
+  const hoursSlider = document.getElementById('hours-slider') as HTMLInputElement;
+  const loadSlider = document.getElementById('load-slider') as HTMLInputElement;
+  const hoursValue = document.getElementById('hours-value');
+  const loadValue = document.getElementById('load-value');
+  const dailyEnergyDisplay = document.getElementById('daily-energy');
+  const yearlyCostDisplay = document.getElementById('yearly-cost');
+  const exportBtn = document.getElementById('export-btn');
+  const canvas = document.getElementById('comparisonChart') as HTMLCanvasElement;
+
+  // Chart Instance
+  let comparisonChart: Chart | null = null;
+
+  // Constants
+  const ELECTRICITY_RATE = 0.15; // $ per kWh
+
+  function loadState() {
+    const saved = localStorage.getItem('calculator_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        state = { ...state, ...parsed };
+
+        // Update inputs
+        if(deviceSelect) deviceSelect.value = state.device;
+        if(hoursSlider) hoursSlider.value = state.hours.toString();
+        if(loadSlider) loadSlider.value = state.load.toString();
+      } catch (e) {
+        console.error('Failed to load state', e);
+      }
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem('calculator_state', JSON.stringify(state));
+  }
+
+  function calculate() {
+    const device = devices[state.device as keyof typeof devices];
+
+    // Power = Idle + (Range * Load%)
+    const powerDraw = device.idle + ((device.max - device.idle) * (state.load / 100));
+    const dailyWh = powerDraw * state.hours;
+    const yearlyKWh = (dailyWh * 365) / 1000;
+    const yearlyCost = yearlyKWh * ELECTRICITY_RATE;
+
+    // Standard Laptop (Old Intel/Windows laptop approx)
+    const stdLaptopIdle = 15;
+    const stdLaptopMax = 65;
+    const stdPower = stdLaptopIdle + ((stdLaptopMax - stdLaptopIdle) * (state.load / 100));
+    const stdYearlyCost = ((stdPower * state.hours * 365) / 1000) * ELECTRICITY_RATE;
+
+    // Desktop PC
+    const desktopIdle = 60;
+    const desktopMax = 250;
+    const desktopPower = desktopIdle + ((desktopMax - desktopIdle) * (state.load / 100));
+    const desktopYearlyCost = ((desktopPower * state.hours * 365) / 1000) * ELECTRICITY_RATE;
+
+    return {
+      dailyWh,
+      yearlyCost,
+      stdYearlyCost,
+      desktopYearlyCost
+    };
+  }
+
+  function updateUI() {
+    // Update Text
+    if(hoursValue) hoursValue.textContent = `${state.hours}h`;
+    if(loadValue) loadValue.textContent = `${state.load}%`;
+
+    const results = calculate();
+
+    if(dailyEnergyDisplay) dailyEnergyDisplay.textContent = `${results.dailyWh.toFixed(1)} Wh`;
+    if(yearlyCostDisplay) yearlyCostDisplay.textContent = `$${results.yearlyCost.toFixed(2)}`;
+
+    // Update Chart
+    updateChart(results);
+  }
+
+  function updateChart(results: any) {
+    if (!comparisonChart) {
+      if(!canvas) return;
+      comparisonChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: ['Your Mac', 'Avg. Laptop', 'Desktop PC'],
+          datasets: [{
+            label: 'Yearly Electricity Cost ($)',
+            data: [results.yearlyCost, results.stdYearlyCost, results.desktopYearlyCost],
+            backgroundColor: [
+              'rgba(54, 162, 235, 0.7)', // Blue for Mac
+              'rgba(255, 206, 86, 0.7)', // Yellow for Laptop
+              'rgba(255, 99, 132, 0.7)'  // Red for Desktop
+            ],
+            borderColor: [
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(255, 99, 132, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Yearly Energy Cost Comparison',
+              color: '#9a9a9f'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: '#2a2a2e'
+              },
+              ticks: {
+                color: '#9a9a9f',
+                callback: (value) => '$' + value
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#fafafa'
+              }
+            }
+          }
+        }
+      });
+    } else {
+      comparisonChart.data.datasets[0].data = [
+        results.yearlyCost,
+        results.stdYearlyCost,
+        results.desktopYearlyCost
+      ];
+      comparisonChart.update();
+    }
+  }
+
+  function init() {
+    loadState();
+
+    // Listeners
+    deviceSelect?.addEventListener('change', (e) => {
+      state.device = (e.target as HTMLSelectElement).value;
+      saveState();
+      updateUI();
+    });
+
+    hoursSlider?.addEventListener('input', (e) => {
+      state.hours = parseFloat((e.target as HTMLInputElement).value);
+      saveState();
+      updateUI();
+    });
+
+    loadSlider?.addEventListener('input', (e) => {
+      state.load = parseInt((e.target as HTMLInputElement).value);
+      saveState();
+      updateUI();
+    });
+
+    exportBtn?.addEventListener('click', () => {
+      const results = calculate();
+      const exportData = {
+        config: state,
+        results: results,
+        timestamp: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'silicon-monitor-calculation.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    updateUI();
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', init);
+  // Also run init immediately in case of Astro view transitions or if scripts run late
+  // Check if we already missed DOMContentLoaded
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    init();
+  }
+</script>
+
+<style>
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 2rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  label {
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .value-display {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+  }
+
+  .input-control {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text);
+    font-size: 1rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+  }
+
+  .slider {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .actions {
+    margin-top: 2rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    width: 100%;
+    text-align: center;
+  }
+
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .btn.secondary:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-text-muted);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-item {
+    background: var(--color-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .stat-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+</style>
