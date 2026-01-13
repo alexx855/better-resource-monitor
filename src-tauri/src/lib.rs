@@ -4,11 +4,14 @@ use sysinfo::{Networks, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    ActivationPolicy,
     AppHandle,
     Manager,
     image::Image,
+    WebviewWindowBuilder,
+    WebviewUrl,
 };
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
@@ -383,6 +386,7 @@ fn setup_tray(
     )?;
 
     let separator2 = PredefinedMenuItem::separator(app)?;
+    let calculator_item = MenuItem::with_id(app, "calculator", "Calculator", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
     let menu = Menu::with_items(
@@ -395,6 +399,7 @@ fn setup_tray(
             &show_gpu_item,
             &show_net_item,
             &separator2,
+            &calculator_item,
             &quit_item,
         ],
     )?;
@@ -434,6 +439,16 @@ fn setup_tray(
                 "show_mem" => { show_mem.fetch_xor(true, Relaxed); }
                 "show_gpu" => { show_gpu.fetch_xor(true, Relaxed); }
                 "show_net" => { show_net.fetch_xor(true, Relaxed); }
+                "calculator" => {
+                    let _ = WebviewWindowBuilder::new(
+                        app,
+                        "calculator",
+                        WebviewUrl::App("calculator".into()),
+                    )
+                    .title("Resource Calculator")
+                    .inner_size(900.0, 700.0)
+                    .build();
+                }
                 "quit" => {
                     app.exit(0);
                 }

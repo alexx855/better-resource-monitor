@@ -12,8 +12,19 @@
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.12",
+		"@astrojs/react": "^4.4.2",
 		"@astrojs/sitemap": "^3.6.1",
-		"astro": "^5.16.8"
+		"@tailwindcss/vite": "^4.1.18",
+		"@types/react": "^19.2.8",
+		"@types/react-dom": "^19.2.3",
+		"astro": "^5.16.8",
+		"clsx": "^2.1.1",
+		"lucide-react": "^0.562.0",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"recharts": "^3.6.0",
+		"tailwind-merge": "^3.4.0",
+		"tailwindcss": "^4.1.18"
 	},
 	"devDependencies": {
 		"@types/node": "^25.0.5",
