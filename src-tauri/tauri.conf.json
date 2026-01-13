@@ -25,6 +25,15 @@
     ],
     "macOS": {
       "infoPlist": "Info.plist"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"],
+        "section": "utils"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
     }
   }
 }

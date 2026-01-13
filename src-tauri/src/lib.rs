@@ -4,11 +4,13 @@ use sysinfo::{Networks, System};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    ActivationPolicy,
     AppHandle,
     Manager,
     image::Image,
 };
+
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
@@ -27,11 +29,16 @@ use gpu::GpuSampler;
 #[cfg(desktop)]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-
+// Phosphor Icons SVGs (MIT license) - embedded at compile time
+const SVG_CPU: &str = include_str!("../assets/icons/svg/fill/cpu-fill.svg");
+const SVG_MEMORY: &str = include_str!("../assets/icons/svg/fill/memory-fill.svg");
+const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
+const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
+const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
 
 fn load_system_font() -> Font<'static> {
     let source = SystemSource::new();
-    
+
     let handle = source.select_best_match(
         &[FamilyName::SansSerif],
         Properties::new().weight(Weight::MEDIUM)
@@ -47,17 +54,88 @@ fn load_system_font() -> Font<'static> {
     Font::try_from_vec(font_data).expect("Error constructing font")
 }
 
+/// Renders an SVG icon to an RGBA pixel buffer at the specified size
+fn render_svg_icon(svg_data: &str, size: u32, color: u8) -> Vec<u8> {
+    let color_hex = format!("#{:02x}{:02x}{:02x}", color, color, color);
 
-const SEGMENT_WIDTH_CPU: u32 = 110;  // "CPU" + value
-const SEGMENT_WIDTH_MEM: u32 = 114; // "MEM" is wider
-const SEGMENT_WIDTH_GPU: u32 = 108;  // "GPU" + value
-const SEGMENT_WIDTH_NET: u32 = 98;  // Arrow + network speed
-const EDGE_PADDING: u32 = 8;
-const SEPARATOR_GAP: u32 = 10;
-const SEPARATOR_LINE: u32 = 2;
-const ICON_HEIGHT: u32 = 32;
-const FONT_SIZE: f32 = 26.0;
-const LABEL_VALUE_GAP: u32 = 6;
+    // Inject fill color into SVG - handle both currentColor and default black fills
+    let svg_with_color = svg_data
+        .replace("currentColor", &color_hex)
+        .replace("<svg ", &format!("<svg fill=\"{}\" ", color_hex));
+
+    let opts = resvg::usvg::Options::default();
+    let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts)
+        .expect("Failed to parse SVG");
+
+    let svg_size = tree.size();
+    let scale = size as f32 / svg_size.width().max(svg_size.height());
+
+    let scaled_width = (svg_size.width() * scale).ceil() as u32;
+    let scaled_height = (svg_size.height() * scale).ceil() as u32;
+
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(scaled_width, scaled_height)
+        .expect("Failed to create pixmap");
+
+    let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+
+    pixmap.take()
+}
+
+
+// Base sizing constants (macOS Retina 2x values)
+// Linux applies a scale factor since it uses 1x displays
+mod base_sizing {
+    pub const SEGMENT_WIDTH: u32 = 108;      // For CPU, MEM, GPU (displays "XX%")
+    pub const SEGMENT_WIDTH_NET: u32 = 118;  // For network (displays "X.X KB")
+    pub const EDGE_PADDING: u32 = 8;
+    pub const SEPARATOR_GAP: u32 = 10;
+    pub const SEPARATOR_LINE: u32 = 2;
+    pub const ICON_HEIGHT: u32 = 32;
+    pub const FONT_SIZE: f32 = 26.0;
+    pub const LABEL_VALUE_GAP: u32 = 6;
+
+    pub const MIN_WIDTH: u32 = 50;
+}
+
+#[cfg(target_os = "macos")]
+mod sizing {
+    use super::base_sizing::*;
+    pub const SEGMENT_WIDTH: u32 = base_sizing::SEGMENT_WIDTH;
+    pub const SEGMENT_WIDTH_NET: u32 = base_sizing::SEGMENT_WIDTH_NET;
+    pub const EDGE_PADDING: u32 = base_sizing::EDGE_PADDING;
+    pub const SEPARATOR_GAP: u32 = base_sizing::SEPARATOR_GAP;
+    pub const SEPARATOR_LINE: u32 = base_sizing::SEPARATOR_LINE;
+    pub const ICON_HEIGHT: u32 = base_sizing::ICON_HEIGHT;
+    pub const FONT_SIZE: f32 = base_sizing::FONT_SIZE;
+    pub const LABEL_VALUE_GAP: u32 = base_sizing::LABEL_VALUE_GAP;
+
+    pub const MIN_WIDTH: u32 = base_sizing::MIN_WIDTH;
+}
+
+#[cfg(target_os = "linux")]
+mod sizing {
+    use super::base_sizing;
+
+    // Scale factor for Linux (1x display vs macOS 2x Retina)
+    const SCALE: f32 = 0.70;
+
+    const fn scale_u32(val: u32) -> u32 { (val as f32 * SCALE) as u32 }
+    const fn scale_f32(val: f32) -> f32 { val * SCALE }
+
+    pub const SEGMENT_WIDTH: u32 = scale_u32(base_sizing::SEGMENT_WIDTH);
+    pub const SEGMENT_WIDTH_NET: u32 = scale_u32(base_sizing::SEGMENT_WIDTH_NET);
+    pub const EDGE_PADDING: u32 = scale_u32(base_sizing::EDGE_PADDING);
+    pub const SEPARATOR_GAP: u32 = scale_u32(base_sizing::SEPARATOR_GAP);
+    pub const SEPARATOR_LINE: u32 = 1; // Minimum 1px line
+    pub const ICON_HEIGHT: u32 = scale_u32(base_sizing::ICON_HEIGHT);
+    pub const FONT_SIZE: f32 = scale_f32(base_sizing::FONT_SIZE);
+    pub const LABEL_VALUE_GAP: u32 = scale_u32(base_sizing::LABEL_VALUE_GAP);
+
+    pub const MIN_WIDTH: u32 = scale_u32(base_sizing::MIN_WIDTH);
+}
+
+use sizing::*;
 
 
 fn format_speed(bytes_per_sec: f64) -> String {
@@ -145,7 +223,9 @@ fn render_tray_icon(
     show_net: bool,
 ) -> (Vec<u8>, u32, u32) {
     enum SegmentLabel {
-        Text(&'static str),
+        IconCpu,
+        IconMem,
+        IconGpu,
         IconDown,
         IconUp,
     }
@@ -160,23 +240,23 @@ fn render_tray_icon(
 
     if show_cpu {
         segments.push(Segment {
-            label: SegmentLabel::Text("CPU"),
+            label: SegmentLabel::IconCpu,
             value: format!("{:.0}%", cap_percent(cpu_usage)),
-            width: SEGMENT_WIDTH_CPU,
+            width: SEGMENT_WIDTH,
         });
     }
     if show_mem {
         segments.push(Segment {
-            label: SegmentLabel::Text("MEM"),
+            label: SegmentLabel::IconMem,
             value: format!("{:.0}%", cap_percent(mem_percent)),
-            width: SEGMENT_WIDTH_MEM,
+            width: SEGMENT_WIDTH,
         });
     }
     if show_gpu {
         segments.push(Segment {
-            label: SegmentLabel::Text("GPU"),
+            label: SegmentLabel::IconGpu,
             value: format!("{:.0}%", cap_percent(gpu_usage)),
-            width: SEGMENT_WIDTH_GPU,
+            width: SEGMENT_WIDTH,
         });
     }
     if show_net {
@@ -195,7 +275,7 @@ fn render_tray_icon(
     let separator_total = SEPARATOR_GAP * 2 + SEPARATOR_LINE;
     let segment_widths: u32 = segments.iter().map(|s| s.width).sum();
     let total_width = if segments.is_empty() {
-        50 // Minimum width
+        MIN_WIDTH
     } else {
         EDGE_PADDING
             + segment_widths
@@ -211,13 +291,38 @@ fn render_tray_icon(
 
     let scale = Scale::uniform(FONT_SIZE);
     let v_metrics = font.v_metrics(scale);
-    let baseline = (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0) - 2.0;
+    
+    // Calculate baseline to center text vertically based on actual glyph heights
+    // Use a reference string containing common characters to determine visual center
+    let reference_text = "0123456789% KMGTP"; 
+    let mut min_y = i32::MAX;
+    let mut max_y = i32::MIN;
+    
+    // We layout at 0,0 to find relative bounds
+    for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
+         if let Some(bb) = glyph.pixel_bounding_box() {
+             if bb.min.y < min_y { min_y = bb.min.y; }
+             if bb.max.y > max_y { max_y = bb.max.y; }
+         }
+    }
+    
+    // If we can't measure (e.g. empty font?), fallback to previous logic
+    let baseline = if min_y < max_y {
+        // visual_center relative to baseline = (min_y + max_y) / 2.0
+        // We want baseline + visual_center = ICON_HEIGHT / 2.0
+        // baseline = (ICON_HEIGHT / 2.0) - visual_center
+        (ICON_HEIGHT as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
+    } else {
+        (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0)
+    };
 
     let measure_text = |text: &str| -> f32 {
         font.layout(text, scale, rusttype::point(0.0, 0.0))
             .map(|g| g.unpositioned().h_metrics().advance_width)
             .sum()
     };
+
+    let text_color: u8 = 255; // White - template icons handle macOS, most Linux panels are dark
 
     let draw_text = |text: &str, start_x: f32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
@@ -227,69 +332,41 @@ fn render_tray_icon(
                     let y = (bb.min.y + gy as i32) as u32;
                     if x < total_width && y < ICON_HEIGHT {
                         let alpha = (v * 255.0) as u8;
-                        img.put_pixel(x, y, Rgba([0, 0, 0, alpha]));
+                        img.put_pixel(x, y, Rgba([text_color, text_color, text_color, alpha]));
                     }
                 });
             }
         }
     };
 
-    let draw_chevron = |img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, is_up: bool| {
-        // Much Larger 15x8 chevron
-        let c = Rgba([0, 0, 0, 255]); 
-        
-        let center_y = ICON_HEIGHT / 2;
-        let base_y = center_y - 4;
-        
-        // 15px wide, 8px high. 2px thick strokes.
-        let offsets = if is_up {
-             // ^ shape
-            vec![
-                (7, 0),                         // Tip
-                (6, 1), (8, 1),                 // Row 2
-                (5, 2), (9, 2),                 // Row 3
-                (4, 3), (10, 3),                // Row 4
-                (3, 4), (11, 4),                // Row 5
-                (2, 5), (12, 5),                // Row 6
-                (1, 6), (13, 6),                // Row 7
-                (0, 7), (14, 7),                // Row 8
-                
-                // Second layer for thickness (inner adjacent)
-                (7, 1),
-                (6, 2), (8, 2),
-                (5, 3), (9, 3),
-                (4, 4), (10, 4),
-                (3, 5), (11, 5),
-                (2, 6), (12, 6),
-                (1, 7), (13, 7),
-            ]
-        } else {
-             // v shape
-             vec![
-                (0, 0), (14, 0),                // Row 1
-                (1, 1), (13, 1),                // Row 2
-                (2, 2), (12, 2),                // Row 3
-                (3, 3), (11, 3),                // Row 4
-                (4, 4), (10, 4),                // Row 5
-                (5, 5), (9, 5),                 // Row 6
-                (6, 6), (8, 6),                 // Row 7
-                (7, 7),                         // Tip
+    // Render SVG icon and blit to image buffer
+    let icon_size = ICON_HEIGHT;
+    // Center icon vertically in the available height (should be 0 if size == height)
+    let icon_y_offset = 0;
 
-                // Second layer for thickness (inner adjacent)
-                (1, 0), (13, 0),
-                (2, 1), (12, 1),
-                (3, 2), (11, 2),
-                (4, 3), (10, 3),
-                (5, 4), (9, 4),
-                (6, 5), (8, 5),
-                (7, 6)
-            ]
-        };
+    let draw_svg_icon = |svg_data: &str, start_x: u32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+        let icon_pixels = render_svg_icon(svg_data, icon_size, text_color);
+        let icon_width = icon_size; // Square icons
 
-        for (dx, dy) in offsets {
-           if x + dx < total_width {
-               img.put_pixel(x + dx, base_y + dy, c);
-           }
+        for y in 0..icon_size {
+            for x in 0..icon_width {
+                let src_idx = ((y * icon_width + x) * 4) as usize;
+                if src_idx + 3 < icon_pixels.len() {
+                    let alpha = icon_pixels[src_idx + 3];
+                    if alpha > 0 {
+                        let dst_x = start_x + x;
+                        let dst_y = icon_y_offset + y;
+                        if dst_x < total_width && dst_y < ICON_HEIGHT {
+                            img.put_pixel(dst_x, dst_y, Rgba([
+                                icon_pixels[src_idx],
+                                icon_pixels[src_idx + 1],
+                                icon_pixels[src_idx + 2],
+                                alpha,
+                            ]));
+                        }
+                    }
+                }
+            }
         }
     };
 
@@ -299,15 +376,14 @@ fn render_tray_icon(
             x_offset += SEPARATOR_GAP * 2 + SEPARATOR_LINE;
         }
 
-        let label_width = match segment.label {
-            SegmentLabel::IconDown | SegmentLabel::IconUp => 16.0,
-            SegmentLabel::Text(text) => measure_text(text),
-        };
+        let label_width: f32 = icon_size as f32; // All labels are now icons
 
         match segment.label {
-            SegmentLabel::IconDown => draw_chevron(&mut img, x_offset, false),
-            SegmentLabel::IconUp => draw_chevron(&mut img, x_offset, true),
-            SegmentLabel::Text(text) => draw_text(text, x_offset as f32, &mut img),
+            SegmentLabel::IconCpu => draw_svg_icon(SVG_CPU, x_offset, &mut img),
+            SegmentLabel::IconMem => draw_svg_icon(SVG_MEMORY, x_offset, &mut img),
+            SegmentLabel::IconGpu => draw_svg_icon(SVG_GPU, x_offset, &mut img),
+            SegmentLabel::IconDown => draw_svg_icon(SVG_ARROW_DOWN, x_offset, &mut img),
+            SegmentLabel::IconUp => draw_svg_icon(SVG_ARROW_UP, x_offset, &mut img),
         }
         
         let value_width = measure_text(&segment.value);
@@ -329,6 +405,7 @@ fn setup_tray(
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
+    gpu_available: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(desktop)]
     let autostart_manager = app.autolaunch();
@@ -374,10 +451,6 @@ fn setup_tray(
         app, "show_mem", "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
     )?;
 
-    let show_gpu_item = CheckMenuItem::with_id(
-        app, "show_gpu", "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
-    )?;
-
     let show_net_item = CheckMenuItem::with_id(
         app, "show_net", "Show Network", true, show_net.load(Relaxed), None::<&str>,
     )?;
@@ -385,19 +458,38 @@ fn setup_tray(
     let separator2 = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
-    let menu = Menu::with_items(
-        app,
-        &[
-            &autostart_item,
-            &separator1,
-            &show_cpu_item,
-            &show_mem_item,
-            &show_gpu_item,
-            &show_net_item,
-            &separator2,
-            &quit_item,
-        ],
-    )?;
+    // Build menu - only include GPU option if GPU monitoring is available
+    let menu = if gpu_available {
+        let show_gpu_item = CheckMenuItem::with_id(
+            app, "show_gpu", "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
+        )?;
+        Menu::with_items(
+            app,
+            &[
+                &autostart_item,
+                &separator1,
+                &show_cpu_item,
+                &show_mem_item,
+                &show_gpu_item,
+                &show_net_item,
+                &separator2,
+                &quit_item,
+            ],
+        )?
+    } else {
+        Menu::with_items(
+            app,
+            &[
+                &autostart_item,
+                &separator1,
+                &show_cpu_item,
+                &show_mem_item,
+                &show_net_item,
+                &separator2,
+                &quit_item,
+            ],
+        )?
+    };
 
     let font = load_system_font();
     let (pixels, width, height) = render_tray_icon(
@@ -405,14 +497,22 @@ fn setup_tray(
         0.0, 0.0, 0.0, 0.0, 0.0,
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
-        show_gpu.load(Relaxed),
+        show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
     );
     let initial_icon = Image::new_owned(pixels, width, height);
 
-    let _tray = TrayIconBuilder::with_id("main")
+    // Template icons let macOS adapt colors to menu bar theme automatically
+    #[cfg(target_os = "macos")]
+    let tray_builder = TrayIconBuilder::with_id("main")
         .icon(initial_icon)
-        .icon_as_template(true)
+        .icon_as_template(true);
+    
+    #[cfg(target_os = "linux")]
+    let tray_builder = TrayIconBuilder::with_id("main")
+        .icon(initial_icon);
+
+    let _tray = tray_builder
         .menu(&menu)
         .show_menu_on_left_click(true)
         .tooltip("System Monitor")
@@ -442,6 +542,20 @@ fn setup_tray(
         })
         .build(app)?;
 
+    eprintln!("[INFO] Tray icon builder completed");
+
+    // Try to verify the icon exists (tray-icon doesn't expose this well,
+    // so this is a best-effort check)
+    #[cfg(target_os = "linux")]
+    {
+        // Check if AppIndicator service should be registered
+        // Note: This is informational only, can't easily verify from Rust
+        eprintln!("[INFO] If tray icon doesn't appear, check:");
+        eprintln!("  1. GNOME Shell extension: ubuntu-appindicators@ubuntu.com is enabled");
+        eprintln!("  2. Display server connection is active");
+        eprintln!("  3. Check system tray/notification area");
+    }
+
     Ok(())
 }
 
@@ -451,13 +565,14 @@ fn start_monitoring(
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
+    gpu_available: bool,
 ) {
     thread::spawn(move || {
         let font = load_system_font();
 
         let mut sys = System::new();
         let mut networks = Networks::new_with_refreshed_list();
-        let mut gpu_sampler = GpuSampler::new();
+        let mut gpu_sampler = if gpu_available { GpuSampler::new() } else { None };
 
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
@@ -510,7 +625,7 @@ fn start_monitoring(
 
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
-            let sg = show_gpu.load(Relaxed);
+            let sg = show_gpu.load(Relaxed) && gpu_available;
             let sn = show_net.load(Relaxed);
 
             let display_key = format!(
@@ -534,10 +649,27 @@ fn start_monitoring(
                 );
 
                 if let Some(tray) = app.tray_by_id("main") {
-                    let _ = tray.with_inner_tray_icon(move |inner| {
-                        let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
-                        inner.set_icon_with_as_template(icon, true)
-                    });
+                    #[cfg(target_os = "macos")]
+                    {
+                        let result = tray.with_inner_tray_icon(move |inner| {
+                            let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
+                            inner.set_icon_with_as_template(icon, true)
+                        });
+                        if let Err(e) = result {
+                            eprintln!("[WARN] Failed to update tray icon: {:?}", e);
+                        }
+                    }
+
+                    #[cfg(target_os = "linux")]
+                    {
+                        let result = tray.with_inner_tray_icon(move |inner| {
+                            let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
+                            inner.set_icon(icon)
+                        });
+                        if let Err(e) = result {
+                            eprintln!("[WARN] Failed to update tray icon: {:?}", e);
+                        }
+                    }
                 }
             }
 
@@ -558,12 +690,43 @@ pub fn run() {
     let show_gpu_tray = show_gpu.clone();
     let show_net_tray = show_net.clone();
 
+    // Check if GPU monitoring is available
+    let gpu_available = GpuSampler::new().is_some();
+
+    // Validate display environment on Linux before attempting tray icon creation
+    #[cfg(target_os = "linux")]
+    {
+        use std::env;
+
+        let has_display = env::var("DISPLAY").is_ok()
+            || env::var("WAYLAND_DISPLAY").is_ok();
+
+        if !has_display {
+            eprintln!("Error: No display server detected.");
+            eprintln!("Silicon Monitor requires a graphical environment to run.");
+            eprintln!("Make sure you're running in a graphical session (X11 or Wayland).");
+            eprintln!("");
+            eprintln!("If running via SSH, enable X11 access:");
+            eprintln!("  export DISPLAY=:0");
+            eprintln!("  xhost +local:  # May require running from graphical terminal first");
+            std::process::exit(1);
+        }
+
+        // Suppress GTK debug messages on Linux
+        std::env::set_var("G_MESSAGES_DEBUG", "");
+    }
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
+            // Silent: tray-only app has no window to focus
+        }))
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(ActivationPolicy::Accessory);
 
+            // Platform-specific autostart initialization
+            // Note: MacosLauncher is ignored on non-macOS platforms
             #[cfg(desktop)]
             {
                 app.handle().plugin(tauri_plugin_autostart::init(
@@ -578,6 +741,7 @@ pub fn run() {
                 show_mem_tray.clone(),
                 show_gpu_tray.clone(),
                 show_net_tray.clone(),
+                gpu_available,
             )?;
 
             start_monitoring(
@@ -586,6 +750,7 @@ pub fn run() {
                 show_mem,
                 show_gpu,
                 show_net,
+                gpu_available,
             );
 
             Ok(())
