@@ -69,6 +69,19 @@ const description = 'A blazing-fast, lightweight macOS menu bar system monitor b
       width: 100%;
     }
     
+    /* ===== Utilities ===== */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* ===== Typography ===== */
     h1, h2, h3, h4 { 
       color: #fff;
@@ -145,13 +158,20 @@ const description = 'A blazing-fast, lightweight macOS menu bar system monitor b
     }
     
     /* ===== Tables ===== */
+    /* Table wrapper added by JS */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1rem 0;
-      display: block;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      /* Removed display: block to preserve semantics */
     }
     
     th, td {
@@ -192,11 +212,34 @@ const description = 'A blazing-fast, lightweight macOS menu bar system monitor b
     p[align="center"] img[src^="https://img.shields.io"] {
       display: inline-block;
       vertical-align: middle;
-      margin: 4px;
+      margin: 0; /* Margin handled by link padding if wrapped */
       border-radius: 4px;
       height: auto;
       width: auto;
       max-width: none;
+    }
+
+    /* WCAG 2.5.8 Target Size (Minimum 24px, ideally 44px) */
+    /* Enhance touch targets for badge links */
+    :global(p[align="center"] a) {
+      display: inline-block !important;
+      padding: 12px !important; /* Increases hit area significantly */
+      margin: -8px; /* Offset the padding to maintain visual layout approximately, or allow it to breathe */
+    }
+
+    /* Semantic Navigation List Styling */
+    .nav-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      list-style: none;
+      padding: 0;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .nav-list li {
+      margin: 0;
     }
     
     /* ===== Horizontal Rule ===== */
@@ -233,7 +276,48 @@ const description = 'A blazing-fast, lightweight macOS menu bar system monitor b
 
   <main class="container">
     <article>
+      <h1 class="visually-hidden">Silicon Monitor</h1>
       <Content />
     </article>
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Table Wrapper for Accessibility
+      document.querySelectorAll('table').forEach(table => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+        wrapper.setAttribute('tabindex', '0');
+        wrapper.setAttribute('role', 'region');
+        wrapper.setAttribute('aria-label', 'Table container');
+        table.parentNode?.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      });
+
+      // 2. Convert Navigation Paragraph to Semantic List
+      const centerParagraphs = document.querySelectorAll('p[align="center"]');
+      // Look for the paragraph containing "Features" and "Why" links
+      for (const p of centerParagraphs) {
+        if (p.textContent && p.textContent.includes('Features') && p.textContent.includes('Why')) {
+          const links = p.querySelectorAll('a');
+          if (links.length > 0) {
+            const ul = document.createElement('ul');
+            ul.className = 'nav-list';
+            ul.setAttribute('role', 'list');
+
+            links.forEach(link => {
+              const li = document.createElement('li');
+              // Clone the link to preserve events/attributes
+              li.appendChild(link.cloneNode(true));
+              ul.appendChild(li);
+            });
+
+            // Replace the paragraph with the new list
+            p.parentNode?.replaceChild(ul, p);
+          }
+          break; // Stop after finding the nav paragraph
+        }
+      }
+    });
+  </script>
 </Layout>
