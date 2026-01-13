@@ -656,7 +656,7 @@ fn start_monitoring(
                             inner.set_icon_with_as_template(icon, true)
                         });
                         if let Err(e) = result {
-                            eprintln!("[WARN] Failed to update tray icon: {:?}", e);
+                            log::warn!("Failed to update tray icon: {:?}", e);
                         }
                     }
 
