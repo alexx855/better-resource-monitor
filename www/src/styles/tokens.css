@@ -1,0 +1,46 @@
+:root {
+  /* Colors - Base */
+  --color-canvas: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-hover: #2c2c2e;
+
+  /* Colors - Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #86868b;
+  --color-text-tertiary: #56565c;
+
+  /* Colors - Accent */
+  --color-accent-blue: #2997ff;
+  --color-accent-orange: #ff9500;
+  --color-accent-gradient: linear-gradient(135deg, #2997ff 0%, #ff9500 100%);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Typography */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --text-hero: 700 56px/1.05 var(--font-display);
+  --text-hero-mobile: 700 40px/1.1 var(--font-display);
+  --text-h1: 600 40px/1.1 var(--font-display);
+  --text-h2: 600 32px/1.2 var(--font-display);
+  --text-body: 400 17px/1.5 var(--font-body);
+  --text-small: 400 14px/1.4 var(--font-body);
+  --text-small-size: 13px;
+
+  /* Effects */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}

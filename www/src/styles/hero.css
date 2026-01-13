@@ -1,0 +1,199 @@
+.hero {
+  position: relative;
+  width: 100%;
+  padding: 15vh 0;
+  background-color: var(--color-canvas);
+  overflow: hidden;
+}
+
+.hero-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+  align-items: center;
+}
+
+@media (min-width: 960px) {
+  .hero-container {
+    grid-template-columns: 1fr 1fr;
+    padding-top: var(--space-8);
+  }
+}
+
+/* Content Column */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  background: color-mix(in srgb, var(--color-accent-blue), transparent 90%);
+  border: 1px solid color-mix(in srgb, var(--color-accent-blue), transparent 70%);
+  border-radius: 100px;
+  margin-bottom: var(--space-6);
+  font-family: var(--font-body);
+  font-size: var(--text-small-size);
+  font-weight: 500;
+  color: var(--color-accent-blue);
+  letter-spacing: 0.02em;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font: var(--text-hero-mobile);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font: var(--text-hero);
+  }
+}
+
+.hero-title .gradient-text {
+  background: var(--color-accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  max-width: 480px;
+}
+
+/* Actions */
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .hero-actions {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-6);
+  border-radius: 99px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--color-text-primary);
+  color: var(--color-canvas);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-text-primary), transparent 80%);
+}
+
+.btn-secondary {
+  background: color-mix(in srgb, var(--color-text-primary), transparent 90%);
+  color: var(--color-text-primary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary), transparent 90%);
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--color-text-primary), transparent 85%);
+  border-color: color-mix(in srgb, var(--color-text-primary), transparent 80%);
+}
+
+/* Stats */
+.hero-stats {
+  margin-top: var(--space-8);
+  display: flex;
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary), transparent 90%);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+/* Visual Column */
+.hero-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visual-card {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text-primary), transparent 90%), 0 20px 60px -10px color-mix(in srgb, var(--color-canvas), transparent 50%);
+  background: var(--color-surface);
+}
+
+.visual-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.9;
+  transition: opacity 0.5s ease;
+}
+
+.visual-card:hover img {
+  opacity: 1;
+}
+
+/* Glow Effect */
+.visual-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--color-accent-blue), transparent 85%) 0%, transparent 60%);
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
+}
