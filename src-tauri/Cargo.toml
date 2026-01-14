@@ -36,5 +36,6 @@ core-foundation = "0.10"
 # Linux-specific dependencies
 [target.'cfg(target_os = "linux")'.dependencies]
 nvml-wrapper = "0.10"
+zbus = { version = "4", features = ["tokio"] }
 
 
