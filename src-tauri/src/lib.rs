@@ -13,6 +13,9 @@ use tauri::{
 use tauri::ActivationPolicy;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
+
+#[cfg(target_os = "linux")]
+use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 use std::path::PathBuf;
@@ -35,6 +38,48 @@ const SVG_MEMORY: &str = include_str!("../assets/icons/svg/fill/memory-fill.svg"
 const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
 const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
+
+#[cfg(target_os = "linux")]
+static DETECTED_TEXT_COLOR: OnceLock<u8> = OnceLock::new();
+
+#[cfg(target_os = "linux")]
+fn get_text_color() -> u8 {
+    *DETECTED_TEXT_COLOR.get_or_init(|| {
+        // Try to detect via gsettings (GNOME/GTK)
+        if let Ok(output) = std::process::Command::new("gsettings")
+            .args(&["get", "org.gnome.desktop.interface", "gtk-application-prefer-dark-theme"])
+            .output()
+        {
+            let result = String::from_utf8_lossy(&output.stdout);
+            if result.contains("true") {
+                #[cfg(debug_assertions)]
+                eprintln!("[INFO] Detected dark theme, using white icons");
+                return 255;
+            }
+        }
+
+        // Check XDG_CURRENT_DESKTOP for common light-themed DEs
+        if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
+            let lower = desktop.to_lowercase();
+            if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
+                // These DEs often default to light themes
+                #[cfg(debug_assertions)]
+                eprintln!("[INFO] Detected potentially light-themed desktop ({}), using black icons", desktop);
+                return 0;
+            }
+        }
+
+        // Default to white for dark themes (most Linux panels are dark)
+        #[cfg(debug_assertions)]
+        eprintln!("[INFO] Could not detect theme, defaulting to white icons");
+        255
+    })
+}
+
+#[cfg(not(target_os = "linux"))]
+fn get_text_color() -> u8 {
+    255 // macOS uses template icons, Windows/other default to white
+}
 
 fn load_system_font() -> Font<'static> {
     let source = SystemSource::new();
@@ -322,7 +367,7 @@ fn render_tray_icon(
             .sum()
     };
 
-    let text_color: u8 = 255; // White - template icons handle macOS, most Linux panels are dark
+    let text_color: u8 = get_text_color();
 
     let draw_text = |text: &str, start_x: f32, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
@@ -542,11 +587,12 @@ fn setup_tray(
         })
         .build(app)?;
 
+    #[cfg(debug_assertions)]
     eprintln!("[INFO] Tray icon builder completed");
 
     // Try to verify the icon exists (tray-icon doesn't expose this well,
     // so this is a best-effort check)
-    #[cfg(target_os = "linux")]
+    #[cfg(all(debug_assertions, target_os = "linux"))]
     {
         // Check if AppIndicator service should be registered
         // Note: This is informational only, can't easily verify from Rust
@@ -666,9 +712,12 @@ fn start_monitoring(
                             let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
                             inner.set_icon(icon)
                         });
+                        #[cfg(debug_assertions)]
                         if let Err(e) = result {
-                            log::warn!("Failed to update tray icon: {:?}", e);
+                            eprintln!("Failed to update tray icon: {:?}", e);
                         }
+                        #[cfg(not(debug_assertions))]
+                        let _ = result;
                     }
                 }
             }
