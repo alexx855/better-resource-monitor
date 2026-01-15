@@ -701,9 +701,12 @@ fn start_monitoring(
                             let icon = tray_icon::Icon::from_rgba(pixels, width, height).ok();
                             inner.set_icon_with_as_template(icon, true)
                         });
+                        #[cfg(debug_assertions)]
                         if let Err(e) = result {
-                            log::warn!("Failed to update tray icon: {:?}", e);
+                            eprintln!("Failed to update tray icon: {:?}", e);
                         }
+                        #[cfg(not(debug_assertions))]
+                        let _ = result;
                     }
 
                     #[cfg(target_os = "linux")]
@@ -751,14 +754,9 @@ pub fn run() {
             || env::var("WAYLAND_DISPLAY").is_ok();
 
         if !has_display {
-            eprintln!("Error: No display server detected.");
-            eprintln!("Silicon Monitor requires a graphical environment to run.");
-            eprintln!("Make sure you're running in a graphical session (X11 or Wayland).");
-            eprintln!("");
-            eprintln!("If running via SSH, enable X11 access:");
-            eprintln!("  export DISPLAY=:0");
-            eprintln!("  xhost +local:  # May require running from graphical terminal first");
-            std::process::exit(1);
+            eprintln!("Warning: No display server detected (DISPLAY/WAYLAND_DISPLAY not set).");
+            eprintln!("The app may fail to create the tray icon.");
+            eprintln!("If running via SSH, consider: ssh -X for X11 forwarding");
         }
 
         // Suppress GTK debug messages on Linux
