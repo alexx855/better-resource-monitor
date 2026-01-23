@@ -1,18 +1,17 @@
+<h1 align="center">Better Resource Monitor</h1>
+
 <p align="center">
-  <img src="silicon-monitor.jpeg" alt="Silicon Monitor" width="830" height="372">
+  <strong>A menu bar/tray system monitor for macOS and Linux.</strong>
 </p>
 
 <p align="center">
-  <strong>A native menu bar/tray system monitor for macOS and Linux.</strong>
+  <img src="www/public/better-resource-monitor.png" alt="Better Resource Monitor" width="830">
 </p>
 
 <p align="center">
-  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15.0%2B_(Sequoia)-0078d7?logo=apple&logoColor=white&style=flat-square" alt="macOS 15.0+ (Sequoia)"></a>
-  <img src="https://img.shields.io/badge/Apple_Silicon-M--Series-orange?logo=apple&logoColor=white&style=flat-square" alt="Apple Silicon M-Series">
-  <a href="https://ubuntu.com/"><img src="https://img.shields.io/badge/Ubuntu-25.04+-E95420?logo=ubuntu&logoColor=white&style=flat-square" alt="Ubuntu 25.04+"></a>
-  <img src="https://img.shields.io/badge/NVIDIA-GPU_Support-76B900?logo=nvidia&logoColor=white&style=flat-square" alt="NVIDIA GPU Support">
-  <a href="https://github.com/alexx855/silicon-monitor/releases/latest"><img src="https://img.shields.io/badge/Download-Releases-000000?logo=github&logoColor=white&style=flat-square" alt="Download Releases"></a>
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License">
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/Better.Resource.Monitor_0.1.3_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-Download_.dmg-0078d7?logo=apple&logoColor=white&style=flat-square" alt="Download macOS .dmg"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/better-resource-monitor_0.1.3_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Download_.deb-E95420?logo=ubuntu&logoColor=white&style=flat-square" alt="Download Ubuntu .deb"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p align="center">
@@ -26,46 +25,47 @@
 
 ## Features
 
-* **Zero Impact** — Written in Rust. Minimal CPU (< 0.1%) & Memory (~15MB) usage.
-* **Native Design** — Adapts to menu bar appearance at startup. macOS menu bar adapts to wallpaper color, not system theme. Restart app after wallpaper change.
-* **Cross-Platform** — Works on macOS (Apple Silicon) and Ubuntu Linux (NVIDIA GPUs).
-* **GPU Monitoring** — Apple Silicon GPU residency on macOS, NVIDIA utilization on Linux.
-* **Fully Configurable** — Toggle CPU, GPU, Memory, or Network stats instantly.
-* **Battery Efficient** — Smart polling that won't drain your laptop.
-* **Privacy Focused** — 100% local. No analytics. No network requests.
+* **Cross-Platform** — Same app on macOS and Linux. Apple Silicon Macs and Ubuntu with NVIDIA GPUs.
+* **Zero Impact** — Written in Rust. < 0.1% CPU, ~15MB RAM. Lighter than a browser tab.
+* **GPU Monitoring** — Apple Silicon residency via IOReport. NVIDIA utilization via NVML. No hacks.
+* **Theme Aware** — Auto-detects light/dark mode. Blends seamlessly with your menu bar.
+* **Configurable** — Toggle CPU, GPU, Memory, or Network stats with a click.
+* **Privacy First** — 100% local. No analytics. No network requests. No telemetry.
 
 ## Why?
 
-I built this out of necessity. After switching from Ubuntu to macOS, I missed the simplicity of the **GNOME Resource Monitor** extension—just a clean line of text showing me exactly what my system was doing.
+I built this out of necessity. I wanted the simplicity of **GNOME Resource Monitor**—just a clean line of text in the menu bar showing exactly what my system was doing. But I needed it on macOS too.
 
-I tried everything else:
+Everything else fell short:
 
-* **Electron apps** were too heavy (~150MB+ RAM for a text label? That's the "Electron Tax").
-* **Paid apps** were overkill and expensive ($15+ with paid upgrades).
-* **Free alternatives** often lacked proper **GPU** support or didn't match the OS aesthetics.
+* **Paid apps** — Overkill. $15+ with subscription upgrades for basic stats.
+* **Free alternatives** — Missing GPU support or looking out of place.
 
-**Silicon Monitor** is the answer. It uses **native platform APIs** to monitor your GPU with zero overhead—IOReport on macOS for Apple Silicon, NVML on Linux for NVIDIA GPUs.
+**Better Resource Monitor** fills the gap. One app, two platforms, zero compromise. It uses **platform APIs** for GPU monitoring—IOReport on macOS for Apple Silicon, NVML on Linux for NVIDIA GPUs—with no overhead.
 
 ### How it works
 
-* **Hybrid Architecture**: Uses `sysinfo` crate for standard metrics (CPU, Memory, Network).
-* **macOS GPU Monitoring**: Uses `IOReport` FFI to access private macOS APIs for accurate GPU residency.
-* **Linux GPU Monitoring**: Uses `nvml-wrapper` for NVIDIA GPU utilization via NVML.
-* **Theme Aware**: Samples menu bar color at startup for optimal performance. On macOS, menu bar adapts to wallpaper (not system theme), so restart app after wallpaper change. On Linux, uses gsettings.
+| Component | macOS | Linux |
+| :--- | :--- | :--- |
+| **CPU/Memory/Network** | `sysinfo` crate | `sysinfo` crate |
+| **GPU Metrics** | IOReport FFI (private APIs) | NVML via `nvml-wrapper` |
+| **Theme Detection** | Menu bar color sampling | gsettings |
 
-It calculates **active residency** on macOS instead of just "utilization," giving you true insight into your GPU's workload. On Linux, it provides standard NVIDIA utilization metrics. It runs without `sudo`, and looks exactly like a native system component.
+On macOS, it calculates **active residency** instead of just "utilization"—giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
 
 ## Comparison
 
-| Feature | Silicon Monitor | Stats | iStat Menus | Electron Apps |
-| :--- | :--- | :--- | :--- | :--- |
-| **Price** | ✅ Free | ✅ Free | ❌ $14.99 | ❌ Varies |
-| **Open Source** | ✅ MIT | ✅ MIT | ❌ Proprietary | ⚠️ Varies |
-| **Idle Memory** | ✅ ~15 MB | ⚠️ ~45 MB | ⚠️ ~60 MB | ❌ 150-400 MB |
-| **CPU (Idle)** | ✅ < 0.1% | ✅ < 0.5% | ✅ < 0.5% | ❌ 1.0 - 3.0% |
-| **App Size** | ✅ < 7 MB | ⚠️ ~30 MB | ⚠️ ~40 MB | ❌ > 100 MB |
-| **GPU Metrics** | ✅ Native | ✅ IOReport | ✅ Proprietary | ❌ Limited |
-| **Cross-Platform** | ✅ macOS + Linux | ❌ macOS only | ❌ macOS only | ⚠️ Varies |
+| Feature | Better Resource Monitor | Stats | iStat Menus |
+| :--- | :---: | :---: | :---: |
+| **Price** | ✅ Free | ✅ Free | ❌ $14.99 |
+| **Open Source** | ✅ MIT | ✅ MIT | ❌ Proprietary |
+| **Memory Usage** | ✅ ~15 MB | ⚠️ ~45 MB | ⚠️ ~60 MB |
+| **CPU Usage** | ✅ < 0.1% | ✅ < 0.5% | ✅ < 0.5% |
+| **App Size** | ✅ < 7 MB | ⚠️ ~30 MB | ⚠️ ~40 MB |
+| **GPU Monitoring** | ✅ System | ✅ IOReport | ✅ Proprietary |
+| **macOS** | ✅ Apple Silicon | ✅ | ✅ |
+| **Linux** | ✅ Ubuntu/Debian | ❌ | ❌ |
+| **Theme Aware** | ✅ Auto-detect | ✅ | ✅ |
 
 ## Installation
 
@@ -78,7 +78,7 @@ It calculates **active residency** on macOS instead of just "utilization," givin
 **Download** the latest `.deb` from [Releases](../../releases) and install:
 
 ```bash
-sudo dpkg -i silicon-monitor_*.deb
+sudo dpkg -i better-resource-monitor_*.deb
 ```
 
 **GPU Monitoring (Optional):** To enable NVIDIA GPU monitoring, ensure you have the proprietary NVIDIA drivers installed:
@@ -126,8 +126,8 @@ npm install -g pnpm
 #### Build
 
 ```bash
-git clone https://github.com/alexx855/silicon-monitor.git
-cd silicon-monitor
+git clone https://github.com/alexx855/better-resource-monitor.git
+cd better-resource-monitor
 pnpm install
 pnpm tauri build
 ```
@@ -136,8 +136,8 @@ pnpm tauri build
 
 **Desktop Environment Support:**
 - **GNOME Shell**: ⚠️ Requires `ubuntu-appindicators` extension (doesn't display tray icons natively)
-- **KDE Plasma**: ✅ Native SNI support (works out of the box)
-- **XFCE**: ✅ Native system tray support
+- **KDE Plasma**: ✅ SNI support (works out of the box)
+- **XFCE**: ✅ System tray support
 - **Other DEs**: Depends on SNI/tray support
 
 ### GPU Monitoring on Linux

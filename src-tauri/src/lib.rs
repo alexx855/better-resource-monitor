@@ -16,6 +16,39 @@ use tauri::ActivationPolicy;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 
+#[cfg(target_os = "linux")]
+use std::sync::OnceLock;
+
+#[cfg(target_os = "linux")]
+static DETECTED_LIGHT_ICONS: OnceLock<bool> = OnceLock::new();
+
+#[cfg(target_os = "linux")]
+fn detect_light_icons() -> bool {
+    *DETECTED_LIGHT_ICONS.get_or_init(|| {
+        // Try gsettings (GNOME/GTK)
+        if let Ok(output) = std::process::Command::new("gsettings")
+            .args(["get", "org.gnome.desktop.interface", "gtk-application-prefer-dark-theme"])
+            .output()
+        {
+            let result = String::from_utf8_lossy(&output.stdout);
+            if result.contains("true") {
+                return true; // Dark theme → light (white) icons
+            }
+        }
+
+        // Check XDG_CURRENT_DESKTOP for common light-themed DEs
+        if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
+            let lower = desktop.to_lowercase();
+            if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
+                return false; // Often light themes → dark (black) icons
+            }
+        }
+
+        // Default: most Linux panels are dark → use light (white) icons
+        true
+    })
+}
+
 use std::thread;
 use std::time::Duration;
 use std::path::PathBuf;
@@ -446,8 +479,9 @@ fn setup_tray(
 
     let separator2 = PredefinedMenuItem::separator(app)?;
 
-    let dark_mode_item = CheckMenuItem::with_id(
-        app, "dark_mode", "Dark Mode", true, dark_mode.load(Relaxed), None::<&str>,
+    #[cfg(target_os = "macos")]
+    let light_icons_item = CheckMenuItem::with_id(
+        app, "light_icons", "Use Light Icons", true, dark_mode.load(Relaxed), None::<&str>,
     )?;
 
     let separator3 = PredefinedMenuItem::separator(app)?;
@@ -465,12 +499,21 @@ fn setup_tray(
         menu.append(&show_gpu_item)?;
     }
     menu.append(&show_net_item)?;
-    menu.append(&separator2)?;
-    menu.append(&dark_mode_item)?;
+    #[cfg(target_os = "macos")]
+    {
+        menu.append(&separator2)?;
+        menu.append(&light_icons_item)?;
+    }
     menu.append(&separator3)?;
     menu.append(&quit_item)?;
 
     let font = load_system_font();
+
+    #[cfg(target_os = "macos")]
+    let is_light_icons = dark_mode.load(Relaxed);
+    #[cfg(target_os = "linux")]
+    let is_light_icons = detect_light_icons();
+
     let (pixels, width, height) = render_tray_icon(
         &font,
         0.0, 0.0, 0.0, 0.0, 0.0,
@@ -478,7 +521,7 @@ fn setup_tray(
         show_mem.load(Relaxed),
         show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
-        dark_mode.load(Relaxed),
+        is_light_icons,
     );
     let initial_icon = Image::new_owned(pixels, width, height);
 
@@ -528,7 +571,7 @@ fn setup_tray(
                         save_setting(app, "show_gpu", show_gpu.load(Relaxed));
                     }
                 }
-                "dark_mode" => {
+                "light_icons" => {
                     dark_mode.fetch_xor(true, Relaxed);
                     save_setting(app, "dark_mode", dark_mode.load(Relaxed));
                 }
@@ -620,7 +663,11 @@ fn start_monitoring(
             let sm = show_mem.load(Relaxed);
             let sg = show_gpu.load(Relaxed) && gpu_available;
             let sn = show_net.load(Relaxed);
+
+            #[cfg(target_os = "macos")]
             let dm = dark_mode.load(Relaxed);
+            #[cfg(target_os = "linux")]
+            let dm = detect_light_icons();
 
             let display_key = format!(
                 "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",

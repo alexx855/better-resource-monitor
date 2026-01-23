@@ -1,8 +1,8 @@
 {
-  "name": "silicon-monitor",
+  "name": "better-resource-monitor",
   "private": false,
   "version": "0.1.3",
-  "description": "A blazing-fast, lightweight macOS menu bar system monitor built with Rust and Tauri. Monitor CPU, Memory, GPU, and Network usage with minimal resource consumption. Features native Apple Silicon GPU monitoring, dark/light theme support, and customizable display options.",
+  "description": "A blazing-fast, lightweight menu bar system monitor built with Rust and Tauri for macOS and Linux. Monitor CPU, Memory, GPU, and Network usage with minimal resource consumption. Features native GPU monitoring, dark/light theme support, and customizable display options.",
   "author": {
     "name": "Alex Pedersen",
     "email": "hello@alexpedersen.dev"
@@ -10,12 +10,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexx855/silicon-monitor.git"
+    "url": "https://github.com/alexx855/better-resource-monitor.git"
   },
   "bugs": {
-    "url": "https://github.com/alexx855/silicon-monitor/issues"
+    "url": "https://github.com/alexx855/better-resource-monitor/issues"
   },
-  "homepage": "https://github.com/alexx855/silicon-monitor#readme",
+  "homepage": "https://github.com/alexx855/better-resource-monitor#readme",
   "keywords": [
     "macos",
     "menu-bar",

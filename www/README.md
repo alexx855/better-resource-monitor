@@ -1,6 +1,6 @@
-# Silicon Monitor Website
+# Better Resource Monitor Website
 
-Marketing and documentation website for [Silicon Monitor](https://github.com/your-repo/monitor), a lightweight macOS menu bar system monitor for Apple Silicon.
+Marketing and documentation website for [Better Resource Monitor](https://github.com/alexx855/better-resource-monitor), a lightweight menu bar system monitor for macOS and Linux.
 
 ## Tech Stack
 

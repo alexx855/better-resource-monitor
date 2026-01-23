@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    sillicon_resources_monitor_lib::run()
+    better_resource_monitor_lib::run()
 }
