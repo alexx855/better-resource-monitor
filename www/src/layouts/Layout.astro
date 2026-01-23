@@ -1,4 +1,6 @@
 ---
+import { ClientRouter } from 'astro:transitions';
+
 interface Props {
   title: string;
   description: string;
@@ -20,16 +22,17 @@ const { title, description } = Astro.props;
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.site} />
-    <meta property="og:image" content="https://monitor.alexpedersen.dev/better-resource-monitor.jpeg" />
+    <meta property="og:image" content="https://opengraph.githubassets.com/1/alexx855/better-resource-monitor" />
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content="https://monitor.alexpedersen.dev/better-resource-monitor.jpeg" />
+    <meta name="twitter:image" content="https://opengraph.githubassets.com/1/alexx855/better-resource-monitor" />
     
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>{title}</title>
+    <ClientRouter />
     
     <style is:global>
       :root {
@@ -95,9 +98,48 @@ const { title, description } = Astro.props;
         background: none;
         padding: 0;
       }
+
+      .site-footer {
+        border-top: 1px solid var(--color-border);
+        padding: 2rem 1.5rem;
+        margin-top: 3rem;
+        text-align: center;
+      }
+
+      .site-footer nav {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+
+      .site-footer nav a {
+        color: var(--color-text-muted);
+        font-size: 0.875rem;
+        text-decoration: none;
+      }
+
+      .site-footer nav a:hover {
+        color: var(--color-accent);
+      }
+
+      .site-footer p {
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+      }
     </style>
   </head>
   <body>
     <slot />
+    <footer class="site-footer">
+      <nav>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms">Terms & Conditions</a>
+        <a href="/contributing">Contributing</a>
+        <a href="https://github.com/alexx855/better-resource-monitor" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+      <p>&copy; 2025 Better Resource Monitor</p>
+    </footer>
   </body>
 </html>

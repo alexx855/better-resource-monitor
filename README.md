@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/Better.Resource.Monitor_0.1.3_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-Download_.dmg-0078d7?logo=apple&logoColor=white&style=flat-square" alt="Download macOS .dmg"></a>
   <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/better-resource-monitor_0.1.3_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Download_.deb-E95420?logo=ubuntu&logoColor=white&style=flat-square" alt="Download Ubuntu .deb"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p align="center">
