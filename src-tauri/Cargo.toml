@@ -1,5 +1,5 @@
 [package]
-name = "silicon-resources-monitor"
+name = "better-resource-monitor"
 version = "0.1.3"
 description = "A Tauri App"
 authors = ["you"]
@@ -11,8 +11,12 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "sillicon_resources_monitor_lib"
+name = "better_resource_monitor_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "screenshot"
+path = "src/bin/screenshot.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

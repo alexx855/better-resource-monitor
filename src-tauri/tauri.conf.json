@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Silicon Monitor",
+  "productName": "Better Resource Monitor",
   "version": "0.1.3",
-  "identifier": "dev.alexpedersen.silicon-monitor",
+  "identifier": "dev.alexpedersen.better-resource-monitor",
   "build": {
     "frontendDist": null
   },

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A lightweight macOS menu bar system monitor for Apple Silicon. Built with Tauri 2 + Rust, renders CPU/memory/network stats directly in the menu bar tray icon.
+Better Resource Monitor - A lightweight menu bar/tray system monitor for macOS and Linux. Built with Tauri 2 + Rust, renders CPU/memory/GPU/network stats directly in the menu bar tray icon.
 
 ## Commands
 

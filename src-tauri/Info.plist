@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Silicon Monitor</string>
+	<string>Better Resource Monitor</string>
 	<key>CFBundleDisplayName</key>
-	<string>Silicon Monitor</string>
+	<string>Better Resource Monitor</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2024 Silicon Monitor. All rights reserved.</string>
+	<string>Copyright © 2024-2025 Better Resource Monitor. All rights reserved.</string>
 	<key>LSUIElement</key>
 	<true/>
 </dict>
