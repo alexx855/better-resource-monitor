@@ -1,4 +1,4 @@
-# Contributing to Silicon Resources Monitor
+# Contributing to Better Resource Monitor
 
 Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
 

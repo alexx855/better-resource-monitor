@@ -7,6 +7,19 @@ const docs = defineCollection({
   schema: z.object({})
 });
 
-export const collections = { docs };
+const legal = defineCollection({
+  loader: glob({ pattern: "*.md", base: "./src/content/legal" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string()
+  })
+});
+
+const contributing = defineCollection({
+  loader: glob({ pattern: "CONTRIBUTING.md", base: ".." }),
+  schema: z.object({})
+});
+
+export const collections = { docs, legal, contributing };
 
 
