@@ -27,7 +27,7 @@
 ## Features
 
 * **Zero Impact** — Written in Rust. Minimal CPU (< 0.1%) & Memory (~15MB) usage.
-* **Native Design** — Adapts automatically to your system theme (dark/light mode).
+* **Native Design** — Adapts to menu bar appearance at startup. macOS menu bar adapts to wallpaper color, not system theme. Restart app after wallpaper change.
 * **Cross-Platform** — Works on macOS (Apple Silicon) and Ubuntu Linux (NVIDIA GPUs).
 * **GPU Monitoring** — Apple Silicon GPU residency on macOS, NVIDIA utilization on Linux.
 * **Fully Configurable** — Toggle CPU, GPU, Memory, or Network stats instantly.
@@ -51,7 +51,7 @@ I tried everything else:
 * **Hybrid Architecture**: Uses `sysinfo` crate for standard metrics (CPU, Memory, Network).
 * **macOS GPU Monitoring**: Uses `IOReport` FFI to access private macOS APIs for accurate GPU residency.
 * **Linux GPU Monitoring**: Uses `nvml-wrapper` for NVIDIA GPU utilization via NVML.
-* **Theme Aware**: Automatically detects dark/light theme and adapts icon colors (Linux uses gsettings, macOS uses template icons).
+* **Theme Aware**: Samples menu bar color at startup for optimal performance. On macOS, menu bar adapts to wallpaper (not system theme), so restart app after wallpaper change. On Linux, uses gsettings.
 
 It calculates **active residency** on macOS instead of just "utilization," giving you true insight into your GPU's workload. On Linux, it provides standard NVIDIA utilization metrics. It runs without `sudo`, and looks exactly like a native system component.
 

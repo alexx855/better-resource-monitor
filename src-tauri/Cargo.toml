@@ -22,6 +22,8 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2.3.3"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-single-instance = "2"
+tauri-plugin-store = "2"
+serde_json = "1"
 sysinfo = "0.37.2"
 image = "0.24"
 rusttype = "0.9"
