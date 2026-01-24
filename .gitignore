@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-.env.*
+.env**
+
+# applestoreconnect
+src-tauri/embedded.provisionprofile
+private_keys/*.p8

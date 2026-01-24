@@ -5,7 +5,7 @@ description: Privacy Policy for Better Resource Monitor
 
 # Privacy Policy
 
-**Last updated: January 2025**
+**Last updated: January 2026**
 
 ## Overview
 
