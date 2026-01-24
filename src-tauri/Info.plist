@@ -7,8 +7,10 @@
 	<key>CFBundleDisplayName</key>
 	<string>Better Resource Monitor</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2024-2025 Better Resource Monitor. All rights reserved.</string>
+	<string>Copyright © 2026 Alex Pedersen. All rights reserved.</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
