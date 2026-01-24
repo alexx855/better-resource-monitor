@@ -9,7 +9,7 @@ const { Content } = await render(terms);
 ---
 
 <Layout title={terms.data.title} description={terms.data.description}>
-  <style>
+  <style is:global>
     :root {
       --bg: #0d1117;
       --surface: #161b22;
