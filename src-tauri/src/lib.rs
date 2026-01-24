@@ -49,6 +49,7 @@ fn detect_light_icons() -> bool {
     })
 }
 
+
 use std::thread;
 use std::time::Duration;
 use std::path::PathBuf;
@@ -156,7 +157,8 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
 }
 
 
-mod base_sizing {
+#[cfg(target_os = "macos")]
+mod sizing {
     pub const SEGMENT_WIDTH: u32 = 180;
     pub const SEGMENT_WIDTH_NET: u32 = 240;
     pub const EDGE_PADDING: u32 = 16;
@@ -165,28 +167,16 @@ mod base_sizing {
     pub const FONT_SIZE: f32 = 56.0;
 }
 
-#[cfg(target_os = "macos")]
-use base_sizing as sizing;
-
 #[cfg(target_os = "linux")]
 mod sizing {
-    use super::base_sizing;
-
-    const SCALE: f32 = 0.70;
-
-    const fn scale_u32(val: u32) -> u32 { (val as f32 * SCALE) as u32 }
-    const fn scale_f32(val: f32) -> f32 { val * SCALE }
-
-    pub const SEGMENT_WIDTH: u32 = scale_u32(base_sizing::SEGMENT_WIDTH);
-    pub const SEGMENT_WIDTH_NET: u32 = scale_u32(base_sizing::SEGMENT_WIDTH_NET);
-    pub const EDGE_PADDING: u32 = scale_u32(base_sizing::EDGE_PADDING);
-    pub const SEGMENT_GAP: u32 = scale_u32(base_sizing::SEGMENT_GAP);
-    pub const ICON_HEIGHT: u32 = scale_u32(base_sizing::ICON_HEIGHT);
-    pub const FONT_SIZE: f32 = scale_f32(base_sizing::FONT_SIZE);
+    // Tuned for 22px GNOME tray height
+    pub const SEGMENT_WIDTH: u32 = 58;
+    pub const SEGMENT_WIDTH_NET: u32 = 75;
+    pub const EDGE_PADDING: u32 = 5;
+    pub const SEGMENT_GAP: u32 = 18;
+    pub const ICON_HEIGHT: u32 = 22;
+    pub const FONT_SIZE: f32 = 19.0;
 }
-
-use sizing::*;
-
 
 fn format_speed(bytes_per_sec: f64) -> String {
     // Switch units at 9.95 to keep values in 0.0-9.9 range (max 2 digits)
@@ -281,7 +271,7 @@ fn render_tray_icon(
         segments.push(Segment {
             label: SegmentLabel::IconCpu,
             value: format!("{:.0}%", cap_percent(cpu_usage)),
-            width: SEGMENT_WIDTH,
+            width: sizing::SEGMENT_WIDTH,
             alert: cpu_alert,
         });
     }
@@ -289,7 +279,7 @@ fn render_tray_icon(
         segments.push(Segment {
             label: SegmentLabel::IconMem,
             value: format!("{:.0}%", cap_percent(mem_percent)),
-            width: SEGMENT_WIDTH,
+            width: sizing::SEGMENT_WIDTH,
             alert: mem_alert,
         });
     }
@@ -297,7 +287,7 @@ fn render_tray_icon(
         segments.push(Segment {
             label: SegmentLabel::IconGpu,
             value: format!("{:.0}%", cap_percent(gpu_usage)),
-            width: SEGMENT_WIDTH,
+            width: sizing::SEGMENT_WIDTH,
             alert: gpu_alert,
         });
     }
@@ -305,30 +295,31 @@ fn render_tray_icon(
         segments.push(Segment {
             label: SegmentLabel::IconDown,
             value: format_speed(down_speed),
-            width: SEGMENT_WIDTH_NET,
+            width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
         });
         segments.push(Segment {
             label: SegmentLabel::IconUp,
             value: format_speed(up_speed),
-            width: SEGMENT_WIDTH_NET,
+            width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
         });
     }
 
     let segment_widths: u32 = segments.iter().map(|s| s.width).sum();
-    let total_width = EDGE_PADDING
+    let total_width = sizing::EDGE_PADDING
         + segment_widths
-        + SEGMENT_GAP * (segments.len() as u32).saturating_sub(1)
-        + EDGE_PADDING;
+        + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1)
+        + sizing::EDGE_PADDING;
 
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, ICON_HEIGHT);
+    let icon_height = sizing::ICON_HEIGHT;
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, icon_height);
 
     for pixel in img.pixels_mut() {
         *pixel = Rgba([0, 0, 0, 0]);
     }
 
-    let scale = Scale::uniform(FONT_SIZE);
+    let scale = Scale::uniform(sizing::FONT_SIZE);
     let v_metrics = font.v_metrics(scale);
 
     let reference_text = "0123456789% KMGTP";
@@ -343,9 +334,9 @@ fn render_tray_icon(
     }
 
     let baseline = if min_y < max_y {
-        (ICON_HEIGHT as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
+        (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
     } else {
-        (ICON_HEIGHT as f32 / 2.0) + (v_metrics.ascent / 2.0)
+        (icon_height as f32 / 2.0) + (v_metrics.ascent / 2.0)
     };
 
     let measure_text = |text: &str| -> f32 {
@@ -363,7 +354,7 @@ fn render_tray_icon(
                 glyph.draw(|gx, gy, v| {
                     let x = (bb.min.x + gx as i32) as u32;
                     let y = (bb.min.y + gy as i32) as u32;
-                    if x < total_width && y < ICON_HEIGHT {
+                    if x < total_width && y < icon_height {
                         let alpha = (v * 255.0) as u8;
                         img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
                     }
@@ -372,19 +363,17 @@ fn render_tray_icon(
         }
     };
 
-    let icon_size = ICON_HEIGHT;
-
     let draw_svg_icon = |svg_data: &str, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-        let icon_pixels = render_svg_icon(svg_data, icon_size, color);
+        let icon_pixels = render_svg_icon(svg_data, icon_height, color);
 
-        for y in 0..icon_size {
-            for x in 0..icon_size {
-                let src_idx = ((y * icon_size + x) * 4) as usize;
+        for y in 0..icon_height {
+            for x in 0..icon_height {
+                let src_idx = ((y * icon_height + x) * 4) as usize;
                 if src_idx + 3 < icon_pixels.len() {
                     let alpha = icon_pixels[src_idx + 3];
                     if alpha > 0 {
                         let dst_x = start_x + x;
-                        if dst_x < total_width && y < ICON_HEIGHT {
+                        if dst_x < total_width && y < icon_height {
                             img.put_pixel(dst_x, y, Rgba([
                                 icon_pixels[src_idx],
                                 icon_pixels[src_idx + 1],
@@ -398,10 +387,10 @@ fn render_tray_icon(
         }
     };
 
-    let mut x_offset = EDGE_PADDING;
+    let mut x_offset = sizing::EDGE_PADDING;
     for (i, segment) in segments.iter().enumerate() {
         if i > 0 {
-            x_offset += SEGMENT_GAP;
+            x_offset += sizing::SEGMENT_GAP;
         }
 
         let segment_color = if segment.alert { get_alert_color(is_dark_mode) } else { base_color };
@@ -422,7 +411,7 @@ fn render_tray_icon(
         x_offset += segment.width;
     }
 
-    (img.into_raw(), total_width, ICON_HEIGHT)
+    (img.into_raw(), total_width, icon_height)
 }
 
 fn setup_tray(
@@ -477,6 +466,7 @@ fn setup_tray(
         app, "show_net", "Show Network", true, show_net.load(Relaxed), None::<&str>,
     )?;
 
+    #[cfg(target_os = "macos")]
     let separator2 = PredefinedMenuItem::separator(app)?;
 
     #[cfg(target_os = "macos")]
@@ -594,6 +584,7 @@ fn setup_tray(
     Ok(())
 }
 
+#[allow(unused_variables)]
 fn start_monitoring(
     app: AppHandle,
     show_cpu: Arc<AtomicBool>,
