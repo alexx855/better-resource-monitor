@@ -9,7 +9,7 @@ const { Content } = await render(privacyPolicy);
 ---
 
 <Layout title={privacyPolicy.data.title} description={privacyPolicy.data.description}>
-  <style>
+  <style is:global>
     :root {
       --bg: #0d1117;
       --surface: #161b22;
