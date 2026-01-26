@@ -445,6 +445,33 @@ mod tests {
             None => std::env::remove_var("WAYLAND_DISPLAY"),
         }
     }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[serial]
+    fn test_ensure_display_available_wayland() {
+        // Save original values
+        let orig_display = std::env::var("DISPLAY").ok();
+        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
+
+        // Set Wayland display, unset X11
+        std::env::remove_var("DISPLAY");
+        std::env::set_var("WAYLAND_DISPLAY", "wayland-0");
+
+        // Should return Ok when Wayland display is available
+        let result = ensure_display_available();
+        assert!(result.is_ok());
+
+        // Restore original values
+        match orig_display {
+            Some(val) => std::env::set_var("DISPLAY", val),
+            None => std::env::remove_var("DISPLAY"),
+        }
+        match orig_wayland {
+            Some(val) => std::env::set_var("WAYLAND_DISPLAY", val),
+            None => std::env::remove_var("WAYLAND_DISPLAY"),
+        }
+    }
 }
 
 
@@ -535,24 +562,12 @@ fn render_tray_icon(
     }
 
     let scale = Scale::uniform(sizing::FONT_SIZE);
-    let v_metrics = font.v_metrics(scale);
 
-    let reference_text = "0123456789% KMGTP";
-    let mut min_y = i32::MAX;
-    let mut max_y = i32::MIN;
-
-    for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
-        if let Some(bb) = glyph.pixel_bounding_box() {
-            if bb.min.y < min_y { min_y = bb.min.y; }
-            if bb.max.y > max_y { max_y = bb.max.y; }
-        }
-    }
-
-    let baseline = if min_y < max_y {
-        (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
-    } else {
-        (icon_height as f32 / 2.0) + (v_metrics.ascent / 2.0)
-    };
+    // Use cached font metrics instead of recalculating each time
+    let font_metrics = FONT_METRICS.get_or_init(|| {
+        calculate_font_metrics(font, icon_height, scale)
+    });
+    let baseline = font_metrics.baseline;
 
     let measure_text = |text: &str| -> f32 {
         font.layout(text, scale, rusttype::point(0.0, 0.0))
@@ -578,8 +593,11 @@ fn render_tray_icon(
         }
     };
 
-    let draw_svg_icon = |svg_data: &str, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-        let icon_pixels = render_svg_icon(svg_data, icon_height, color);
+    // Initialize icon cache on first use
+    let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(icon_height));
+
+    let draw_cached_icon = |icon_type: IconType, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+        let icon_pixels = icon_cache.get(icon_type, color);
 
         for y in 0..icon_height {
             for x in 0..icon_height {
@@ -611,11 +629,11 @@ fn render_tray_icon(
         let segment_color = if segment.alert { get_alert_color(is_dark_mode) } else { base_color };
 
         match segment.label {
-            SegmentLabel::IconCpu => draw_svg_icon(SVG_CPU, x_offset, segment_color, &mut img),
-            SegmentLabel::IconMem => draw_svg_icon(SVG_MEMORY, x_offset, segment_color, &mut img),
-            SegmentLabel::IconGpu => draw_svg_icon(SVG_GPU, x_offset, segment_color, &mut img),
-            SegmentLabel::IconDown => draw_svg_icon(SVG_ARROW_DOWN, x_offset, segment_color, &mut img),
-            SegmentLabel::IconUp => draw_svg_icon(SVG_ARROW_UP, x_offset, segment_color, &mut img),
+            SegmentLabel::IconCpu => draw_cached_icon(IconType::Cpu, x_offset, segment_color, &mut img),
+            SegmentLabel::IconMem => draw_cached_icon(IconType::Memory, x_offset, segment_color, &mut img),
+            SegmentLabel::IconGpu => draw_cached_icon(IconType::Gpu, x_offset, segment_color, &mut img),
+            SegmentLabel::IconDown => draw_cached_icon(IconType::ArrowDown, x_offset, segment_color, &mut img),
+            SegmentLabel::IconUp => draw_cached_icon(IconType::ArrowUp, x_offset, segment_color, &mut img),
         }
 
         let value_width = measure_text(&segment.value);
@@ -805,7 +823,7 @@ fn start_monitoring(
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
         let mut first_run = true;
-        let mut prev_display: Option<String> = None;
+        let mut prev_display: Option<DisplayState> = None;
         let mut gpu_usage: f32 = 0.0;
 
         loop {
@@ -865,15 +883,21 @@ fn start_monitoring(
             #[cfg(target_os = "linux")]
             let dm = detect_light_icons();
 
-            let display_key = format!(
-                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
-                cpu_usage, mem_percent, gpu_usage,
-                format_speed(down_speed), format_speed(up_speed),
-                sc, sm, sg, sn, dm
-            );
+            let current_state = DisplayState {
+                cpu: cpu_usage as u32,
+                mem: mem_percent as u32,
+                gpu: gpu_usage as u32,
+                down_speed: format_speed(down_speed),
+                up_speed: format_speed(up_speed),
+                show_cpu: sc,
+                show_mem: sm,
+                show_gpu: sg,
+                show_net: sn,
+                dark_mode: dm,
+            };
 
-            if prev_display.as_ref() != Some(&display_key) {
-                prev_display = Some(display_key);
+            if prev_display.as_ref() != Some(&current_state) {
+                prev_display = Some(current_state);
 
                 let (pixels, width, height) = render_tray_icon(
                     &font,

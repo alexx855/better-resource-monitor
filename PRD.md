@@ -42,7 +42,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
 - [x] **Test `ensure_display_available` (X11)**
     - Set `DISPLAY` to `:0`.
     - Assert returns Ok.
-- [ ] **Test `ensure_display_available` (Wayland)**
+- [x] **Test `ensure_display_available` (Wayland)**
     - Set `WAYLAND_DISPLAY` to `wayland-0` (unset DISPLAY).
     - Assert returns Ok.
 
