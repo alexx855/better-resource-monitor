@@ -23,6 +23,18 @@ use std::sync::OnceLock;
 static DETECTED_LIGHT_ICONS: OnceLock<bool> = OnceLock::new();
 
 #[cfg(target_os = "linux")]
+fn ensure_display_available() -> Result<(), String> {
+    let has_x11 = std::env::var("DISPLAY").is_ok();
+    let has_wayland = std::env::var("WAYLAND_DISPLAY").is_ok();
+
+    if has_x11 || has_wayland {
+        Ok(())
+    } else {
+        Err("No display server found. Please set DISPLAY or WAYLAND_DISPLAY.".to_string())
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn detect_light_icons() -> bool {
     *DETECTED_LIGHT_ICONS.get_or_init(|| {
         // Try gsettings (GNOME/GTK)
@@ -68,8 +80,26 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 const SETTINGS_FILE: &str = "settings.json";
 
+mod menu_id {
+    pub const AUTOSTART: &str = "autostart";
+    pub const SHOW_CPU: &str = "show_cpu";
+    pub const SHOW_MEM: &str = "show_mem";
+    pub const SHOW_GPU: &str = "show_gpu";
+    pub const SHOW_NET: &str = "show_net";
+    pub const LIGHT_ICONS: &str = "light_icons";
+    pub const QUIT: &str = "quit";
+}
+
+const TRAY_ID: &str = "main";
+
 fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
-    let store = app.store(SETTINGS_FILE).ok();
+    let store = match app.store(SETTINGS_FILE) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            eprintln!("Failed to load settings store, using defaults: {e}");
+            None
+        }
+    };
 
     let get_bool = |key: &str| -> bool {
         store.as_ref()
@@ -110,6 +140,10 @@ fn get_alert_color(is_dark: bool) -> (u8, u8, u8) {
 
 fn get_text_color(is_dark: bool) -> u8 {
     if is_dark { 255 } else { 0 }
+}
+
+fn cap_percent(value: f32) -> f32 {
+    value.clamp(0.0, 99.0)
 }
 
 fn load_system_font() -> Font<'static> {
@@ -192,14 +226,39 @@ fn format_speed(bytes_per_sec: f64) -> String {
         (bytes_per_sec / 1_000.0, "KB")
     };
 
-    let value_str = format!("{:.1}", value);
-
-    format!("{value_str} {unit}")
+    format!("{value:.1} {unit}")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_cap_percent() {
+        assert_eq!(cap_percent(0.0), 0.0);
+        assert_eq!(cap_percent(50.0), 50.0);
+        assert_eq!(cap_percent(99.0), 99.0);
+        assert_eq!(cap_percent(100.0), 99.0);
+        assert_eq!(cap_percent(150.0), 99.0);
+        // Also test negative values are clamped to 0
+        assert_eq!(cap_percent(-10.0), 0.0);
+    }
+
+    #[test]
+    fn test_get_alert_color() {
+        // Dark mode should return ALERT_COLOR_DARK (orange)
+        assert_eq!(get_alert_color(true), (255, 149, 0));
+        // Light mode should return ALERT_COLOR_LIGHT (red-orange)
+        assert_eq!(get_alert_color(false), (191, 54, 12));
+    }
+
+    #[test]
+    fn test_get_text_color() {
+        // Dark mode should return 255 (white text)
+        assert_eq!(get_text_color(true), 255);
+        // Light mode should return 0 (black text)
+        assert_eq!(get_text_color(false), 0);
+    }
 
     #[test]
     fn test_format_speed_strict() {
@@ -227,11 +286,24 @@ mod tests {
         assert_eq!(format_speed(9_900_000_000.0), "9.9 GB");
         assert_eq!(format_speed(50_000_000_000.0), "9.9 GB"); // Cap
     }
+
+    #[test]
+    fn test_format_speed_edge_cases() {
+        // Extremely small numbers - should show as 0.0 KB
+        assert_eq!(format_speed(1e-10), "0.0 KB");
+        assert_eq!(format_speed(0.001), "0.0 KB");
+        assert_eq!(format_speed(0.5), "0.0 KB");
+
+        // Terabyte values - function caps at 9.9 GB
+        assert_eq!(format_speed(1_000_000_000_000.0), "9.9 GB"); // 1 TB
+        assert_eq!(format_speed(5_000_000_000_000.0), "9.9 GB"); // 5 TB
+        assert_eq!(format_speed(1e15), "9.9 GB"); // 1 PB - still caps at 9.9 GB
+
+        // Negative values - handled by division (becomes negative KB)
+        assert_eq!(format_speed(-100.0), "-0.1 KB");
+    }
 }
 
-fn cap_percent(value: f32) -> f32 {
-    if value > 99.0 { 99.0 } else { value }
-}
 
 fn render_tray_icon(
     font: &Font,
@@ -414,6 +486,19 @@ fn render_tray_icon(
     (img.into_raw(), total_width, icon_height)
 }
 
+fn toggle_setting(
+    app: &AppHandle,
+    key: &str,
+    flag: &AtomicBool,
+    all_flags: [&AtomicBool; 4],
+) {
+    let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
+    if !flag.load(Relaxed) || enabled_count > 1 {
+        flag.fetch_xor(true, Relaxed);
+        save_setting(app, key, flag.load(Relaxed));
+    }
+}
+
 fn setup_tray(
     app: &AppHandle,
     show_cpu: Arc<AtomicBool>,
@@ -449,21 +534,21 @@ fn setup_tray(
     let is_autostart_enabled = false;
 
     let autostart_item = CheckMenuItem::with_id(
-        app, "autostart", "Start at Login", true, is_autostart_enabled, None::<&str>,
+        app, menu_id::AUTOSTART, "Start at Login", true, is_autostart_enabled, None::<&str>,
     )?;
 
     let separator1 = PredefinedMenuItem::separator(app)?;
 
     let show_cpu_item = CheckMenuItem::with_id(
-        app, "show_cpu", "Show CPU", true, show_cpu.load(Relaxed), None::<&str>,
+        app, menu_id::SHOW_CPU, "Show CPU", true, show_cpu.load(Relaxed), None::<&str>,
     )?;
 
     let show_mem_item = CheckMenuItem::with_id(
-        app, "show_mem", "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
+        app, menu_id::SHOW_MEM, "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
     )?;
 
     let show_net_item = CheckMenuItem::with_id(
-        app, "show_net", "Show Network", true, show_net.load(Relaxed), None::<&str>,
+        app, menu_id::SHOW_NET, "Show Network", true, show_net.load(Relaxed), None::<&str>,
     )?;
 
     #[cfg(target_os = "macos")]
@@ -471,11 +556,11 @@ fn setup_tray(
 
     #[cfg(target_os = "macos")]
     let light_icons_item = CheckMenuItem::with_id(
-        app, "light_icons", "Use Light Icons", true, dark_mode.load(Relaxed), None::<&str>,
+        app, menu_id::LIGHT_ICONS, "Use Light Icons", true, dark_mode.load(Relaxed), None::<&str>,
     )?;
 
     let separator3 = PredefinedMenuItem::separator(app)?;
-    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, menu_id::QUIT, "Quit", true, None::<&str>)?;
 
     let menu = Menu::new(app)?;
     menu.append(&autostart_item)?;
@@ -484,7 +569,7 @@ fn setup_tray(
     menu.append(&show_mem_item)?;
     if gpu_available {
         let show_gpu_item = CheckMenuItem::with_id(
-            app, "show_gpu", "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
+            app, menu_id::SHOW_GPU, "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
         )?;
         menu.append(&show_gpu_item)?;
     }
@@ -515,7 +600,7 @@ fn setup_tray(
     );
     let initial_icon = Image::new_owned(pixels, width, height);
 
-    let tray_builder = TrayIconBuilder::with_id("main").icon(initial_icon);
+    let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
     #[cfg(target_os = "macos")]
     let tray_builder = tray_builder.icon_as_template(false);
@@ -525,8 +610,9 @@ fn setup_tray(
         .show_menu_on_left_click(true)
         .tooltip("System Monitor")
         .on_menu_event(move |app, event| {
+            let flags = [show_cpu.as_ref(), show_mem.as_ref(), show_gpu.as_ref(), show_net.as_ref()];
             match event.id.as_ref() {
-                "autostart" => {
+                menu_id::AUTOSTART => {
                     #[cfg(desktop)]
                     {
                         let manager = app.autolaunch();
@@ -537,45 +623,15 @@ fn setup_tray(
                         }
                     }
                 }
-                "show_cpu" => {
-                    let enabled_count = [&show_cpu, &show_mem, &show_gpu, &show_net]
-                        .iter().filter(|v| v.load(Relaxed)).count();
-                    if !show_cpu.load(Relaxed) || enabled_count > 1 {
-                        show_cpu.fetch_xor(true, Relaxed);
-                        save_setting(app, "show_cpu", show_cpu.load(Relaxed));
-                    }
-                }
-                "show_mem" => {
-                    let enabled_count = [&show_cpu, &show_mem, &show_gpu, &show_net]
-                        .iter().filter(|v| v.load(Relaxed)).count();
-                    if !show_mem.load(Relaxed) || enabled_count > 1 {
-                        show_mem.fetch_xor(true, Relaxed);
-                        save_setting(app, "show_mem", show_mem.load(Relaxed));
-                    }
-                }
-                "show_gpu" => {
-                    let enabled_count = [&show_cpu, &show_mem, &show_gpu, &show_net]
-                        .iter().filter(|v| v.load(Relaxed)).count();
-                    if !show_gpu.load(Relaxed) || enabled_count > 1 {
-                        show_gpu.fetch_xor(true, Relaxed);
-                        save_setting(app, "show_gpu", show_gpu.load(Relaxed));
-                    }
-                }
-                "light_icons" => {
+                menu_id::SHOW_CPU => toggle_setting(app, menu_id::SHOW_CPU, &show_cpu, flags),
+                menu_id::SHOW_MEM => toggle_setting(app, menu_id::SHOW_MEM, &show_mem, flags),
+                menu_id::SHOW_GPU => toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags),
+                menu_id::SHOW_NET => toggle_setting(app, menu_id::SHOW_NET, &show_net, flags),
+                menu_id::LIGHT_ICONS => {
                     dark_mode.fetch_xor(true, Relaxed);
                     save_setting(app, "dark_mode", dark_mode.load(Relaxed));
                 }
-                "show_net" => {
-                    let enabled_count = [&show_cpu, &show_mem, &show_gpu, &show_net]
-                        .iter().filter(|v| v.load(Relaxed)).count();
-                    if !show_net.load(Relaxed) || enabled_count > 1 {
-                        show_net.fetch_xor(true, Relaxed);
-                        save_setting(app, "show_net", show_net.load(Relaxed));
-                    }
-                }
-                "quit" => {
-                    app.exit(0);
-                }
+                menu_id::QUIT => app.exit(0),
                 _ => {}
             }
         })
@@ -584,7 +640,6 @@ fn setup_tray(
     Ok(())
 }
 
-#[allow(unused_variables)]
 fn start_monitoring(
     app: AppHandle,
     show_cpu: Arc<AtomicBool>,
@@ -595,6 +650,9 @@ fn start_monitoring(
     gpu_available: bool,
 ) {
     thread::spawn(move || {
+        // On Linux, dark_mode is detected via system theme, not passed in
+        #[cfg(target_os = "linux")]
+        let _ = &dark_mode;
         let font = load_system_font();
 
         let mut sys = System::new();
@@ -608,10 +666,12 @@ fn start_monitoring(
         let mut gpu_usage: f32 = 0.0;
 
         loop {
+            // Double refresh needed on first run for accurate CPU readings
+            if first_run {
+                sys.refresh_cpu_usage();
+                thread::sleep(Duration::from_millis(200));
+            }
             sys.refresh_cpu_usage();
-            thread::sleep(Duration::from_millis(200));
-            sys.refresh_cpu_usage();
-
             sys.refresh_memory();
             networks.refresh(true);
 
@@ -634,9 +694,9 @@ fn start_monitoring(
             }
 
             let (down_speed, up_speed) = if first_run {
+                first_run = false;
                 prev_rx = total_rx;
                 prev_tx = total_tx;
-                first_run = false;
                 (0.0, 0.0)
             } else {
                 let rx_delta = total_rx.saturating_sub(prev_rx) as f64;
@@ -647,7 +707,9 @@ fn start_monitoring(
             };
 
             if let Some(ref mut sampler) = gpu_sampler {
-                gpu_usage = sampler.sample();
+                if let Some(usage) = sampler.sample() {
+                    gpu_usage = usage;
+                }
             }
 
             let sc = show_cpu.load(Relaxed);
@@ -680,7 +742,7 @@ fn start_monitoring(
                     sc, sm, sg, sn, dm,
                 );
 
-                if let Some(tray) = app.tray_by_id("main") {
+                if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     let icon = Image::new_owned(pixels, width, height);
                     if let Err(_e) = tray.set_icon(Some(icon)) {
                         #[cfg(debug_assertions)]
@@ -711,19 +773,9 @@ pub fn run() {
     let gpu_available = GpuSampler::new().is_some();
 
     #[cfg(target_os = "linux")]
-    {
-        use std::env;
-
-        let has_display = env::var("DISPLAY").is_ok()
-            || env::var("WAYLAND_DISPLAY").is_ok();
-
-        if !has_display {
-            eprintln!("Warning: No display server detected (DISPLAY/WAYLAND_DISPLAY not set).");
-            eprintln!("The app may fail to create the tray icon.");
-            eprintln!("If running via SSH, consider: ssh -X for X11 forwarding");
-        }
-
-        std::env::set_var("G_MESSAGES_DEBUG", "");
+    if let Err(e) = ensure_display_available() {
+        eprintln!("{e}");
+        std::process::exit(1);
     }
 
     tauri::Builder::default()
@@ -752,11 +804,11 @@ pub fn run() {
 
             setup_tray(
                 app.handle(),
-                show_cpu_tray.clone(),
-                show_mem_tray.clone(),
-                show_gpu_tray.clone(),
-                show_net_tray.clone(),
-                dark_mode_tray.clone(),
+                show_cpu_tray,
+                show_mem_tray,
+                show_gpu_tray,
+                show_net_tray,
+                dark_mode_tray,
                 gpu_available,
             )?;
 
