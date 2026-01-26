@@ -233,6 +233,9 @@ fn format_speed(bytes_per_sec: f64) -> String {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "linux")]
+    use serial_test::serial;
+
     #[test]
     fn test_cap_percent() {
         assert_eq!(cap_percent(0.0), 0.0);
@@ -301,6 +304,32 @@ mod tests {
 
         // Negative values - handled by division (becomes negative KB)
         assert_eq!(format_speed(-100.0), "-0.1 KB");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[serial]
+    fn test_ensure_display_available_no_display() {
+        // Save original values
+        let orig_display = std::env::var("DISPLAY").ok();
+        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
+
+        // Unset both display variables
+        std::env::remove_var("DISPLAY");
+        std::env::remove_var("WAYLAND_DISPLAY");
+
+        // Should return Err when no display is available
+        let result = ensure_display_available();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No display server found"));
+
+        // Restore original values
+        if let Some(val) = orig_display {
+            std::env::set_var("DISPLAY", val);
+        }
+        if let Some(val) = orig_wayland {
+            std::env::set_var("WAYLAND_DISPLAY", val);
+        }
     }
 }
 
