@@ -35,3 +35,10 @@
 - Saves original `DISPLAY` and `WAYLAND_DISPLAY` values, unsets both
 - Asserts function returns `Err` with "No display server found" message
 - Restores original environment variables after test
+
+## 2026-01-26: Test `ensure_display_available` (X11)
+- Added test `test_ensure_display_available_x11` (Linux-only)
+- Uses `serial_test::serial` to avoid race conditions with other env var tests
+- Saves original env vars, sets `DISPLAY` to `:0`, unsets `WAYLAND_DISPLAY`
+- Asserts function returns `Ok(())` when X11 display is available
+- Properly restores original environment variables after test (including removing if originally unset)

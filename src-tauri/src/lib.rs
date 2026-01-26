@@ -16,11 +16,98 @@ use tauri::ActivationPolicy;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 
-#[cfg(target_os = "linux")]
 use std::sync::OnceLock;
+use std::collections::HashMap;
 
 #[cfg(target_os = "linux")]
 static DETECTED_LIGHT_ICONS: OnceLock<bool> = OnceLock::new();
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum IconType {
+    Cpu,
+    Memory,
+    Gpu,
+    ArrowDown,
+    ArrowUp,
+}
+
+struct IconCache {
+    icons: HashMap<(IconType, (u8, u8, u8)), Vec<u8>>,
+}
+
+impl IconCache {
+    fn new(size: u32) -> Self {
+        let colors = [
+            (255, 255, 255), // Light (dark mode)
+            (0, 0, 0),       // Dark (light mode)
+            ALERT_COLOR_DARK,
+            ALERT_COLOR_LIGHT,
+        ];
+        let icon_svgs = [
+            (IconType::Cpu, SVG_CPU),
+            (IconType::Memory, SVG_MEMORY),
+            (IconType::Gpu, SVG_GPU),
+            (IconType::ArrowDown, SVG_ARROW_DOWN),
+            (IconType::ArrowUp, SVG_ARROW_UP),
+        ];
+
+        let mut icons = HashMap::new();
+        for (icon_type, svg) in icon_svgs {
+            for color in colors {
+                icons.insert((icon_type, color), render_svg_icon(svg, size, color));
+            }
+        }
+        Self { icons }
+    }
+
+    fn get(&self, icon_type: IconType, color: (u8, u8, u8)) -> &[u8] {
+        self.icons.get(&(icon_type, color)).expect("icon cached")
+    }
+}
+
+static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
+
+struct FontMetrics {
+    baseline: f32,
+}
+
+static FONT_METRICS: OnceLock<FontMetrics> = OnceLock::new();
+
+fn calculate_font_metrics(font: &Font, icon_height: u32, scale: Scale) -> FontMetrics {
+    let v_metrics = font.v_metrics(scale);
+    let reference_text = "0123456789% KMGTP";
+    let mut min_y = i32::MAX;
+    let mut max_y = i32::MIN;
+
+    for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
+        if let Some(bb) = glyph.pixel_bounding_box() {
+            if bb.min.y < min_y { min_y = bb.min.y; }
+            if bb.max.y > max_y { max_y = bb.max.y; }
+        }
+    }
+
+    let baseline = if min_y < max_y {
+        (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
+    } else {
+        (icon_height as f32 / 2.0) + (v_metrics.ascent / 2.0)
+    };
+
+    FontMetrics { baseline }
+}
+
+#[derive(PartialEq)]
+struct DisplayState {
+    cpu: u32,
+    mem: u32,
+    gpu: u32,
+    down_speed: String,
+    up_speed: String,
+    show_cpu: bool,
+    show_mem: bool,
+    show_gpu: bool,
+    show_net: bool,
+    dark_mode: bool,
+}
 
 #[cfg(target_os = "linux")]
 fn ensure_display_available() -> Result<(), String> {
@@ -329,6 +416,33 @@ mod tests {
         }
         if let Some(val) = orig_wayland {
             std::env::set_var("WAYLAND_DISPLAY", val);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[serial]
+    fn test_ensure_display_available_x11() {
+        // Save original values
+        let orig_display = std::env::var("DISPLAY").ok();
+        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
+
+        // Set X11 display, unset Wayland
+        std::env::set_var("DISPLAY", ":0");
+        std::env::remove_var("WAYLAND_DISPLAY");
+
+        // Should return Ok when X11 display is available
+        let result = ensure_display_available();
+        assert!(result.is_ok());
+
+        // Restore original values
+        match orig_display {
+            Some(val) => std::env::set_var("DISPLAY", val),
+            None => std::env::remove_var("DISPLAY"),
+        }
+        match orig_wayland {
+            Some(val) => std::env::set_var("WAYLAND_DISPLAY", val),
+            None => std::env::remove_var("WAYLAND_DISPLAY"),
         }
     }
 }
