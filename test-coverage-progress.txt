@@ -21,3 +21,10 @@
   - Extremely small numbers (1e-10, 0.001, 0.5) all return "0.0 KB"
   - Terabyte values (1 TB, 5 TB, 1 PB) all cap at "9.9 GB"
 - Updated PRD.md to mark task as complete
+
+## 2026-01-26: Refactor `ensure_display_available` behavior
+- Created `ensure_display_available() -> Result<(), String>` function (Linux-only)
+- Checks for `DISPLAY` or `WAYLAND_DISPLAY` environment variables
+- Returns `Ok(())` if either is set, `Err(String)` if neither is available
+- Updated `run()` to call this function and handle the error by printing and exiting
+- *Why:* Enables unit testing without killing the test runner

@@ -31,7 +31,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
 
 ### Phase 2: Linux Display Logic (Refactor & Test)
 
-- [ ] **Refactor `ensure_display_available` behavior**
+- [x] **Refactor `ensure_display_available` behavior**
     - Change it to return `Result<(), String>` instead of calling `std::process::exit(1)`.
     - Update `run()` to handle the `Err` by printing and exiting generally.
     - *Why:* Enables unit testing without killing the test runner.
