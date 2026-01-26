@@ -39,7 +39,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
     - Use `serial_test`.
     - Unset `DISPLAY` and `WAYLAND_DISPLAY`.
     - Assert incorrectly returns Error.
-- [ ] **Test `ensure_display_available` (X11)**
+- [x] **Test `ensure_display_available` (X11)**
     - Set `DISPLAY` to `:0`.
     - Assert returns Ok.
 - [ ] **Test `ensure_display_available` (Wayland)**
