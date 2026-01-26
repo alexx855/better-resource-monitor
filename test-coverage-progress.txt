@@ -49,3 +49,13 @@
 - Saves original env vars, unsets `DISPLAY`, sets `WAYLAND_DISPLAY` to `wayland-0`
 - Asserts function returns `Ok(())` when Wayland display is available
 - Properly restores original environment variables after test (including removing if originally unset)
+
+## 2026-01-26: Test `detect_light_icons` (Env Fallback)
+- Refactored: extracted `detect_light_icons_from_desktop(desktop: &str) -> Option<bool>` (Linux-only)
+- Separates XDG_CURRENT_DESKTOP logic from OnceLock caching, enabling direct unit testing
+- Added 5 tests covering desktop environment detection:
+  - `test_detect_light_icons_from_desktop_xfce`: XFCE returns `Some(false)` (dark icons)
+  - `test_detect_light_icons_from_desktop_elementary`: elementary returns `Some(false)` (dark icons)
+  - `test_detect_light_icons_from_desktop_kde`: KDE returns `Some(false)` (dark icons)
+  - `test_detect_light_icons_from_desktop_gnome`: GNOME returns `None` (uses default = light icons)
+  - `test_detect_light_icons_from_desktop_other`: Unknown DEs (i3, sway, "") return `None` (uses default)
