@@ -1,0 +1,23 @@
+# Test Coverage Progress
+
+## 2026-01-24: Test `cap_percent`
+- Created `cap_percent(value: f32) -> f32` function using `clamp(0.0, 99.0)`
+- Refactored inline `.min(99.0)` calls to use `cap_percent()` in CPU, memory, and GPU segments
+- Added test `test_cap_percent` verifying: 0.0, 50.0, 99.0, 100.0 (caps at 99), 150.0 (caps at 99), -10.0 (clamps to 0)
+
+## 2026-01-24: Test `get_alert_color`
+- Added test `test_get_alert_color` verifying:
+  - `is_dark = true` returns `ALERT_COLOR_DARK` (255, 149, 0) - orange
+  - `is_dark = false` returns `ALERT_COLOR_LIGHT` (191, 54, 12) - red-orange
+
+## 2026-01-26: Test `get_text_color`
+- Confirmed existing test `test_get_text_color` verifying:
+  - `is_dark = true` returns 255 (white text)
+  - `is_dark = false` returns 0 (black text)
+- Updated PRD.md to mark task as complete
+
+## 2026-01-26: Test `format_speed` (Edge cases)
+- Confirmed existing test `test_format_speed_edge_cases` verifying:
+  - Extremely small numbers (1e-10, 0.001, 0.5) all return "0.0 KB"
+  - Terabyte values (1 TB, 5 TB, 1 PB) all cap at "9.9 GB"
+- Updated PRD.md to mark task as complete
