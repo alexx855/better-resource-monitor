@@ -56,7 +56,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
 
 ### Phase 4: Integration / Rendering
 
-- [ ] **Test `render_svg_icon`**
+- [x] **Test `render_svg_icon`**
     - Pass a simple SVG string.
     - Verify it returns a non-empty `Vec<u8>`.
     - Verify it doesn't panic on invalid SVG (or check how it fails).

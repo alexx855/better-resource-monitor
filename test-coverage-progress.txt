@@ -59,3 +59,11 @@
   - `test_detect_light_icons_from_desktop_kde`: KDE returns `Some(false)` (dark icons)
   - `test_detect_light_icons_from_desktop_gnome`: GNOME returns `None` (uses default = light icons)
   - `test_detect_light_icons_from_desktop_other`: Unknown DEs (i3, sway, "") return `None` (uses default)
+
+## 2026-01-26: Test `render_svg_icon`
+- Added `test_render_svg_icon_valid`: passes a simple SVG circle, verifies:
+  - Returns non-empty `Vec<u8>`
+  - Returns correct size: 16x16 RGBA = 1024 bytes
+- Added `test_render_svg_icon_invalid_panics`: uses `#[should_panic]` to document that invalid SVG panics
+  - Current implementation uses `.expect("Failed to parse SVG")` which panics on invalid input
+  - Test verifies this behavior with `#[should_panic(expected = "Failed to parse SVG")]`
