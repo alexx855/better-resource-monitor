@@ -122,6 +122,16 @@ fn ensure_display_available() -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
+fn detect_light_icons_from_desktop(desktop: &str) -> Option<bool> {
+    let lower = desktop.to_lowercase();
+    if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
+        Some(false) // Often light themes → dark (black) icons
+    } else {
+        None // No match, use default
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn detect_light_icons() -> bool {
     *DETECTED_LIGHT_ICONS.get_or_init(|| {
         // Try gsettings (GNOME/GTK)
@@ -137,9 +147,8 @@ fn detect_light_icons() -> bool {
 
         // Check XDG_CURRENT_DESKTOP for common light-themed DEs
         if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
-            let lower = desktop.to_lowercase();
-            if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
-                return false; // Often light themes → dark (black) icons
+            if let Some(result) = detect_light_icons_from_desktop(&desktop) {
+                return result;
             }
         }
 
@@ -471,6 +480,49 @@ mod tests {
             Some(val) => std::env::set_var("WAYLAND_DISPLAY", val),
             None => std::env::remove_var("WAYLAND_DISPLAY"),
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_detect_light_icons_from_desktop_xfce() {
+        // XFCE typically has light themes → dark (black) icons → returns false
+        assert_eq!(detect_light_icons_from_desktop("XFCE"), Some(false));
+        assert_eq!(detect_light_icons_from_desktop("xfce"), Some(false));
+        assert_eq!(detect_light_icons_from_desktop("Xfce"), Some(false));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_detect_light_icons_from_desktop_elementary() {
+        // elementary typically has light themes → dark (black) icons → returns false
+        assert_eq!(detect_light_icons_from_desktop("elementary"), Some(false));
+        assert_eq!(detect_light_icons_from_desktop("Pantheon:elementary"), Some(false));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_detect_light_icons_from_desktop_kde() {
+        // KDE typically has light themes → dark (black) icons → returns false
+        assert_eq!(detect_light_icons_from_desktop("KDE"), Some(false));
+        assert_eq!(detect_light_icons_from_desktop("kde"), Some(false));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_detect_light_icons_from_desktop_gnome() {
+        // GNOME returns None (no override) → caller uses default (true for light icons)
+        assert_eq!(detect_light_icons_from_desktop("GNOME"), None);
+        assert_eq!(detect_light_icons_from_desktop("gnome"), None);
+        assert_eq!(detect_light_icons_from_desktop("ubuntu:GNOME"), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_detect_light_icons_from_desktop_other() {
+        // Unknown desktops return None → caller uses default (true for light icons)
+        assert_eq!(detect_light_icons_from_desktop("i3"), None);
+        assert_eq!(detect_light_icons_from_desktop("sway"), None);
+        assert_eq!(detect_light_icons_from_desktop(""), None);
     }
 }
 

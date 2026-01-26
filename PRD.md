@@ -48,7 +48,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
 
 ### Phase 3: Linux Icon Detection (Mock/Env)
 
-- [ ] **Test `detect_light_icons` (Env Fallback)**
+- [x] **Test `detect_light_icons` (Env Fallback)**
     - Mock/Set `XDG_CURRENT_DESKTOP` to "XFCE".
     - Verify returns `false` (dark icons for light theme).
     - Mock/Set `XDG_CURRENT_DESKTOP` to "GNOME".
