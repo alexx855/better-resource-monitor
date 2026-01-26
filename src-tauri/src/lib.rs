@@ -524,6 +524,26 @@ mod tests {
         assert_eq!(detect_light_icons_from_desktop("sway"), None);
         assert_eq!(detect_light_icons_from_desktop(""), None);
     }
+
+    #[test]
+    fn test_render_svg_icon_valid() {
+        // Simple valid SVG
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>"#;
+        let result = render_svg_icon(svg, 16, (255, 255, 255));
+
+        // Should return non-empty pixel data
+        assert!(!result.is_empty());
+
+        // 16x16 RGBA = 1024 bytes
+        assert_eq!(result.len(), 16 * 16 * 4);
+    }
+
+    #[test]
+    #[should_panic(expected = "Failed to parse SVG")]
+    fn test_render_svg_icon_invalid_panics() {
+        // Invalid SVG should panic (current behavior uses .expect())
+        render_svg_icon("not valid svg", 16, (255, 255, 255));
+    }
 }
 
 
