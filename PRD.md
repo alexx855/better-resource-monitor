@@ -35,7 +35,7 @@ Achieve high confidence in user-facing behavior by adding granular, meaningful t
     - Change it to return `Result<(), String>` instead of calling `std::process::exit(1)`.
     - Update `run()` to handle the `Err` by printing and exiting generally.
     - *Why:* Enables unit testing without killing the test runner.
-- [ ] **Test `ensure_display_available` (No Display)**
+- [x] **Test `ensure_display_available` (No Display)**
     - Use `serial_test`.
     - Unset `DISPLAY` and `WAYLAND_DISPLAY`.
     - Assert incorrectly returns Error.

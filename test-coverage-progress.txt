@@ -28,3 +28,10 @@
 - Returns `Ok(())` if either is set, `Err(String)` if neither is available
 - Updated `run()` to call this function and handle the error by printing and exiting
 - *Why:* Enables unit testing without killing the test runner
+
+## 2026-01-26: Test `ensure_display_available` (No Display)
+- Added test `test_ensure_display_available_no_display` (Linux-only)
+- Uses `serial_test::serial` to avoid race conditions with other env var tests
+- Saves original `DISPLAY` and `WAYLAND_DISPLAY` values, unsets both
+- Asserts function returns `Err` with "No display server found" message
+- Restores original environment variables after test
