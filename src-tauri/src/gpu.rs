@@ -25,6 +25,11 @@ mod macos {
         kCFStringEncodingUTF8, CFStringCreateWithBytesNoCopy, CFStringGetCString, CFStringRef,
     };
 
+    const GPU_PERFORMANCE_STATES: &str = "GPU Performance States";
+    const GPU_CHANNEL_NAME: &str = "GPUPH";
+    const CFSTRING_BUF_SIZE: usize = 128;
+    const IDLE_STATES: &[&str] = &["OFF", "IDLE", "DOWN"];
+
     type CVoidRef = *const c_void;
 
     #[repr(C)]
@@ -87,8 +92,8 @@ mod macos {
             return String::new();
         }
         unsafe {
-            let mut buf = [0i8; 128];
-            if CFStringGetCString(val, buf.as_mut_ptr(), 128, kCFStringEncodingUTF8) != 0 {
+            let mut buf = [0i8; CFSTRING_BUF_SIZE];
+            if CFStringGetCString(val, buf.as_mut_ptr(), CFSTRING_BUF_SIZE as isize, kCFStringEncodingUTF8) != 0 {
                 std::ffi::CStr::from_ptr(buf.as_ptr())
                     .to_string_lossy()
                     .to_string()
@@ -121,7 +126,7 @@ mod macos {
     impl GpuSampler {
         pub fn new() -> Option<Self> {
             let group_name = cfstr("GPU Stats");
-            let subgroup_name = cfstr("GPU Performance States");
+            let subgroup_name = cfstr(GPU_PERFORMANCE_STATES);
 
             let chan = unsafe { IOReportCopyChannelsInGroup(group_name, subgroup_name, 0, 0, 0) };
             unsafe {
@@ -153,26 +158,26 @@ mod macos {
             Some(Self { subs, chan: mutable_chan, prev_sample: None })
         }
 
-        pub fn sample(&mut self) -> f32 {
+        pub fn sample(&mut self) -> Option<f32> {
             unsafe {
                 let current = IOReportCreateSamples(self.subs, self.chan, null());
                 if current.is_null() {
-                    return 0.0;
+                    return None;
                 }
 
                 let usage = if let Some(prev) = self.prev_sample {
                     let delta = IOReportCreateSamplesDelta(prev, current, null());
                     CFRelease(prev as _);
-                    
+
                     if delta.is_null() {
-                        0.0
+                        None
                     } else {
                         let usage = self.calculate_gpu_usage(delta);
                         CFRelease(delta as _);
                         usage
                     }
                 } else {
-                    0.0
+                    None
                 };
 
                 self.prev_sample = Some(current);
@@ -180,12 +185,8 @@ mod macos {
             }
         }
 
-        fn calculate_gpu_usage(&self, delta: CFDictionaryRef) -> f32 {
-            let items = match cfdict_get_val(delta, "IOReportChannels") {
-                Some(v) => v as CFArrayRef,
-                None => return 0.0,
-            };
-
+        fn calculate_gpu_usage(&self, delta: CFDictionaryRef) -> Option<f32> {
+            let items = cfdict_get_val(delta, "IOReportChannels")? as CFArrayRef;
             let count = unsafe { CFArrayGetCount(items) };
 
             for i in 0..count {
@@ -196,26 +197,26 @@ mod macos {
 
                 let subgroup = unsafe { IOReportChannelGetSubGroup(item) };
                 let subgroup_str = from_cfstr(subgroup);
-                if subgroup_str != "GPU Performance States" {
+                if subgroup_str != GPU_PERFORMANCE_STATES {
                     continue;
                 }
 
                 let channel_name = unsafe { IOReportChannelGetChannelName(item) };
                 let channel_str = from_cfstr(channel_name);
-                    if channel_str != "GPUPH" {
+                if channel_str != GPU_CHANNEL_NAME {
                     continue;
                 }
 
                 return self.calc_residency_usage(item);
             }
 
-            0.0
+            None
         }
 
-        fn calc_residency_usage(&self, item: CFDictionaryRef) -> f32 {
+        fn calc_residency_usage(&self, item: CFDictionaryRef) -> Option<f32> {
             let state_count = unsafe { IOReportStateGetCount(item) };
             if state_count <= 0 {
-                return 0.0;
+                return None;
             }
 
             let mut total_idle: i64 = 0;
@@ -226,7 +227,7 @@ mod macos {
                 let state_name_str = from_cfstr(state_name);
                 let residency = unsafe { IOReportStateGetResidency(item, s) };
 
-                if state_name_str == "OFF" || state_name_str == "IDLE" || state_name_str == "DOWN" {
+                if IDLE_STATES.contains(&state_name_str.as_str()) {
                     total_idle += residency;
                 } else {
                     total_active += residency;
@@ -235,9 +236,9 @@ mod macos {
 
             let total = total_active + total_idle;
             if total > 0 {
-                (total_active as f64 / total as f64 * 100.0) as f32
+                Some((total_active as f64 / total as f64 * 100.0) as f32)
             } else {
-                0.0
+                None
             }
         }
     }
@@ -289,14 +290,13 @@ mod linux {
         }
 
         /// Samples current GPU utilization percentage.
-        /// Returns 0.0 if sampling fails.
-        pub fn sample(&mut self) -> f32 {
+        /// Returns None if sampling fails.
+        pub fn sample(&mut self) -> Option<f32> {
             self.nvml
                 .device_by_index(self.device_index)
                 .ok()
                 .and_then(|device| device.utilization_rates().ok())
                 .map(|rates| rates.gpu as f32)
-                .unwrap_or(0.0)
         }
     }
 
