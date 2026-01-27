@@ -95,32 +95,6 @@ fn calculate_font_metrics(font: &Font, icon_height: u32, scale: Scale) -> FontMe
     FontMetrics { baseline }
 }
 
-#[derive(PartialEq)]
-struct DisplayState {
-    cpu: u32,
-    mem: u32,
-    gpu: u32,
-    down_speed: String,
-    up_speed: String,
-    show_cpu: bool,
-    show_mem: bool,
-    show_gpu: bool,
-    show_net: bool,
-    dark_mode: bool,
-}
-
-#[cfg(target_os = "linux")]
-fn ensure_display_available() -> Result<(), String> {
-    let has_x11 = std::env::var("DISPLAY").is_ok();
-    let has_wayland = std::env::var("WAYLAND_DISPLAY").is_ok();
-
-    if has_x11 || has_wayland {
-        Ok(())
-    } else {
-        Err("No display server found. Please set DISPLAY or WAYLAND_DISPLAY.".to_string())
-    }
-}
-
 #[cfg(target_os = "linux")]
 fn detect_light_icons_from_desktop(desktop: &str) -> Option<bool> {
     let lower = desktop.to_lowercase();
@@ -192,7 +166,7 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
     let store = match app.store(SETTINGS_FILE) {
         Ok(s) => Some(s),
         Err(e) => {
-            eprintln!("Failed to load settings store, using defaults: {e}");
+            log::warn!("Failed to load settings store, using defaults: {e}");
             None
         }
     };
@@ -214,9 +188,14 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
 }
 
 fn save_setting(app: &AppHandle, key: &str, value: bool) {
-    if let Ok(store) = app.store(SETTINGS_FILE) {
-        store.set(key, json!(value));
-        let _ = store.save();
+    match app.store(SETTINGS_FILE) {
+        Ok(store) => {
+            store.set(key, json!(value));
+            if let Err(e) = store.save() {
+                log::warn!("Failed to save setting {key}: {e}");
+            }
+        }
+        Err(e) => log::warn!("Failed to open settings store: {e}"),
     }
 }
 
@@ -229,6 +208,8 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 const ALERT_THRESHOLD: f32 = 90.0;
 const ALERT_COLOR_DARK: (u8, u8, u8) = (255, 149, 0);
 const ALERT_COLOR_LIGHT: (u8, u8, u8) = (191, 54, 12);
+const UPDATE_INTERVAL_MS: u64 = 800;
+const CPU_STABILIZE_MS: u64 = 200;
 
 fn get_alert_color(is_dark: bool) -> (u8, u8, u8) {
     if is_dark { ALERT_COLOR_DARK } else { ALERT_COLOR_LIGHT }
@@ -245,12 +226,13 @@ fn cap_percent(value: f32) -> f32 {
 fn load_system_font() -> Font<'static> {
     let source = SystemSource::new();
 
-    let handle = source.select_best_match(
-        &[FamilyName::SansSerif],
-        Properties::new().weight(Weight::NORMAL)
-    ).or_else(|_| {
-        source.select_best_match(&[FamilyName::SansSerif], &Properties::new())
-    }).expect("Failed to select a system font");
+    let handle = source
+        .select_best_match(
+            &[FamilyName::SansSerif],
+            Properties::new().weight(Weight::NORMAL),
+        )
+        .or_else(|_| source.select_best_match(&[FamilyName::SansSerif], &Properties::new()))
+        .expect("Failed to select a system font");
 
     let font_data = match &handle {
         Handle::Path { path, .. } => std::fs::read(path).expect("Failed to read font file"),
@@ -326,225 +308,7 @@ fn format_speed(bytes_per_sec: f64) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[cfg(target_os = "linux")]
-    use serial_test::serial;
-
-    #[test]
-    fn test_cap_percent() {
-        assert_eq!(cap_percent(0.0), 0.0);
-        assert_eq!(cap_percent(50.0), 50.0);
-        assert_eq!(cap_percent(99.0), 99.0);
-        assert_eq!(cap_percent(100.0), 99.0);
-        assert_eq!(cap_percent(150.0), 99.0);
-        // Also test negative values are clamped to 0
-        assert_eq!(cap_percent(-10.0), 0.0);
-    }
-
-    #[test]
-    fn test_get_alert_color() {
-        // Dark mode should return ALERT_COLOR_DARK (orange)
-        assert_eq!(get_alert_color(true), (255, 149, 0));
-        // Light mode should return ALERT_COLOR_LIGHT (red-orange)
-        assert_eq!(get_alert_color(false), (191, 54, 12));
-    }
-
-    #[test]
-    fn test_get_text_color() {
-        // Dark mode should return 255 (white text)
-        assert_eq!(get_text_color(true), 255);
-        // Light mode should return 0 (black text)
-        assert_eq!(get_text_color(false), 0);
-    }
-
-    #[test]
-    fn test_format_speed_strict() {
-        // KB range (0.0 - 9.9)
-        assert_eq!(format_speed(0.0),        "0.0 KB");
-        assert_eq!(format_speed(500.0),      "0.5 KB");
-        assert_eq!(format_speed(1_500.0),    "1.5 KB");
-        assert_eq!(format_speed(9_000.0),    "9.0 KB");
-        assert_eq!(format_speed(9_900.0),    "9.9 KB");
-
-        // Endpoint: 9.95 KB -> 0.0 MB
-        assert_eq!(format_speed(9_950.0),    "0.0 MB");
-
-        // MB range (0.0 - 9.9)
-        assert_eq!(format_speed(100_000.0),  "0.1 MB");
-        assert_eq!(format_speed(1_500_000.0), "1.5 MB");
-        assert_eq!(format_speed(9_900_000.0), "9.9 MB");
-
-        // Endpoint: 9.95 MB -> 0.0 GB
-        assert_eq!(format_speed(9_950_000.0), "0.0 GB");
-
-        // GB range (0.0 - 9.9, capped)
-        assert_eq!(format_speed(100_000_000.0), "0.1 GB");
-        assert_eq!(format_speed(1_500_000_000.0), "1.5 GB");
-        assert_eq!(format_speed(9_900_000_000.0), "9.9 GB");
-        assert_eq!(format_speed(50_000_000_000.0), "9.9 GB"); // Cap
-    }
-
-    #[test]
-    fn test_format_speed_edge_cases() {
-        // Extremely small numbers - should show as 0.0 KB
-        assert_eq!(format_speed(1e-10), "0.0 KB");
-        assert_eq!(format_speed(0.001), "0.0 KB");
-        assert_eq!(format_speed(0.5), "0.0 KB");
-
-        // Terabyte values - function caps at 9.9 GB
-        assert_eq!(format_speed(1_000_000_000_000.0), "9.9 GB"); // 1 TB
-        assert_eq!(format_speed(5_000_000_000_000.0), "9.9 GB"); // 5 TB
-        assert_eq!(format_speed(1e15), "9.9 GB"); // 1 PB - still caps at 9.9 GB
-
-        // Negative values - handled by division (becomes negative KB)
-        assert_eq!(format_speed(-100.0), "-0.1 KB");
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    #[serial]
-    fn test_ensure_display_available_no_display() {
-        // Save original values
-        let orig_display = std::env::var("DISPLAY").ok();
-        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
-
-        // Unset both display variables
-        std::env::remove_var("DISPLAY");
-        std::env::remove_var("WAYLAND_DISPLAY");
-
-        // Should return Err when no display is available
-        let result = ensure_display_available();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No display server found"));
-
-        // Restore original values
-        if let Some(val) = orig_display {
-            std::env::set_var("DISPLAY", val);
-        }
-        if let Some(val) = orig_wayland {
-            std::env::set_var("WAYLAND_DISPLAY", val);
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    #[serial]
-    fn test_ensure_display_available_x11() {
-        // Save original values
-        let orig_display = std::env::var("DISPLAY").ok();
-        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
-
-        // Set X11 display, unset Wayland
-        std::env::set_var("DISPLAY", ":0");
-        std::env::remove_var("WAYLAND_DISPLAY");
-
-        // Should return Ok when X11 display is available
-        let result = ensure_display_available();
-        assert!(result.is_ok());
-
-        // Restore original values
-        match orig_display {
-            Some(val) => std::env::set_var("DISPLAY", val),
-            None => std::env::remove_var("DISPLAY"),
-        }
-        match orig_wayland {
-            Some(val) => std::env::set_var("WAYLAND_DISPLAY", val),
-            None => std::env::remove_var("WAYLAND_DISPLAY"),
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    #[serial]
-    fn test_ensure_display_available_wayland() {
-        // Save original values
-        let orig_display = std::env::var("DISPLAY").ok();
-        let orig_wayland = std::env::var("WAYLAND_DISPLAY").ok();
-
-        // Set Wayland display, unset X11
-        std::env::remove_var("DISPLAY");
-        std::env::set_var("WAYLAND_DISPLAY", "wayland-0");
-
-        // Should return Ok when Wayland display is available
-        let result = ensure_display_available();
-        assert!(result.is_ok());
-
-        // Restore original values
-        match orig_display {
-            Some(val) => std::env::set_var("DISPLAY", val),
-            None => std::env::remove_var("DISPLAY"),
-        }
-        match orig_wayland {
-            Some(val) => std::env::set_var("WAYLAND_DISPLAY", val),
-            None => std::env::remove_var("WAYLAND_DISPLAY"),
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_light_icons_from_desktop_xfce() {
-        // XFCE typically has light themes → dark (black) icons → returns false
-        assert_eq!(detect_light_icons_from_desktop("XFCE"), Some(false));
-        assert_eq!(detect_light_icons_from_desktop("xfce"), Some(false));
-        assert_eq!(detect_light_icons_from_desktop("Xfce"), Some(false));
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_light_icons_from_desktop_elementary() {
-        // elementary typically has light themes → dark (black) icons → returns false
-        assert_eq!(detect_light_icons_from_desktop("elementary"), Some(false));
-        assert_eq!(detect_light_icons_from_desktop("Pantheon:elementary"), Some(false));
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_light_icons_from_desktop_kde() {
-        // KDE typically has light themes → dark (black) icons → returns false
-        assert_eq!(detect_light_icons_from_desktop("KDE"), Some(false));
-        assert_eq!(detect_light_icons_from_desktop("kde"), Some(false));
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_light_icons_from_desktop_gnome() {
-        // GNOME returns None (no override) → caller uses default (true for light icons)
-        assert_eq!(detect_light_icons_from_desktop("GNOME"), None);
-        assert_eq!(detect_light_icons_from_desktop("gnome"), None);
-        assert_eq!(detect_light_icons_from_desktop("ubuntu:GNOME"), None);
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_light_icons_from_desktop_other() {
-        // Unknown desktops return None → caller uses default (true for light icons)
-        assert_eq!(detect_light_icons_from_desktop("i3"), None);
-        assert_eq!(detect_light_icons_from_desktop("sway"), None);
-        assert_eq!(detect_light_icons_from_desktop(""), None);
-    }
-
-    #[test]
-    fn test_render_svg_icon_valid() {
-        // Simple valid SVG
-        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>"#;
-        let result = render_svg_icon(svg, 16, (255, 255, 255));
-
-        // Should return non-empty pixel data
-        assert!(!result.is_empty());
-
-        // 16x16 RGBA = 1024 bytes
-        assert_eq!(result.len(), 16 * 16 * 4);
-    }
-
-    #[test]
-    #[should_panic(expected = "Failed to parse SVG")]
-    fn test_render_svg_icon_invalid_panics() {
-        // Invalid SVG should panic (current behavior uses .expect())
-        render_svg_icon("not valid svg", 16, (255, 255, 255));
-    }
-}
+mod tests;
 
 
 fn render_tray_icon(
@@ -753,7 +517,9 @@ fn setup_tray(
             .join(".autostart_configured");
         
         if !marker_path.exists() {
-            let _ = autostart_manager.enable();
+            if let Err(e) = autostart_manager.enable() {
+                log::warn!("Failed to enable autostart: {e}");
+            }
             if let Some(parent) = marker_path.parent() {
                 let _ = fs::create_dir_all(parent);
             }
@@ -850,9 +616,11 @@ fn setup_tray(
                     {
                         let manager = app.autolaunch();
                         if manager.is_enabled().unwrap_or(false) {
-                            let _ = manager.disable();
-                        } else {
-                            let _ = manager.enable();
+                            if let Err(e) = manager.disable() {
+                                log::warn!("Failed to disable autostart: {e}");
+                            }
+                        } else if let Err(e) = manager.enable() {
+                            log::warn!("Failed to enable autostart: {e}");
                         }
                     }
                 }
@@ -889,21 +657,20 @@ fn start_monitoring(
         let font = load_system_font();
 
         let mut sys = System::new();
+        // Warm up CPU measurement before loop so first render has valid data
+        sys.refresh_cpu_usage();
+        thread::sleep(Duration::from_millis(CPU_STABILIZE_MS));
+
         let mut networks = Networks::new_with_refreshed_list();
         let mut gpu_sampler = if gpu_available { GpuSampler::new() } else { None };
 
         let mut prev_rx: u64 = 0;
         let mut prev_tx: u64 = 0;
-        let mut first_run = true;
-        let mut prev_display: Option<DisplayState> = None;
+        let mut first_run = true; // Still needed for network stats initialization
+        let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
 
         loop {
-            // Double refresh needed on first run for accurate CPU readings
-            if first_run {
-                sys.refresh_cpu_usage();
-                thread::sleep(Duration::from_millis(200));
-            }
             sys.refresh_cpu_usage();
             sys.refresh_memory();
             networks.refresh(true);
@@ -955,21 +722,15 @@ fn start_monitoring(
             #[cfg(target_os = "linux")]
             let dm = detect_light_icons();
 
-            let current_state = DisplayState {
-                cpu: cpu_usage as u32,
-                mem: mem_percent as u32,
-                gpu: gpu_usage as u32,
-                down_speed: format_speed(down_speed),
-                up_speed: format_speed(up_speed),
-                show_cpu: sc,
-                show_mem: sm,
-                show_gpu: sg,
-                show_net: sn,
-                dark_mode: dm,
-            };
+            let display_key = format!(
+                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
+                cpu_usage, mem_percent, gpu_usage,
+                format_speed(down_speed), format_speed(up_speed),
+                sc, sm, sg, sn, dm
+            );
 
-            if prev_display.as_ref() != Some(&current_state) {
-                prev_display = Some(current_state);
+            if prev_display.as_ref() != Some(&display_key) {
+                prev_display = Some(display_key);
 
                 let (pixels, width, height) = render_tray_icon(
                     &font,
@@ -983,14 +744,13 @@ fn start_monitoring(
 
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     let icon = Image::new_owned(pixels, width, height);
-                    if let Err(_e) = tray.set_icon(Some(icon)) {
-                        #[cfg(debug_assertions)]
-                        eprintln!("Failed to set tray icon: {_e:?}");
+                    if let Err(e) = tray.set_icon(Some(icon)) {
+                        log::error!("Failed to set tray icon: {e:?}");
                     }
                 }
             }
 
-            thread::sleep(Duration::from_millis(800));
+            thread::sleep(Duration::from_millis(UPDATE_INTERVAL_MS));
         }
     });
 }
@@ -1011,16 +771,12 @@ pub fn run() {
 
     let gpu_available = GpuSampler::new().is_some();
 
-    #[cfg(target_os = "linux")]
-    if let Err(e) = ensure_display_available() {
-        eprintln!("{e}");
-        std::process::exit(1);
-    }
-
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
+            // No-op: tray-only app, nothing to focus
+        }))
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
-        .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(ActivationPolicy::Accessory);

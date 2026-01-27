@@ -132,6 +132,20 @@ pnpm install
 pnpm tauri build
 ```
 
+### Development
+
+```bash
+# Run in development mode with hot reload
+pnpm tauri dev
+
+# Run tests
+cd src-tauri && cargo test
+
+# Run tests with coverage (requires cargo-llvm-cov)
+cargo install cargo-llvm-cov
+cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
+```
+
 ## Linux Troubleshooting
 
 **Desktop Environment Support:**
