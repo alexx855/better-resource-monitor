@@ -324,16 +324,8 @@ fn render_tray_icon(
     show_net: bool,
     is_dark_mode: bool,
 ) -> (Vec<u8>, u32, u32) {
-    enum SegmentLabel {
-        IconCpu,
-        IconMem,
-        IconGpu,
-        IconDown,
-        IconUp,
-    }
-
     struct Segment {
-        label: SegmentLabel,
+        icon: IconType,
         value: String,
         width: u32,
         alert: bool,
@@ -347,7 +339,7 @@ fn render_tray_icon(
 
     if show_cpu {
         segments.push(Segment {
-            label: SegmentLabel::IconCpu,
+            icon: IconType::Cpu,
             value: format!("{:.0}%", cap_percent(cpu_usage)),
             width: sizing::SEGMENT_WIDTH,
             alert: cpu_alert,
@@ -355,7 +347,7 @@ fn render_tray_icon(
     }
     if show_mem {
         segments.push(Segment {
-            label: SegmentLabel::IconMem,
+            icon: IconType::Memory,
             value: format!("{:.0}%", cap_percent(mem_percent)),
             width: sizing::SEGMENT_WIDTH,
             alert: mem_alert,
@@ -363,7 +355,7 @@ fn render_tray_icon(
     }
     if show_gpu {
         segments.push(Segment {
-            label: SegmentLabel::IconGpu,
+            icon: IconType::Gpu,
             value: format!("{:.0}%", cap_percent(gpu_usage)),
             width: sizing::SEGMENT_WIDTH,
             alert: gpu_alert,
@@ -371,13 +363,13 @@ fn render_tray_icon(
     }
     if show_net {
         segments.push(Segment {
-            label: SegmentLabel::IconDown,
+            icon: IconType::ArrowDown,
             value: format_speed(down_speed),
             width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
         });
         segments.push(Segment {
-            label: SegmentLabel::IconUp,
+            icon: IconType::ArrowUp,
             value: format_speed(up_speed),
             width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
@@ -463,13 +455,7 @@ fn render_tray_icon(
 
         let segment_color = if segment.alert { get_alert_color(is_dark_mode) } else { base_color };
 
-        match segment.label {
-            SegmentLabel::IconCpu => draw_cached_icon(IconType::Cpu, x_offset, segment_color, &mut img),
-            SegmentLabel::IconMem => draw_cached_icon(IconType::Memory, x_offset, segment_color, &mut img),
-            SegmentLabel::IconGpu => draw_cached_icon(IconType::Gpu, x_offset, segment_color, &mut img),
-            SegmentLabel::IconDown => draw_cached_icon(IconType::ArrowDown, x_offset, segment_color, &mut img),
-            SegmentLabel::IconUp => draw_cached_icon(IconType::ArrowUp, x_offset, segment_color, &mut img),
-        }
+        draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
         let value_width = measure_text(&segment.value);
         let segment_end = x_offset as f32 + segment.width as f32;
