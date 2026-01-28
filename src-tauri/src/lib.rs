@@ -241,10 +241,6 @@ const ALERT_COLOR_LIGHT: (u8, u8, u8) = (191, 54, 12);
 const UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
 
-fn get_text_color(is_dark: bool) -> (u8, u8, u8) {
-    if is_dark { (255, 255, 255) } else { (0, 0, 0) }
-}
-
 fn cap_percent(value: f32) -> f32 {
     value.clamp(0.0, 99.0)
 }
@@ -430,7 +426,7 @@ fn render_tray_icon(
             .sum()
     };
 
-    let base_color = get_text_color(is_dark_mode);
+    let base_color = if is_dark_mode { (255, 255, 255) } else { (0, 0, 0) };
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
