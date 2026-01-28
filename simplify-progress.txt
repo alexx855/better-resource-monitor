@@ -1,0 +1,25 @@
+1. Simplified get_text_color to return (u8, u8, u8) tuple directly instead of a single u8, eliminating the intermediate variable and tuple construction at the call site.
+
+2. Removed redundant SegmentLabel enum from render_tray_icon - it duplicated IconType. Now Segment struct uses IconType directly, eliminating the match statement that mapped SegmentLabel variants to IconType variants.
+
+3. Removed redundant icon_height variable in render_tray_icon - it was just an alias for sizing::ICON_HEIGHT. Now using the constant directly throughout the function.
+
+4. Removed get_alert_color function - it was only called once and just selected between two constants. Inlined the logic directly at the call site.
+
+5. Removed redundant pixel initialization loop in render_tray_icon - ImageBuffer::new already initializes all pixels to zero (transparent black), making the explicit loop setting each pixel to Rgba([0, 0, 0, 0]) unnecessary.
+
+6. Removed first_run flag in monitoring loop - initialized prev_rx/prev_tx with current network values before the loop starts, eliminating the conditional branch on every iteration.
+
+7. Extracted sum_network_totals helper function - consolidated duplicate network byte summation loops (one for initialization, one in the monitoring loop) into a single reusable function using fold.
+
+8. Removed redundant rx_delta/tx_delta variables in monitoring loop - they were immediately aliased to down_speed/up_speed. Now calculating down_speed/up_speed directly.
+
+9. Removed get_text_color function - it was only called once and contained a simple ternary. Inlined the logic directly at the call site.
+
+10. Removed FontMetrics struct - it only had one field (baseline). Renamed FONT_METRICS to FONT_BASELINE storing f32 directly, and renamed calculate_font_metrics to calculate_font_baseline returning f32.
+
+11. Removed measure_text closure in render_tray_icon - it was only called once. Inlined the text width calculation directly at the call site and simplified the value_x calculation by combining two operations into one expression.
+
+12. Removed dead test_get_text_color test - the get_text_color function was removed in step 9, but its test was left behind as dead code.
+
+13. Removed redundant s_dict variable in GPU sampler (macOS) - it was an unnecessary alias for the s out-parameter. Now checking and releasing s directly.
