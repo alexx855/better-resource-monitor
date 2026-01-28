@@ -287,9 +287,9 @@ mod sizing {
 }
 
 fn format_speed(bytes_per_sec: f64) -> String {
-    // Switch units at 9.95 to keep values in 0.0-9.9 range (max 2 digits)
+    // Switch to MB at ~1 MB/s for better resolution on typical network activity
     // GB is the final unit, capped at 9.9 GB
-    const THRESHOLD_KB: f64 = 9_950.0;
+    const THRESHOLD_KB: f64 = 999_500.0;
     const THRESHOLD_MB: f64 = 9_950_000.0;
 
     let (value, unit) = if bytes_per_sec >= THRESHOLD_MB {

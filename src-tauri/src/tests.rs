@@ -18,16 +18,19 @@ fn test_get_text_color() {
 
 #[test]
 fn test_format_speed() {
-    // KB range (0.0 - 9.9)
+    // KB range (0.0 - 999.5)
     assert_eq!(format_speed(0.0), "0.0 KB");
     assert_eq!(format_speed(500.0), "0.5 KB");
     assert_eq!(format_speed(1_500.0), "1.5 KB");
     assert_eq!(format_speed(9_000.0), "9.0 KB");
     assert_eq!(format_speed(9_900.0), "9.9 KB");
-    assert_eq!(format_speed(9_950.0), "0.0 MB"); // Boundary: KB -> MB
+    assert_eq!(format_speed(9_950.0), "9.9 KB"); // Still KB (threshold raised to ~1 MB)
+    assert_eq!(format_speed(100_000.0), "100.0 KB");
+    assert_eq!(format_speed(500_000.0), "500.0 KB");
+    assert_eq!(format_speed(999_000.0), "999.0 KB");
+    assert_eq!(format_speed(999_500.0), "1.0 MB"); // Boundary: KB -> MB
 
-    // MB range (0.0 - 9.9)
-    assert_eq!(format_speed(100_000.0), "0.1 MB");
+    // MB range (1.0 - 9.9)
     assert_eq!(format_speed(1_500_000.0), "1.5 MB");
     assert_eq!(format_speed(9_900_000.0), "9.9 MB");
     assert_eq!(format_speed(9_950_000.0), "0.0 GB"); // Boundary: MB -> GB
