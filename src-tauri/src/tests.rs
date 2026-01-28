@@ -11,12 +11,6 @@ fn test_cap_percent() {
 }
 
 #[test]
-fn test_get_text_color() {
-    assert_eq!(get_text_color(true), (255, 255, 255));
-    assert_eq!(get_text_color(false), (0, 0, 0));
-}
-
-#[test]
 fn test_format_speed() {
     // KB range (0.0 - 999.5)
     assert_eq!(format_speed(0.0), "0.0 KB");
