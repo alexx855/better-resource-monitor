@@ -93,16 +93,6 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_light_icons_from_desktop(desktop: &str) -> Option<bool> {
-    let lower = desktop.to_lowercase();
-    if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
-        Some(false) // Often light themes → dark (black) icons
-    } else {
-        None // No match, use default
-    }
-}
-
-#[cfg(target_os = "linux")]
 const THEME_CACHE_DURATION_SECS: u64 = 30;
 
 #[cfg(target_os = "linux")]
@@ -146,8 +136,9 @@ fn detect_light_icons_impl() -> bool {
 
     // Check XDG_CURRENT_DESKTOP for common light-themed DEs
     if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
-        if let Some(result) = detect_light_icons_from_desktop(&desktop) {
-            return result;
+        let lower = desktop.to_lowercase();
+        if lower.contains("xfce") || lower.contains("elementary") || lower.contains("kde") {
+            return false; // Often light themes → dark (black) icons
         }
     }
 
