@@ -380,10 +380,6 @@ fn render_tray_icon(
 
     let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, sizing::ICON_HEIGHT);
 
-    for pixel in img.pixels_mut() {
-        *pixel = Rgba([0, 0, 0, 0]);
-    }
-
     let scale = Scale::uniform(sizing::FONT_SIZE);
 
     // Use cached font metrics instead of recalculating each time
