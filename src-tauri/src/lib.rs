@@ -701,10 +701,9 @@ fn start_monitoring(
             };
 
             let (total_rx, total_tx) = sum_network_totals(&networks);
-            let rx_delta = total_rx.saturating_sub(prev_rx) as f64;
-            let tx_delta = total_tx.saturating_sub(prev_tx) as f64;
+            let down_speed = total_rx.saturating_sub(prev_rx) as f64;
+            let up_speed = total_tx.saturating_sub(prev_tx) as f64;
             (prev_rx, prev_tx) = (total_rx, total_tx);
-            let (down_speed, up_speed) = (rx_delta, tx_delta);
 
             if let Some(ref mut sampler) = gpu_sampler {
                 if let Some(usage) = sampler.sample() {
