@@ -11,12 +11,6 @@ fn test_cap_percent() {
 }
 
 #[test]
-fn test_get_alert_color() {
-    assert_eq!(get_alert_color(true), (255, 149, 0));
-    assert_eq!(get_alert_color(false), (191, 54, 12));
-}
-
-#[test]
 fn test_get_text_color() {
     assert_eq!(get_text_color(true), (255, 255, 255));
     assert_eq!(get_text_color(false), (0, 0, 0));

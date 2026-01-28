@@ -211,10 +211,6 @@ const ALERT_COLOR_LIGHT: (u8, u8, u8) = (191, 54, 12);
 const UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
 
-fn get_alert_color(is_dark: bool) -> (u8, u8, u8) {
-    if is_dark { ALERT_COLOR_DARK } else { ALERT_COLOR_LIGHT }
-}
-
 fn get_text_color(is_dark: bool) -> (u8, u8, u8) {
     if is_dark { (255, 255, 255) } else { (0, 0, 0) }
 }
@@ -452,7 +448,11 @@ fn render_tray_icon(
             x_offset += sizing::SEGMENT_GAP;
         }
 
-        let segment_color = if segment.alert { get_alert_color(is_dark_mode) } else { base_color };
+        let segment_color = if segment.alert {
+            if is_dark_mode { ALERT_COLOR_DARK } else { ALERT_COLOR_LIGHT }
+        } else {
+            base_color
+        };
 
         draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
