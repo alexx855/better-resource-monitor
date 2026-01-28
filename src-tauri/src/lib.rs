@@ -412,12 +412,6 @@ fn render_tray_icon(
         calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
 
-    let measure_text = |text: &str| -> f32 {
-        font.layout(text, scale, rusttype::point(0.0, 0.0))
-            .map(|g| g.unpositioned().h_metrics().advance_width)
-            .sum()
-    };
-
     let base_color = if is_dark_mode { (255, 255, 255) } else { (0, 0, 0) };
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
@@ -476,9 +470,10 @@ fn render_tray_icon(
 
         draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
-        let value_width = measure_text(&segment.value);
-        let segment_end = x_offset as f32 + segment.width as f32;
-        let value_x = segment_end - value_width;
+        let value_width: f32 = font.layout(&segment.value, scale, rusttype::point(0.0, 0.0))
+            .map(|g| g.unpositioned().h_metrics().advance_width)
+            .sum();
+        let value_x = x_offset as f32 + segment.width as f32 - value_width;
         draw_text(&segment.value, value_x, segment_color, &mut img);
 
         x_offset += segment.width;
