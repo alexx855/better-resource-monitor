@@ -497,7 +497,6 @@ fn toggle_setting(
 
 fn setup_tray(
     app: &AppHandle,
-    font: &Font,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
@@ -581,13 +580,15 @@ fn setup_tray(
     menu.append(&separator3)?;
     menu.append(&quit_item)?;
 
+    let font = load_system_font();
+
     #[cfg(target_os = "macos")]
     let is_light_icons = dark_mode.load(Relaxed);
     #[cfg(target_os = "linux")]
     let is_light_icons = detect_light_icons();
 
     let (pixels, width, height) = render_tray_icon(
-        font,
+        &font,
         0.0, 0.0, 0.0, 0.0, 0.0,
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
@@ -641,7 +642,6 @@ fn setup_tray(
 
 fn start_monitoring(
     app: AppHandle,
-    font: Font<'static>,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
@@ -653,6 +653,7 @@ fn start_monitoring(
         // On Linux, dark_mode is detected via system theme, not passed in
         #[cfg(target_os = "linux")]
         let _ = &dark_mode;
+        let font = load_system_font();
 
         let mut sys = System::new();
         // Warm up CPU measurement before loop so first render has valid data
@@ -783,11 +784,8 @@ pub fn run() {
             show_net_tray.store(net, Relaxed);
             dark_mode_tray.store(dark, Relaxed);
 
-            let font = load_system_font();
-
             setup_tray(
                 app.handle(),
-                &font,
                 show_cpu_tray,
                 show_mem_tray,
                 show_gpu_tray,
@@ -798,7 +796,6 @@ pub fn run() {
 
             start_monitoring(
                 app.handle().clone(),
-                font,
                 show_cpu,
                 show_mem,
                 show_gpu,
