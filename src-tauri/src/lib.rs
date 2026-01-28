@@ -644,9 +644,16 @@ fn start_monitoring(
         let mut networks = Networks::new_with_refreshed_list();
         let mut gpu_sampler = if gpu_available { GpuSampler::new() } else { None };
 
-        let mut prev_rx: u64 = 0;
-        let mut prev_tx: u64 = 0;
-        let mut first_run = true; // Still needed for network stats initialization
+        // Initialize network counters from current values to avoid spike on first iteration
+        let (mut prev_rx, mut prev_tx) = {
+            let mut rx: u64 = 0;
+            let mut tx: u64 = 0;
+            for (_interface_name, data) in networks.iter() {
+                rx += data.total_received();
+                tx += data.total_transmitted();
+            }
+            (rx, tx)
+        };
         let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
 
@@ -673,18 +680,11 @@ fn start_monitoring(
                 total_tx += data.total_transmitted();
             }
 
-            let (down_speed, up_speed) = if first_run {
-                first_run = false;
-                prev_rx = total_rx;
-                prev_tx = total_tx;
-                (0.0, 0.0)
-            } else {
-                let rx_delta = total_rx.saturating_sub(prev_rx) as f64;
-                let tx_delta = total_tx.saturating_sub(prev_tx) as f64;
-                prev_rx = total_rx;
-                prev_tx = total_tx;
-                (rx_delta, tx_delta)
-            };
+            let rx_delta = total_rx.saturating_sub(prev_rx) as f64;
+            let tx_delta = total_tx.saturating_sub(prev_tx) as f64;
+            prev_rx = total_rx;
+            prev_tx = total_tx;
+            let (down_speed, up_speed) = (rx_delta, tx_delta);
 
             if let Some(ref mut sampler) = gpu_sampler {
                 if let Some(usage) = sampler.sample() {
