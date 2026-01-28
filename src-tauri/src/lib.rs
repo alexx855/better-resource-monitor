@@ -20,7 +20,10 @@ use std::sync::OnceLock;
 use std::collections::HashMap;
 
 #[cfg(target_os = "linux")]
-static DETECTED_LIGHT_ICONS: OnceLock<bool> = OnceLock::new();
+use std::sync::Mutex;
+
+#[cfg(target_os = "linux")]
+static THEME_CACHE: Mutex<Option<(bool, std::time::Instant)>> = Mutex::new(None);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum IconType {
@@ -106,29 +109,56 @@ fn detect_light_icons_from_desktop(desktop: &str) -> Option<bool> {
 }
 
 #[cfg(target_os = "linux")]
+const THEME_CACHE_DURATION_SECS: u64 = 30;
+
+#[cfg(target_os = "linux")]
 fn detect_light_icons() -> bool {
-    *DETECTED_LIGHT_ICONS.get_or_init(|| {
-        // Try gsettings (GNOME/GTK)
-        if let Ok(output) = std::process::Command::new("gsettings")
-            .args(["get", "org.gnome.desktop.interface", "gtk-application-prefer-dark-theme"])
-            .output()
-        {
-            let result = String::from_utf8_lossy(&output.stdout);
-            if result.contains("true") {
-                return true; // Dark theme → light (white) icons
+    let now = std::time::Instant::now();
+
+    // Check if we have a valid cached value
+    {
+        let cache = THEME_CACHE.lock().expect("theme cache lock poisoned");
+        if let Some((cached_value, cached_at)) = *cache {
+            if now.duration_since(cached_at).as_secs() < THEME_CACHE_DURATION_SECS {
+                return cached_value;
             }
         }
+    }
 
-        // Check XDG_CURRENT_DESKTOP for common light-themed DEs
-        if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
-            if let Some(result) = detect_light_icons_from_desktop(&desktop) {
-                return result;
-            }
+    // Cache expired or empty - perform fresh detection
+    let detected = detect_light_icons_impl();
+
+    // Update cache
+    {
+        let mut cache = THEME_CACHE.lock().expect("theme cache lock poisoned");
+        *cache = Some((detected, now));
+    }
+
+    detected
+}
+
+#[cfg(target_os = "linux")]
+fn detect_light_icons_impl() -> bool {
+    // Try gsettings (GNOME/GTK)
+    if let Ok(output) = std::process::Command::new("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "gtk-application-prefer-dark-theme"])
+        .output()
+    {
+        let result = String::from_utf8_lossy(&output.stdout);
+        if result.contains("true") {
+            return true; // Dark theme → light (white) icons
         }
+    }
 
-        // Default: most Linux panels are dark → use light (white) icons
-        true
-    })
+    // Check XDG_CURRENT_DESKTOP for common light-themed DEs
+    if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
+        if let Some(result) = detect_light_icons_from_desktop(&desktop) {
+            return result;
+        }
+    }
+
+    // Default: most Linux panels are dark → use light (white) icons
+    true
 }
 
 
