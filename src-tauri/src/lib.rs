@@ -636,7 +636,7 @@ fn start_monitoring(
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
     dark_mode: Arc<AtomicBool>,
-    gpu_sampler: Option<GpuSampler>,
+    mut gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
         // On Linux, dark_mode is detected via system theme, not passed in
@@ -650,7 +650,6 @@ fn start_monitoring(
         thread::sleep(Duration::from_millis(CPU_STABILIZE_MS));
 
         let mut networks = Networks::new_with_refreshed_list();
-        let mut gpu_sampler = gpu_sampler;
 
         // Initialize network counters from current values to avoid spike on first iteration
         let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
