@@ -1,0 +1,1 @@
+- Removed duplicate load_system_font() call: Font is now loaded once in run() and passed to both setup_tray() and start_monitoring(), eliminating redundant system font loading (DRY)
