@@ -667,8 +667,12 @@ fn start_monitoring(
         let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
         let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
+        let mut last_update = std::time::Instant::now();
 
         loop {
+            let now = std::time::Instant::now();
+            let dt = now.duration_since(last_update).as_secs_f64();
+            last_update = now;
             sys.refresh_cpu_usage();
             sys.refresh_memory();
             networks.refresh(true);
@@ -684,8 +688,8 @@ fn start_monitoring(
             };
 
             let (total_rx, total_tx) = sum_network_totals(&networks);
-            let down_speed = total_rx.saturating_sub(prev_rx) as f64;
-            let up_speed = total_tx.saturating_sub(prev_tx) as f64;
+            let down_speed = total_rx.saturating_sub(prev_rx) as f64 / dt;
+            let up_speed = total_tx.saturating_sub(prev_tx) as f64 / dt;
             (prev_rx, prev_tx) = (total_rx, total_tx);
 
             if let Some(ref mut sampler) = gpu_sampler {
