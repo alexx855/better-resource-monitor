@@ -215,8 +215,8 @@ fn get_alert_color(is_dark: bool) -> (u8, u8, u8) {
     if is_dark { ALERT_COLOR_DARK } else { ALERT_COLOR_LIGHT }
 }
 
-fn get_text_color(is_dark: bool) -> u8 {
-    if is_dark { 255 } else { 0 }
+fn get_text_color(is_dark: bool) -> (u8, u8, u8) {
+    if is_dark { (255, 255, 255) } else { (0, 0, 0) }
 }
 
 fn cap_percent(value: f32) -> f32 {
@@ -411,8 +411,7 @@ fn render_tray_icon(
             .sum()
     };
 
-    let base_color_val = get_text_color(is_dark_mode);
-    let base_color: (u8, u8, u8) = (base_color_val, base_color_val, base_color_val);
+    let base_color = get_text_color(is_dark_mode);
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
