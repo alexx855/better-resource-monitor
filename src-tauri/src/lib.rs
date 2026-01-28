@@ -333,6 +333,12 @@ fn format_speed(bytes_per_sec: f64) -> String {
     format!("{value:.1} {unit}")
 }
 
+fn sum_network_totals(networks: &Networks) -> (u64, u64) {
+    networks.iter().fold((0, 0), |(rx, tx), (_, data)| {
+        (rx + data.total_received(), tx + data.total_transmitted())
+    })
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -675,15 +681,7 @@ fn start_monitoring(
         let mut gpu_sampler = if gpu_available { GpuSampler::new() } else { None };
 
         // Initialize network counters from current values to avoid spike on first iteration
-        let (mut prev_rx, mut prev_tx) = {
-            let mut rx: u64 = 0;
-            let mut tx: u64 = 0;
-            for (_interface_name, data) in networks.iter() {
-                rx += data.total_received();
-                tx += data.total_transmitted();
-            }
-            (rx, tx)
-        };
+        let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
         let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
 
@@ -702,18 +700,10 @@ fn start_monitoring(
                 0.0
             };
 
-            let mut total_rx: u64 = 0;
-            let mut total_tx: u64 = 0;
-
-            for (_interface_name, data) in networks.iter() {
-                total_rx += data.total_received();
-                total_tx += data.total_transmitted();
-            }
-
+            let (total_rx, total_tx) = sum_network_totals(&networks);
             let rx_delta = total_rx.saturating_sub(prev_rx) as f64;
             let tx_delta = total_tx.saturating_sub(prev_tx) as f64;
-            prev_rx = total_rx;
-            prev_tx = total_tx;
+            (prev_rx, prev_tx) = (total_rx, total_tx);
             let (down_speed, up_speed) = (rx_delta, tx_delta);
 
             if let Some(ref mut sampler) = gpu_sampler {
