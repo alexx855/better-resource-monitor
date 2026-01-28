@@ -12,7 +12,6 @@
 mod macos {
     use std::ffi::c_void;
     use std::marker::{PhantomData, PhantomPinned};
-    use std::mem::MaybeUninit;
     use std::ptr::null;
 
     use core_foundation::array::{CFArrayGetCount, CFArrayGetValueAtIndex, CFArrayRef};
@@ -147,11 +146,12 @@ mod macos {
             let mutable_chan = unsafe { CFDictionaryCreateMutableCopy(kCFAllocatorDefault, size, chan) };
             unsafe { CFRelease(chan as _) };
 
-            let mut s: MaybeUninit<CFMutableDictionaryRef> = MaybeUninit::uninit();
-            let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, s.as_mut_ptr(), 0, null()) };
+            // Initialize to null so we can safely check it later
+            let mut s: CFMutableDictionaryRef = std::ptr::null_mut();
+            let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, &mut s, 0, null()) };
 
             // Release the out-parameter dictionary if it was set (we don't need it)
-            let s_dict = unsafe { s.assume_init() };
+            let s_dict = s;
             if !s_dict.is_null() {
                 unsafe { CFRelease(s_dict as _) };
             }
