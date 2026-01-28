@@ -389,11 +389,9 @@ fn render_tray_icon(
         });
     }
 
-    let segment_widths: u32 = segments.iter().map(|s| s.width).sum();
-    let total_width = sizing::EDGE_PADDING
-        + segment_widths
-        + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1)
-        + sizing::EDGE_PADDING;
+    let total_width = sizing::EDGE_PADDING * 2
+        + segments.iter().map(|s| s.width).sum::<u32>()
+        + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1);
 
     let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, sizing::ICON_HEIGHT);
 
