@@ -151,9 +151,8 @@ mod macos {
             let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, &mut s, 0, null()) };
 
             // Release the out-parameter dictionary if it was set (we don't need it)
-            let s_dict = s;
-            if !s_dict.is_null() {
-                unsafe { CFRelease(s_dict as _) };
+            if !s.is_null() {
+                unsafe { CFRelease(s as _) };
             }
 
             if subs.is_null() {
