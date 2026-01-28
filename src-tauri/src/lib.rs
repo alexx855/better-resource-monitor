@@ -382,8 +382,7 @@ fn render_tray_icon(
         + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1)
         + sizing::EDGE_PADDING;
 
-    let icon_height = sizing::ICON_HEIGHT;
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, icon_height);
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, sizing::ICON_HEIGHT);
 
     for pixel in img.pixels_mut() {
         *pixel = Rgba([0, 0, 0, 0]);
@@ -393,7 +392,7 @@ fn render_tray_icon(
 
     // Use cached font metrics instead of recalculating each time
     let font_metrics = FONT_METRICS.get_or_init(|| {
-        calculate_font_metrics(font, icon_height, scale)
+        calculate_font_metrics(font, sizing::ICON_HEIGHT, scale)
     });
     let baseline = font_metrics.baseline;
 
@@ -411,7 +410,7 @@ fn render_tray_icon(
                 glyph.draw(|gx, gy, v| {
                     let x = (bb.min.x + gx as i32) as u32;
                     let y = (bb.min.y + gy as i32) as u32;
-                    if x < total_width && y < icon_height {
+                    if x < total_width && y < sizing::ICON_HEIGHT {
                         let alpha = (v * 255.0) as u8;
                         img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
                     }
@@ -421,19 +420,19 @@ fn render_tray_icon(
     };
 
     // Initialize icon cache on first use
-    let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(icon_height));
+    let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(sizing::ICON_HEIGHT));
 
     let draw_cached_icon = |icon_type: IconType, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         let icon_pixels = icon_cache.get(icon_type, color);
 
-        for y in 0..icon_height {
-            for x in 0..icon_height {
-                let src_idx = ((y * icon_height + x) * 4) as usize;
+        for y in 0..sizing::ICON_HEIGHT {
+            for x in 0..sizing::ICON_HEIGHT {
+                let src_idx = ((y * sizing::ICON_HEIGHT + x) * 4) as usize;
                 if src_idx + 3 < icon_pixels.len() {
                     let alpha = icon_pixels[src_idx + 3];
                     if alpha > 0 {
                         let dst_x = start_x + x;
-                        if dst_x < total_width && y < icon_height {
+                        if dst_x < total_width && y < sizing::ICON_HEIGHT {
                             img.put_pixel(dst_x, y, Rgba([
                                 icon_pixels[src_idx],
                                 icon_pixels[src_idx + 1],
@@ -465,7 +464,7 @@ fn render_tray_icon(
         x_offset += segment.width;
     }
 
-    (img.into_raw(), total_width, icon_height)
+    (img.into_raw(), total_width, sizing::ICON_HEIGHT)
 }
 
 fn toggle_setting(
