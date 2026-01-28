@@ -647,7 +647,7 @@ fn start_monitoring(
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
     dark_mode: Arc<AtomicBool>,
-    gpu_available: bool,
+    gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
         // On Linux, dark_mode is detected via system theme, not passed in
@@ -661,7 +661,7 @@ fn start_monitoring(
         thread::sleep(Duration::from_millis(CPU_STABILIZE_MS));
 
         let mut networks = Networks::new_with_refreshed_list();
-        let mut gpu_sampler = if gpu_available { GpuSampler::new() } else { None };
+        let mut gpu_sampler = gpu_sampler;
 
         // Initialize network counters from current values to avoid spike on first iteration
         let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
@@ -700,7 +700,7 @@ fn start_monitoring(
 
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
-            let sg = show_gpu.load(Relaxed) && gpu_available;
+            let sg = show_gpu.load(Relaxed) && gpu_sampler.is_some();
             let sn = show_net.load(Relaxed);
 
             #[cfg(target_os = "macos")]
@@ -755,7 +755,8 @@ pub fn run() {
     let show_net_tray = show_net.clone();
     let dark_mode_tray = dark_mode.clone();
 
-    let gpu_available = GpuSampler::new().is_some();
+    let gpu_sampler = GpuSampler::new();
+    let gpu_available = gpu_sampler.is_some();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
@@ -800,7 +801,7 @@ pub fn run() {
                 show_gpu,
                 show_net,
                 dark_mode,
-                gpu_available,
+                gpu_sampler,
             );
 
             Ok(())
