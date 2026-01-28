@@ -150,6 +150,12 @@ mod macos {
             let mut s: MaybeUninit<CFMutableDictionaryRef> = MaybeUninit::uninit();
             let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, s.as_mut_ptr(), 0, null()) };
 
+            // Release the out-parameter dictionary if it was set (we don't need it)
+            let s_dict = unsafe { s.assume_init() };
+            if !s_dict.is_null() {
+                unsafe { CFRelease(s_dict as _) };
+            }
+
             if subs.is_null() {
                 unsafe { CFRelease(mutable_chan as _) };
                 return None;
@@ -250,6 +256,7 @@ mod macos {
                     CFRelease(prev as _);
                 }
                 CFRelease(self.chan as _);
+                CFRelease(self.subs as _);
             }
         }
     }
