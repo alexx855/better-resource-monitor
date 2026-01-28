@@ -70,13 +70,9 @@ impl IconCache {
 
 static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
 
-struct FontMetrics {
-    baseline: f32,
-}
+static FONT_BASELINE: OnceLock<f32> = OnceLock::new();
 
-static FONT_METRICS: OnceLock<FontMetrics> = OnceLock::new();
-
-fn calculate_font_metrics(font: &Font, icon_height: u32, scale: Scale) -> FontMetrics {
+fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     let v_metrics = font.v_metrics(scale);
     let reference_text = "0123456789% KMGTP";
     let mut min_y = i32::MAX;
@@ -89,13 +85,11 @@ fn calculate_font_metrics(font: &Font, icon_height: u32, scale: Scale) -> FontMe
         }
     }
 
-    let baseline = if min_y < max_y {
+    if min_y < max_y {
         (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
     } else {
         (icon_height as f32 / 2.0) + (v_metrics.ascent / 2.0)
-    };
-
-    FontMetrics { baseline }
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -414,11 +408,9 @@ fn render_tray_icon(
 
     let scale = Scale::uniform(sizing::FONT_SIZE);
 
-    // Use cached font metrics instead of recalculating each time
-    let font_metrics = FONT_METRICS.get_or_init(|| {
-        calculate_font_metrics(font, sizing::ICON_HEIGHT, scale)
+    let baseline = *FONT_BASELINE.get_or_init(|| {
+        calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
-    let baseline = font_metrics.baseline;
 
     let measure_text = |text: &str| -> f32 {
         font.layout(text, scale, rusttype::point(0.0, 0.0))
