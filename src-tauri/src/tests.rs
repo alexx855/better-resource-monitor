@@ -18,8 +18,8 @@ fn test_get_alert_color() {
 
 #[test]
 fn test_get_text_color() {
-    assert_eq!(get_text_color(true), 255);
-    assert_eq!(get_text_color(false), 0);
+    assert_eq!(get_text_color(true), (255, 255, 255));
+    assert_eq!(get_text_color(false), (0, 0, 0));
 }
 
 #[test]
