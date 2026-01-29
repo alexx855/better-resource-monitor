@@ -13,6 +13,19 @@ use serde_json::json;
 
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
+
+#[cfg(target_os = "macos")]
+fn detect_macos_dark_mode() -> bool {
+    use objc2_app_kit::NSApplication;
+
+    unsafe {
+        let app = NSApplication::sharedApplication();
+        let appearance = app.effectiveAppearance();
+        let name = appearance.name();
+        name.to_string().contains("Dark")
+    }
+}
+
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 
@@ -182,12 +195,22 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
             .unwrap_or(true)
     };
 
+    #[cfg(target_os = "macos")]
+    let dark_mode_default = detect_macos_dark_mode();
+    #[cfg(not(target_os = "macos"))]
+    let dark_mode_default = true;
+
+    let dark_mode = store.as_ref()
+        .and_then(|s| s.get("dark_mode"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(dark_mode_default);
+
     (
         get_bool("show_cpu"),
         get_bool("show_mem"),
         get_bool("show_gpu"),
         get_bool("show_net"),
-        get_bool("dark_mode"),
+        dark_mode,
     )
 }
 
