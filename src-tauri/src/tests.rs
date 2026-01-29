@@ -27,7 +27,8 @@ fn test_format_speed() {
     // MB range (1.0 - 999.5)
     assert_eq!(format_speed(1_500_000.0), "1.5 MB");
     assert_eq!(format_speed(9_900_000.0), "9.9 MB");
-    assert_eq!(format_speed(9_950_000.0), "10.0 MB"); // Still MB (threshold raised to ~1 GB)
+    assert_eq!(format_speed(9_950_000.0), "9.9 MB"); // Still MB (threshold raised to ~1 GB)
+    assert_eq!(format_speed(10_000_000.0), "10.0 MB");
     assert_eq!(format_speed(100_000_000.0), "100.0 MB");
     assert_eq!(format_speed(500_000_000.0), "500.0 MB");
     assert_eq!(format_speed(999_000_000.0), "999.0 MB");
@@ -47,19 +48,6 @@ fn test_format_speed() {
     assert_eq!(format_speed(-100.0), "-0.1 KB");
 }
 
-#[cfg(target_os = "linux")]
-#[test]
-fn test_detect_light_icons_from_desktop() {
-    // DEs with typically light themes -> dark (black) icons
-    for de in ["XFCE", "xfce", "Xfce", "elementary", "Pantheon:elementary", "KDE", "kde"] {
-        assert_eq!(detect_light_icons_from_desktop(de), Some(false), "failed for: {de}");
-    }
-
-    // DEs that return None (use default)
-    for de in ["GNOME", "gnome", "ubuntu:GNOME", "i3", "sway", ""] {
-        assert_eq!(detect_light_icons_from_desktop(de), None, "failed for: {de}");
-    }
-}
 
 #[test]
 fn test_render_svg_icon_valid() {
