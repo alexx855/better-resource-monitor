@@ -423,12 +423,12 @@ fn render_tray_icon(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            img.put_pixel(dst_x, y, Rgba([
-                                icon_pixels[src_idx],
-                                icon_pixels[src_idx + 1],
-                                icon_pixels[src_idx + 2],
-                                alpha,
-                            ]));
+                            // Un-premultiply alpha: resvg/tiny-skia produces premultiplied alpha,
+                            // but ImageBuffer expects straight alpha
+                            let r = (icon_pixels[src_idx] as u16 * 255 / alpha as u16) as u8;
+                            let g = (icon_pixels[src_idx + 1] as u16 * 255 / alpha as u16) as u8;
+                            let b = (icon_pixels[src_idx + 2] as u16 * 255 / alpha as u16) as u8;
+                            img.put_pixel(dst_x, y, Rgba([r, g, b, alpha]));
                         }
                     }
                 }
