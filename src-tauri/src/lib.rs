@@ -89,7 +89,7 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
 }
 
 #[cfg(target_os = "linux")]
-const THEME_POLL_INTERVAL_SECS: u64 = 30;
+const THEME_POLL_INTERVAL_SECS: u64 = 5;
 
 #[cfg(target_os = "linux")]
 fn detect_light_icons() -> bool {
