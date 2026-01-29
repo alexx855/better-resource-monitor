@@ -695,7 +695,8 @@ fn start_monitoring(
             last_update = now;
             sys.refresh_cpu_usage();
             sys.refresh_memory();
-            networks.refresh(true);
+            // Only refresh counters, not the interface list
+            networks.refresh(false);
 
             let cpu_usage = sys.global_cpu_usage();
 
