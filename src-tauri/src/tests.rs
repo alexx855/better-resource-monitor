@@ -19,32 +19,32 @@ fn test_format_speed() {
     assert_eq!(format_speed(9_000.0), "9.0 KB");
     assert_eq!(format_speed(9_900.0), "9.9 KB");
     assert_eq!(format_speed(9_950.0), "9.9 KB"); // Still KB (threshold raised to ~1 MB)
-    assert_eq!(format_speed(100_000.0), "100.0 KB");
-    assert_eq!(format_speed(500_000.0), "500.0 KB");
-    assert_eq!(format_speed(999_000.0), "999.0 KB");
+    assert_eq!(format_speed(100_000.0), "100 KB"); // No decimal for >= 10
+    assert_eq!(format_speed(500_000.0), "500 KB"); // No decimal for >= 10
+    assert_eq!(format_speed(999_000.0), "999 KB"); // No decimal for >= 10
     assert_eq!(format_speed(999_500.0), "1.0 MB"); // Boundary: KB -> MB
 
     // MB range (1.0 - 999.5)
     assert_eq!(format_speed(1_500_000.0), "1.5 MB");
     assert_eq!(format_speed(9_900_000.0), "9.9 MB");
     assert_eq!(format_speed(9_950_000.0), "9.9 MB"); // Still MB (threshold raised to ~1 GB)
-    assert_eq!(format_speed(10_000_000.0), "10.0 MB");
-    assert_eq!(format_speed(100_000_000.0), "100.0 MB");
-    assert_eq!(format_speed(500_000_000.0), "500.0 MB");
-    assert_eq!(format_speed(999_000_000.0), "999.0 MB");
+    assert_eq!(format_speed(10_000_000.0), "10 MB"); // No decimal for >= 10
+    assert_eq!(format_speed(100_000_000.0), "100 MB"); // No decimal for >= 10
+    assert_eq!(format_speed(500_000_000.0), "500 MB"); // No decimal for >= 10
+    assert_eq!(format_speed(999_000_000.0), "999 MB"); // No decimal for >= 10
     assert_eq!(format_speed(999_500_000.0), "1.0 GB"); // Boundary: MB -> GB
 
     // GB range
     assert_eq!(format_speed(1_500_000_000.0), "1.5 GB");
     assert_eq!(format_speed(9_900_000_000.0), "9.9 GB");
-    assert_eq!(format_speed(50_000_000_000.0), "50.0 GB");
+    assert_eq!(format_speed(50_000_000_000.0), "50 GB"); // No decimal for >= 10
 
     // Edge cases
     assert_eq!(format_speed(1e-10), "0.0 KB");
     assert_eq!(format_speed(0.001), "0.0 KB");
     assert_eq!(format_speed(0.5), "0.0 KB");
-    assert_eq!(format_speed(1_000_000_000_000.0), "1000.0 GB");
-    assert_eq!(format_speed(1e15), "1000000.0 GB");
+    assert_eq!(format_speed(1_000_000_000_000.0), "1000 GB"); // No decimal for >= 10
+    assert_eq!(format_speed(1e15), "1000000 GB"); // No decimal for >= 10
     assert_eq!(format_speed(-100.0), "-0.1 KB");
 }
 
