@@ -73,7 +73,6 @@ static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
 static FONT_BASELINE: OnceLock<f32> = OnceLock::new();
 
 fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
-    let v_metrics = font.v_metrics(scale);
     let reference_text = "0123456789% KMGTP";
     let mut min_y = i32::MAX;
     let mut max_y = i32::MIN;
@@ -88,7 +87,7 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     if min_y < max_y {
         (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
     } else {
-        (icon_height as f32 / 2.0) + (v_metrics.ascent / 2.0)
+        (icon_height as f32 / 2.0) + (font.v_metrics(scale).ascent / 2.0)
     }
 }
 
