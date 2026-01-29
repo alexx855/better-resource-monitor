@@ -378,7 +378,7 @@ fn render_tray_icon(
     let mem_alert = mem_percent >= ALERT_THRESHOLD;
     let gpu_alert = gpu_usage >= ALERT_THRESHOLD;
 
-    let mut segments: Vec<Segment> = Vec::new();
+    let mut segments = Vec::new();
 
     if show_cpu {
         segments.push(Segment {
