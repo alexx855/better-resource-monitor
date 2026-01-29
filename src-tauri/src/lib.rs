@@ -244,7 +244,7 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
     let svg_with_color = svg_data
         .replace("currentColor", &color_hex)
         .replace("<svg ", &format!("<svg fill=\"{color_hex}\" "));
- 
+
     let opts = resvg::usvg::Options::default();
     let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts)
         .expect("Failed to parse SVG");
@@ -252,13 +252,17 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
     let svg_size = tree.size();
     let scale = size as f32 / svg_size.width().max(svg_size.height());
 
-    let scaled_width = (svg_size.width() * scale).ceil() as u32;
-    let scaled_height = (svg_size.height() * scale).ceil() as u32;
+    let scaled_width = svg_size.width() * scale;
+    let scaled_height = svg_size.height() * scale;
 
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(scaled_width, scaled_height)
+    // Always create a square pixmap to match draw_cached_icon's stride assumption
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size)
         .expect("Failed to create pixmap");
 
-    let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
+    // Center the icon within the square pixmap
+    let tx = (size as f32 - scaled_width) / 2.0;
+    let ty = (size as f32 - scaled_height) / 2.0;
+    let transform = resvg::tiny_skia::Transform::from_translate(tx, ty).post_scale(scale, scale);
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
     pixmap.take()
