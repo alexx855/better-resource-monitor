@@ -124,6 +124,18 @@ fn start_theme_detection_thread() {
 }
 
 #[cfg(target_os = "linux")]
+fn ensure_display_available() -> Result<(), String> {
+    let has_x11 = std::env::var("DISPLAY").is_ok();
+    let has_wayland = std::env::var("WAYLAND_DISPLAY").is_ok();
+
+    if has_x11 || has_wayland {
+        Ok(())
+    } else {
+        Err("No display server found. Please set DISPLAY or WAYLAND_DISPLAY.".to_string())
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn detect_light_icons_impl() -> bool {
     // Try gsettings (GNOME/GTK)
     if let Ok(output) = std::process::Command::new("gsettings")
@@ -676,6 +688,8 @@ fn start_monitoring(
         let mut last_update = std::time::Instant::now();
 
         loop {
+            thread::sleep(Duration::from_millis(UPDATE_INTERVAL_MS));
+
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
             last_update = now;
@@ -741,14 +755,18 @@ fn start_monitoring(
                     }
                 }
             }
-
-            thread::sleep(Duration::from_millis(UPDATE_INTERVAL_MS));
         }
     });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    if let Err(e) = ensure_display_available() {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
+
     let show_cpu = Arc::new(AtomicBool::new(true));
     let show_mem = Arc::new(AtomicBool::new(true));
     let show_gpu = Arc::new(AtomicBool::new(true));
