@@ -20,10 +20,7 @@ use std::sync::OnceLock;
 use std::collections::HashMap;
 
 #[cfg(target_os = "linux")]
-use std::sync::Mutex;
-
-#[cfg(target_os = "linux")]
-static THEME_CACHE: Mutex<Option<(bool, std::time::Instant)>> = Mutex::new(None);
+static LIGHT_ICONS: AtomicBool = AtomicBool::new(true);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum IconType {
@@ -92,32 +89,25 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
 }
 
 #[cfg(target_os = "linux")]
-const THEME_CACHE_DURATION_SECS: u64 = 30;
+const THEME_POLL_INTERVAL_SECS: u64 = 30;
 
 #[cfg(target_os = "linux")]
 fn detect_light_icons() -> bool {
-    let now = std::time::Instant::now();
+    LIGHT_ICONS.load(Relaxed)
+}
 
-    // Check if we have a valid cached value
-    {
-        let cache = THEME_CACHE.lock().expect("theme cache lock poisoned");
-        if let Some((cached_value, cached_at)) = *cache {
-            if now.duration_since(cached_at).as_secs() < THEME_CACHE_DURATION_SECS {
-                return cached_value;
-            }
+#[cfg(target_os = "linux")]
+fn start_theme_detection_thread() {
+    use std::thread;
+    use std::time::Duration;
+
+    thread::spawn(|| {
+        loop {
+            let detected = detect_light_icons_impl();
+            LIGHT_ICONS.store(detected, Relaxed);
+            thread::sleep(Duration::from_secs(THEME_POLL_INTERVAL_SECS));
         }
-    }
-
-    // Cache expired or empty - perform fresh detection
-    let detected = detect_light_icons_impl();
-
-    // Update cache
-    {
-        let mut cache = THEME_CACHE.lock().expect("theme cache lock poisoned");
-        *cache = Some((detected, now));
-    }
-
-    detected
+    });
 }
 
 #[cfg(target_os = "linux")]
@@ -431,12 +421,12 @@ fn render_tray_icon(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            img.put_pixel(dst_x, y, Rgba([
-                                icon_pixels[src_idx],
-                                icon_pixels[src_idx + 1],
-                                icon_pixels[src_idx + 2],
-                                alpha,
-                            ]));
+                            // Un-premultiply alpha: resvg/tiny-skia produces premultiplied alpha,
+                            // but ImageBuffer expects straight alpha
+                            let r = ((icon_pixels[src_idx] as u16 * 255) / alpha as u16) as u8;
+                            let g = ((icon_pixels[src_idx + 1] as u16 * 255) / alpha as u16) as u8;
+                            let b = ((icon_pixels[src_idx + 2] as u16 * 255) / alpha as u16) as u8;
+                            img.put_pixel(dst_x, y, Rgba([r, g, b, alpha]));
                         }
                     }
                 }
