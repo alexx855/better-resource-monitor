@@ -302,7 +302,11 @@ fn format_speed(bytes_per_sec: f64) -> String {
         (bytes_per_sec / 1_000.0, "KB")
     };
 
-    format!("{value:.1} {unit}")
+    if value >= 10.0 {
+        format!("{value:.0} {unit}")
+    } else {
+        format!("{value:.1} {unit}")
+    }
 }
 
 fn sum_network_totals(networks: &Networks) -> (u64, u64) {
