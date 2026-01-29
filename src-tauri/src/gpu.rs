@@ -273,7 +273,7 @@ mod linux {
 
     pub struct GpuSampler {
         nvml: Nvml,
-        device_index: u32,
+        device_count: u32,
     }
 
     impl GpuSampler {
@@ -281,28 +281,36 @@ mod linux {
         /// Returns None if NVML cannot be initialized (no NVIDIA driver) or no GPU found.
         pub fn new() -> Option<Self> {
             let nvml = Nvml::init().ok()?;
-            
-            // Check if at least one device exists
             let device_count = nvml.device_count().ok()?;
             if device_count == 0 {
                 return None;
             }
 
-            // Use first GPU (index 0)
-            Some(Self {
-                nvml,
-                device_index: 0,
-            })
+            Some(Self { nvml, device_count })
         }
 
         /// Samples current GPU utilization percentage.
-        /// Returns None if sampling fails.
+        /// Iterates through all NVIDIA GPUs and returns the maximum utilization.
+        /// This handles hybrid graphics laptops where the discrete GPU may not be at index 0.
         pub fn sample(&mut self) -> Option<f32> {
-            self.nvml
-                .device_by_index(self.device_index)
-                .ok()
-                .and_then(|device| device.utilization_rates().ok())
-                .map(|rates| rates.gpu as f32)
+            let mut max_utilization: Option<f32> = None;
+
+            for index in 0..self.device_count {
+                if let Some(utilization) = self
+                    .nvml
+                    .device_by_index(index)
+                    .ok()
+                    .and_then(|device| device.utilization_rates().ok())
+                    .map(|rates| rates.gpu as f32)
+                {
+                    max_utilization = Some(match max_utilization {
+                        Some(current_max) => current_max.max(utilization),
+                        None => utilization,
+                    });
+                }
+            }
+
+            max_utilization
         }
     }
 
