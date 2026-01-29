@@ -289,28 +289,17 @@ mod linux {
             Some(Self { nvml, device_count })
         }
 
-        /// Samples current GPU utilization percentage.
-        /// Iterates through all NVIDIA GPUs and returns the maximum utilization.
-        /// This handles hybrid graphics laptops where the discrete GPU may not be at index 0.
+        /// Samples current GPU utilization percentage (max across all NVIDIA GPUs).
         pub fn sample(&mut self) -> Option<f32> {
-            let mut max_utilization: Option<f32> = None;
-
-            for index in 0..self.device_count {
-                if let Some(utilization) = self
-                    .nvml
-                    .device_by_index(index)
-                    .ok()
-                    .and_then(|device| device.utilization_rates().ok())
-                    .map(|rates| rates.gpu as f32)
-                {
-                    max_utilization = Some(match max_utilization {
-                        Some(current_max) => current_max.max(utilization),
-                        None => utilization,
-                    });
-                }
-            }
-
-            max_utilization
+            (0..self.device_count)
+                .filter_map(|i| {
+                    self.nvml
+                        .device_by_index(i)
+                        .ok()
+                        .and_then(|d| d.utilization_rates().ok())
+                        .map(|r| r.gpu as f32)
+                })
+                .reduce(f32::max)
         }
     }
 
