@@ -287,13 +287,11 @@ mod sizing {
 }
 
 fn format_speed(bytes_per_sec: f64) -> String {
-    // Switch to MB at ~1 MB/s for better resolution on typical network activity
-    // GB is the final unit, capped at 9.9 GB
     const THRESHOLD_KB: f64 = 999_500.0;
-    const THRESHOLD_MB: f64 = 9_950_000.0;
+    const THRESHOLD_MB: f64 = 999_500_000.0;
 
     let (value, unit) = if bytes_per_sec >= THRESHOLD_MB {
-        ((bytes_per_sec / 1_000_000_000.0).min(9.9), "GB")
+        (bytes_per_sec / 1_000_000_000.0, "GB")
     } else if bytes_per_sec >= THRESHOLD_KB {
         (bytes_per_sec / 1_000_000.0, "MB")
     } else {
@@ -421,12 +419,12 @@ fn render_tray_icon(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            // Un-premultiply alpha: resvg/tiny-skia produces premultiplied alpha,
-                            // but ImageBuffer expects straight alpha
-                            let r = ((icon_pixels[src_idx] as u16 * 255) / alpha as u16) as u8;
-                            let g = ((icon_pixels[src_idx + 1] as u16 * 255) / alpha as u16) as u8;
-                            let b = ((icon_pixels[src_idx + 2] as u16 * 255) / alpha as u16) as u8;
-                            img.put_pixel(dst_x, y, Rgba([r, g, b, alpha]));
+                            img.put_pixel(dst_x, y, Rgba([
+                                icon_pixels[src_idx],
+                                icon_pixels[src_idx + 1],
+                                icon_pixels[src_idx + 2],
+                                alpha,
+                            ]));
                         }
                     }
                 }
