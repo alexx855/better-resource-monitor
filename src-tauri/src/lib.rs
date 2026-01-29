@@ -763,6 +763,9 @@ pub fn run() {
                 ))?;
             }
 
+            #[cfg(target_os = "linux")]
+            start_theme_detection_thread();
+
             // Load persisted settings
             let (cpu, mem, gpu, net, dark) = load_settings(app.handle());
             show_cpu_tray.store(cpu, Relaxed);
