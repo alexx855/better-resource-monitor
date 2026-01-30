@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://monitor.alexpedersen.dev/sitemap-index.xml
+Sitemap: https://better-resource-monitor.alexpedersen.dev/sitemap-index.xml
