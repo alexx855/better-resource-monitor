@@ -12,6 +12,10 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 OUTPUT_DIR="$PROJECT_DIR/screenshots/appstore"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
+# Detect current terminal app for restoration
+TERMINAL_APP=$(osascript -e 'tell application "System Events" to name of first application process whose frontmost is true')
+
+
 # App Store valid dimensions (16:10 aspect ratio)
 declare -A VALID_SIZES=(
     [1280]="800"
@@ -50,10 +54,27 @@ show_help() {
     echo ""
 }
 
+
+hide_all_windows() {
+    echo "--> Hiding all windows..."
+    osascript -e 'tell application "System Events" to set visible of every process whose visible is true to false'
+}
+
+show_terminal() {
+    echo "--> Restoring terminal..."
+    # We rely on trap to restore, but let's try to focus the terminal if possible
+    # This might fail if we don't know the terminal app name, but capturing it at start is reliable
+    if [ -n "$TERMINAL_APP" ]; then
+        osascript -e "tell application \"$TERMINAL_APP\" to activate"
+    fi
+}
+
 prepare_desktop() {
     echo "--> Hiding desktop icons..."
     defaults write com.apple.finder CreateDesktop false
     killall Finder
+
+    hide_all_windows
 
     echo "--> Setting clean wallpaper..."
     osascript -e 'tell application "System Events" to set picture of every desktop to "/System/Library/Desktop Pictures/Solid Colors/Space Gray Pro.png"'
@@ -63,18 +84,30 @@ restore_desktop() {
     echo "--> Restoring desktop icons..."
     defaults delete com.apple.finder CreateDesktop 2>/dev/null || true
     killall Finder
+    
+    show_terminal
 }
+
 
 countdown() {
     local seconds=$1
     local message=$2
     echo ""
     echo "--> $message"
+    
+    # Audio feedback since terminal might be hidden
+    say "$message" 2>/dev/null &
+    
     for i in $(seq "$seconds" -1 1); do
         echo "$i..."
+        if [ "$i" -le 3 ]; then
+            say "$i" 2>/dev/null
+        fi
         sleep 1
     done
+    say "Cheese" 2>/dev/null &
 }
+
 
 # Resize screenshot to exact App Store dimensions
 resize_to_appstore() {

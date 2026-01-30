@@ -371,6 +371,11 @@ const { title, description } = Astro.props;
           display: flex !important;
           flex-direction: column !important;
           gap: 0.75rem;
+          font-size: 0 !important; /* Hide text separators (bullets) */
+        }
+        
+        p[align="center"]:has(a[href="#features"]) a {
+          font-size: 1.125rem !important; /* Restore link text size */
         }
         
         p[align="center"]:has(a[href="#features"]) span {

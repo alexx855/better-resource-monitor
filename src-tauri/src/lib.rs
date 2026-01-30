@@ -19,7 +19,9 @@ fn detect_macos_dark_mode() -> bool {
     use objc2::MainThreadMarker;
     use objc2_app_kit::NSApplication;
 
-    let mtm = MainThreadMarker::new().expect("must be called from main thread");
+    let Some(mtm) = MainThreadMarker::new() else {
+        return true; // Default to dark mode (light icons) when not on main thread
+    };
     let app = NSApplication::sharedApplication(mtm);
     let appearance = app.effectiveAppearance();
     let name = appearance.name();
