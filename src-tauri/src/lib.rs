@@ -16,14 +16,14 @@ use tauri::ActivationPolicy;
 
 #[cfg(target_os = "macos")]
 fn detect_macos_dark_mode() -> bool {
+    use objc2::MainThreadMarker;
     use objc2_app_kit::NSApplication;
 
-    unsafe {
-        let app = NSApplication::sharedApplication();
-        let appearance = app.effectiveAppearance();
-        let name = appearance.name();
-        name.to_string().contains("Dark")
-    }
+    let mtm = MainThreadMarker::new().expect("must be called from main thread");
+    let app = NSApplication::sharedApplication(mtm);
+    let appearance = app.effectiveAppearance();
+    let name = appearance.name();
+    name.to_string().contains("Dark")
 }
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};

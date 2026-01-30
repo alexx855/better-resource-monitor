@@ -42,18 +42,25 @@ const description = 'A blazing-fast, lightweight menu bar system monitor for mac
       --text: #e6edf3;
       --text-muted: #8b949e;
       --border: #30363d;
+      --brand: #e95420;
       /* WCAG AA compliant link color (4.5:1 contrast ratio on #0d1117) */
       --link: #79c0ff;
       --link-hover: #a5d6ff;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --link: #79c0ff;
+      --link-hover: #a5d6ff;
+    }
+
+    /* ===== Global Styles ===== */
+    :global(::marker) {
+      color: var(--brand) !important;
     }
     
     /* ===== Base Styles ===== */
     html {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
       font-size: 16px;
     }
     
@@ -121,7 +128,6 @@ const description = 'A blazing-fast, lightweight menu bar system monitor for mac
     
     /* ===== Code ===== */
     code {
-      font-family: var(--font-mono);
       background: rgba(110, 118, 129, 0.4);
       padding: 0.2em 0.4em;
       border-radius: 6px;
@@ -169,7 +175,6 @@ const description = 'A blazing-fast, lightweight menu bar system monitor for mac
     
     /* ===== Images ===== */
     img { 
-      border-radius: 6px;
       height: auto;
     }
     
@@ -178,8 +183,6 @@ const description = 'A blazing-fast, lightweight menu bar system monitor for mac
       width: 100%;
       max-width: 100%;
       height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
     }
     
     /* Center-aligned paragraphs (GitHub README style) */
@@ -193,7 +196,6 @@ const description = 'A blazing-fast, lightweight menu bar system monitor for mac
       display: inline-block;
       vertical-align: middle;
       margin: 4px;
-      border-radius: 4px;
       height: auto;
       width: auto;
       max-width: none;

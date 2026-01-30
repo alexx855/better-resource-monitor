@@ -113,11 +113,11 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
 
-          # Update macOS download link
+          # Update macOS download link (productName "Better Resource Monitor" -> Better.Resource.Monitor)
           sed -i 's|releases/download/v[0-9.]*|releases/download/v'"$NEW_VERSION"'|g' README.md
           sed -i 's|Better\.Resource\.Monitor_[0-9.]*_aarch64\.dmg|Better.Resource.Monitor_'"$NEW_VERSION"'_aarch64.dmg|g' README.md
 
-          # Update Ubuntu download link
+          # Update Ubuntu download link (productName -> lowercase with hyphens)
           sed -i 's|better-resource-monitor_[0-9.]*_amd64\.deb|better-resource-monitor_'"$NEW_VERSION"'_amd64.deb|g' README.md
 
       - name: Commit and tag

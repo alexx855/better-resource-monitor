@@ -33,7 +33,7 @@ tauri-plugin-store = "2"
 tauri-plugin-log = { version = "2", optional = true }
 log = "0.4"
 serde_json = "1"
-sysinfo = "0.37.2"
+sysinfo = { version = "0.37.2", features = ["apple-app-store"] }
 image = "0.24"
 rusttype = "0.9"
 tray-icon = "0.21"

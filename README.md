@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/alexx855/silicon-monitor/main/www/public/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
+</p>
+
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
@@ -5,23 +9,19 @@
 </p>
 
 <p align="center">
-  <img src="www/public/better-resource-monitor.png" alt="Better Resource Monitor" width="830">
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg" aria-label="Download macOS .dmg"><img src="https://img.shields.io/badge/macOS-Download-E95420?logo=apple&logoColor=white&style=for-the-badge" alt="Download macOS .dmg"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb" aria-label="Download Ubuntu .deb"><img src="https://img.shields.io/badge/Ubuntu-Download-E95420?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Download Ubuntu .deb"></a>
+
 </p>
 
 <p align="center">
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/Better.Resource.Monitor_0.1.3_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-Download_.dmg-0078d7?logo=apple&logoColor=white&style=flat-square" alt="Download macOS .dmg"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v0.1.3/better-resource-monitor_0.1.3_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Download_.deb-E95420?logo=ubuntu&logoColor=white&style=flat-square" alt="Download Ubuntu .deb"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License"></a>
-</p>
-
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#why">Why</a> •
-  <a href="#comparison">Comparison</a> •
+  <a href="#features">Features</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
+  <a href="#why">Why</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
+  <a href="#comparison">Comparison</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
   <a href="#installation">Installation</a>
 </p>
 
----
+
 
 ## Features
 
@@ -170,15 +170,12 @@ sudo ubuntu-drivers autoinstall
 
 The app will work without GPU monitoring—it will simply be hidden from the display.
 
----
+
 
 ## Credits
 
-- [Tauri](https://github.com/tauri-apps/tauri) — Cross-platform app framework
 - [Phosphor Icons](https://github.com/phosphor-icons) — Icon set used in the tray
 
----
 
-<p align="center">
-  Made with ❤️ by <a href="https://alexpedersen.dev/">Alex Pedersen</a>
-</p>
+
+

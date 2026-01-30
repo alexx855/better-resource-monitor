@@ -1,5 +1,6 @@
 ---
 import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
 
 interface Props {
   title: string;
@@ -31,21 +32,38 @@ const { title, description } = Astro.props;
     <meta name="twitter:image" content="https://opengraph.githubassets.com/1/alexx855/better-resource-monitor" />
     
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta name="robots" content="index, follow" />
     <title>{title}</title>
     <ClientRouter />
+    <Font cssVariable="--font-sans" preload />
+    <Font cssVariable="--font-mono" preload />
     
     <style is:global>
       :root {
-        --color-bg: #0a0a0b;
-        --color-surface: #141416;
-        --color-surface-hover: #1c1c1f;
-        --color-border: #2a2a2e;
-        --color-text: #fafafa;
-        --color-text-muted: #9a9a9f;
-        --color-accent: #007aff;
-        --color-accent-hover: #0056b3;
-        --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-        --font-mono: 'SF Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+        /* Base Colors - Deep, rich dark theme */
+        --color-bg: #050505;
+        --color-surface: #121212;
+        --color-surface-hover: #1e1e1e;
+        --color-border: #333333;
+        
+        /* Text Colors */
+        --color-text: #ededed;
+        --color-text-muted: #a1a1aa;
+        
+        /* Accents - refined blue/indigo */
+        --color-accent: #3b82f6;
+        --color-accent-hover: #60a5fa;
+        --color-accent-glow: rgba(59, 130, 246, 0.5);
+        
+        /* Code specific */
+        --color-code-bg: #1e1e1e;
+        
+        /* Spacing & Radius */
+        --radius-sm: 6px;
+        --radius-md: 12px;
+        --radius-lg: 20px;
+        --container-width: 900px;
       }
       
       *, *::before, *::after {
@@ -61,134 +79,248 @@ const { title, description } = Astro.props;
         scroll-behavior: smooth;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        height: 100%;
       }
       
       body {
         min-height: 100vh;
-        line-height: 1.6;
+        line-height: 1.7;
+        background: radial-gradient(circle at 50% 0%, #1a1a1a 0%, var(--color-bg) 60%);
+        display: flex;
+        flex-direction: column;
       }
       
+      /* Typography */
+      h1, h2, h3, h4, h5, h6 {
+        color: #fff;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-align: center;
+        padding-top: 4rem;
+      }
+
+      h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-top: 4rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+      }
+      
+      p {
+        margin-bottom: 1.5rem;
+        color: var(--color-text-muted);
+        font-size: 1.125rem;
+      }
+      
+      strong {
+        color: var(--color-text);
+        font-weight: 600;
+      }
+
+      /* Links */
       a {
         color: var(--color-accent);
         text-decoration: none;
-        transition: color 0.2s ease;
+        transition: all 0.2s ease;
+        font-weight: 500;
       }
       
       a:hover {
         color: var(--color-accent-hover);
+        text-shadow: 0 0 8px var(--color-accent-glow);
       }
       
+      /* Container */
+      .container {
+        width: 100%;
+        max-width: var(--container-width);
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        flex: 1;
+      }
+      
+      /* Images */
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+      
+      /* Target the main hero image specifically if possible by context, 
+         otherwise generic img styling effectively handles it */
+      p img[width="830"] {
+        margin: 2rem 0;
+      }
+      
+      /* Feature badges / download buttons in hero */
+      p[align="center"] a img {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+      
+      p[align="center"] a:hover img {
+        transform: translateY(-2px);
+        opacity: 0.9;
+      }
+      
+      /* Lists */
+      ul, ol {
+        margin-bottom: 2rem;
+        padding-left: 1.5rem;
+        color: var(--color-text-muted);
+      }
+      
+      li {
+        margin-bottom: 0.5rem;
+        padding-left: 0.5rem;
+      }
+      
+      li::marker {
+        color: var(--color-accent);
+      }
+
+      /* Code Blocks */
+      pre {
+        background: var(--color-code-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        overflow-x: auto;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+      }
+
       code {
         font-family: var(--font-mono);
-        background: var(--color-surface);
-        padding: 0.2em 0.4em;
-        border-radius: 4px;
         font-size: 0.9em;
       }
       
-      pre {
-        background: var(--color-surface);
-        padding: 1rem;
-        border-radius: 8px;
-        overflow-x: auto;
-        border: 1px solid var(--color-border);
+      /* Inline code */
+      p code, li code {
+        background: rgba(255,255,255,0.1);
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        color: var(--color-text);
+        border: 1px solid rgba(255,255,255,0.05);
       }
       
       pre code {
         background: none;
         padding: 0;
+        border: none;
+        color: inherit;
       }
-
-      /* Content page styles (legal pages, contributing) */
-      .content-page {
-        background: var(--color-bg);
-      }
-
-      .content-page .container {
+      
+      /* Tables */
+      table {
         width: 100%;
-        max-width: 830px;
-        margin: 0 auto;
-        padding: 2rem 1.5rem;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 2rem 0;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--color-surface);
       }
-
-      .content-page h1,
-      .content-page h2,
-      .content-page h3 {
-        color: var(--color-text);
-        font-weight: 600;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-      }
-
-      .content-page h1 { font-size: 2rem; }
-
-      .content-page h2 {
-        font-size: 1.5rem;
-        padding-bottom: 0.5rem;
+      
+      th, td {
+        padding: 1rem 1.5rem;
+        text-align: left;
         border-bottom: 1px solid var(--color-border);
       }
-
-      .content-page p {
-        margin-bottom: 1rem;
-        line-height: 1.6;
-      }
-
-      .content-page strong {
-        color: var(--color-text);
+      
+      th {
+        background: var(--color-surface-hover);
+        color: #fff;
         font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+      
+      tr:last-child td {
+        border-bottom: none;
+      }
+      
+      tr:hover td {
+        background: rgba(255,255,255,0.02);
+      }
+      
+      /* Horizontal Rule */
+      hr {
+        border: 0;
+        height: 1px;
+        background: var(--color-border);
+        margin: 4rem 0;
       }
 
-      .content-page a {
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-
-      .content-page ul,
-      .content-page ol {
-        margin: 1rem 0;
-        padding-left: 2rem;
-      }
-
-      .content-page li {
-        margin: 0.375rem 0;
-      }
-
-      .content-page .back-link {
+      /* Sections & Navigation */
+      /* Top nav links (Features • Why • ...) */
+      p[align="center"] a {
         display: inline-block;
-        margin-bottom: 1.5rem;
+        margin: 0 0.5rem;
         color: var(--color-text-muted);
-        text-decoration: none;
+        font-weight: 500;
+        position: relative;
+      }
+      
+      p[align="center"] a:hover {
+        color: #fff;
+        text-shadow: none;
       }
 
-      .content-page .back-link:hover {
-        color: var(--color-accent);
+      p[align="center"] {
+        color: var(--color-border); /* color for the bullets • */
       }
 
-      @media (max-width: 600px) {
-        .content-page .container {
-          padding: 1.25rem 1rem;
-        }
+      /* Content Page Specifics (Privacy, Terms) */
+      .content-page .container {
+        padding-top: 4rem;
+      }
+      
+      .content-page h1 {
+        text-align: left;
+        margin-bottom: 2rem;
+        padding-top: 0;
       }
 
+      /* Footer */
       .site-footer {
-        border-top: 1px solid var(--color-border);
-        padding: 2rem 1.5rem;
-        margin-top: 3rem;
+        background: var(--color-surface);
+        padding: 3rem 1.5rem;
+        margin-top: auto;
         text-align: center;
       }
 
       .site-footer nav {
         display: flex;
         justify-content: center;
-        gap: 1.5rem;
-        flex-wrap: wrap;
-        margin-bottom: 1rem;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
       }
 
       .site-footer nav a {
         color: var(--color-text-muted);
-        font-size: 0.875rem;
-        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
       }
 
       .site-footer nav a:hover {
@@ -196,20 +328,79 @@ const { title, description } = Astro.props;
       }
 
       .site-footer p {
-        color: var(--color-text-muted);
+        color: #555;
         font-size: 0.75rem;
+        margin-bottom: 0;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        :root {
+          --container-width: 100%;
+        }
+        
+        h1 {
+          font-size: 2.5rem;
+        }
+        
+        pre {
+          border-radius: 0;
+          margin-left: -1.5rem;
+          margin-right: -1.5rem;
+          border-left: 0;
+          border-right: 0;
+        }
+        
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+      /* Mobile Responsive Adjustments */
+      @media (max-width: 600px) {
+        /* Footer improvements */
+        .site-footer nav {
+          display: flex;
+          flex-direction: column !important;
+          gap: 1rem;
+        }
+
+        /* Hero Links: Stack them and hide dots */
+        /* use specific link href to identify the nav paragraph reliably */
+        p[align="center"]:has(a[href="#features"]) {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 0.75rem;
+        }
+        
+        p[align="center"]:has(a[href="#features"]) span {
+          display: none !important;
+        }
+
+        /* Hero Buttons: Ensure they align nicely */
+        p[align="center"]:has(img) {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center;
+          gap: 0.75rem;
+        }
       }
     </style>
   </head>
   <body>
-    <slot />
-    <footer class="site-footer">
+    <div transition:animate="slide">
+      <slot />
+    </div>
+    <footer class="site-footer" transition:persist>
       <nav>
         <a href="/privacy-policy">Privacy Policy</a>
         <a href="/terms">Terms & Conditions</a>
+        <a href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a>
+        <a href="https://github.com/alexx855/better-resource-monitor/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a>
+        <a href="https://github.com/alexx855/better-resource-monitor/issues" target="_blank" rel="noopener noreferrer">Support</a>
         <a href="https://github.com/alexx855/better-resource-monitor" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
-      <p>&copy; 2025 Better Resource Monitor</p>
+      <p>&copy; 2025 Better Resource Monitor • <a href="https://alexpedersen.dev/" target="_blank" rel="noopener noreferrer">Made by Alex Pedersen</a></p>
     </footer>
   </body>
 </html>
