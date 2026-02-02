@@ -759,15 +759,24 @@ fn start_monitoring(
                 );
 
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
-                    let icon = Image::new_owned(pixels, width, height);
-                    if let Err(e) = tray.set_icon(Some(icon)) {
-                        log::error!("Failed to set tray icon: {e:?}");
-                    }
-                    // Toggle template mode: use template when no alert (macOS handles color),
-                    // disable template when alert active (show our orange color)
                     #[cfg(target_os = "macos")]
-                    if let Err(e) = tray.set_icon_as_template(!has_active_alert) {
-                        log::error!("Failed to set icon_as_template: {e:?}");
+                    {
+                        let use_template = !has_active_alert;
+                        let icon = tray_icon::Icon::from_rgba(pixels, width, height)
+                            .expect("Failed to create icon");
+                        if let Err(e) = tray.with_inner_tray_icon(move |inner| {
+                            inner.set_icon_with_as_template(Some(icon), use_template)
+                        }) {
+                            log::error!("Failed to set tray icon: {e:?}");
+                        }
+                    }
+
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        let icon = Image::new_owned(pixels, width, height);
+                        if let Err(e) = tray.set_icon(Some(icon)) {
+                            log::error!("Failed to set tray icon: {e:?}");
+                        }
                     }
                 }
             }
