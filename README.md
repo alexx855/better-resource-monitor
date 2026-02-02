@@ -9,15 +9,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg" aria-label="Download macOS .dmg"><img src="https://img.shields.io/badge/macOS-Download-E95420?logo=apple&logoColor=white&style=for-the-badge" alt="Download macOS .dmg"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb" aria-label="Download Ubuntu .deb"><img src="https://img.shields.io/badge/Ubuntu-Download-E95420?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Download Ubuntu .deb"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg" aria-label="Download macOS .dmg"><img src="https://img.shields.io/badge/macOS-Download-D14715?logo=apple&logoColor=white&style=for-the-badge" alt="Download macOS .dmg"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb" aria-label="Download Ubuntu .deb"><img src="https://img.shields.io/badge/Ubuntu-Download-D14715?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Download Ubuntu .deb"></a>
 
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
-  <a href="#why">Why</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
-  <a href="#comparison">Comparison</a> <span style="color: #e95420; font-size: 1.2em;">•</span>
+  <a href="#features">Features</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
+  <a href="#why">Why</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
+  <a href="#comparison">Comparison</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
   <a href="#installation">Installation</a>
 </p>
 
