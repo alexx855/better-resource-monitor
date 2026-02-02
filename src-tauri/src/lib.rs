@@ -289,9 +289,10 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
     for chunk in pixels.chunks_exact_mut(4) {
         let alpha = chunk[3];
         if alpha > 0 && alpha < 255 {
-            chunk[0] = (chunk[0] as u16 * 255 / alpha as u16) as u8;
-            chunk[1] = (chunk[1] as u16 * 255 / alpha as u16) as u8;
-            chunk[2] = (chunk[2] as u16 * 255 / alpha as u16) as u8;
+            let a = alpha as u16;
+            chunk[0] = ((chunk[0] as u16 * 255 / a).min(255)) as u8;
+            chunk[1] = ((chunk[1] as u16 * 255 / a).min(255)) as u8;
+            chunk[2] = ((chunk[2] as u16 * 255 / a).min(255)) as u8;
         }
     }
     pixels
@@ -391,7 +392,6 @@ fn render_tray_icon_into(
         }
     }
 
-    // Network segments (no alerts, different width)
     if show_net {
         segments.push(Segment {
             icon: IconType::ArrowDown,
@@ -407,7 +407,6 @@ fn render_tray_icon_into(
         });
     }
 
-    // Check if any segment has an active alert (and alerts are enabled)
     let has_active_alert = show_alerts && segments.iter().any(|s| s.alert);
 
     let total_width = sizing::EDGE_PADDING * 2
@@ -416,12 +415,9 @@ fn render_tray_icon_into(
 
     let required_size = (total_width * sizing::ICON_HEIGHT * 4) as usize;
 
-    // Reuse buffer capacity when possible - critical for Linux compositor performance
     buffer.clear();
     buffer.resize(required_size, 0);
 
-    // Create ImageBuffer backed by our reusable buffer
-    // Note: into_raw() will return the same Vec we passed in
     let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(
         total_width,
         sizing::ICON_HEIGHT,
@@ -434,8 +430,6 @@ fn render_tray_icon_into(
         calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
 
-    // Base color is white - macOS template mode will invert as needed.
-    // When alerts are active, we use ALERT_COLOR for ALL segments (KISS approach).
     let base_color = (255, 255, 255);
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
@@ -453,7 +447,6 @@ fn render_tray_icon_into(
         }
     };
 
-    // Initialize icon cache on first use
     let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(sizing::ICON_HEIGHT));
 
     let draw_cached_icon = |icon_type: IconType, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
@@ -467,7 +460,6 @@ fn render_tray_icon_into(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            // Alpha already converted to straight at cache time
                             img.put_pixel(dst_x, y, Rgba([
                                 icon_pixels[src_idx],
                                 icon_pixels[src_idx + 1],
@@ -487,8 +479,6 @@ fn render_tray_icon_into(
             x_offset += sizing::SEGMENT_GAP;
         }
 
-        // KISS: When ANY segment is in alert state, ALL segments use alert color.
-        // This ensures visibility on light themes when template mode is disabled.
         let segment_color = if has_active_alert {
             ALERT_COLOR
         } else {
@@ -506,7 +496,6 @@ fn render_tray_icon_into(
         x_offset += segment.width;
     }
 
-    // Return buffer back to caller for reuse
     *buffer = img.into_raw();
     (total_width, sizing::ICON_HEIGHT, has_active_alert)
 }
@@ -730,7 +719,6 @@ fn start_monitoring(
             let sn = show_net.load(Relaxed);
             let sa = show_alerts.load(Relaxed);
 
-            // Cache formatted strings to avoid duplicate format_speed() calls
             let down_str = format_speed(down_speed);
             let up_str = format_speed(up_speed);
 
@@ -768,7 +756,6 @@ fn start_monitoring(
                     #[cfg(target_os = "macos")]
                     {
                         let use_template = !has_active_alert;
-                        // Clone buffer since Icon takes ownership; render_buffer is reused next iteration
                         let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
                         if let Err(e) = tray.with_inner_tray_icon(move |inner| {
@@ -780,7 +767,6 @@ fn start_monitoring(
 
                     #[cfg(not(target_os = "macos"))]
                     {
-                        // Clone buffer since Image takes ownership; render_buffer is reused next iteration
                         let icon = Image::new_owned(render_buffer.clone(), width, height);
                         if let Err(e) = tray.set_icon(Some(icon)) {
                             log::error!("Failed to set tray icon: {e:?}");
