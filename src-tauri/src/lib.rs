@@ -1,23 +1,39 @@
 mod gpu;
 
+// std
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
+use std::sync::{Arc, OnceLock};
+use std::thread;
+use std::time::Duration;
+
+// external crates
+use font_kit::family_name::FamilyName;
+use font_kit::handle::Handle;
+use font_kit::properties::{Properties, Weight};
+use font_kit::source::SystemSource;
+use image::{ImageBuffer, Rgba};
+use rusttype::{Font, Scale};
+use serde_json::json;
 use sysinfo::{Networks, System};
 use tauri::{
+    image::Image,
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle,
-    Manager,
-    image::Image,
+    AppHandle, Manager,
 };
 use tauri_plugin_store::StoreExt;
-use serde_json::json;
 
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 
-use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
-use std::sync::Arc;
-use std::sync::OnceLock;
-use std::collections::HashMap;
+#[cfg(desktop)]
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+
+// internal
+use gpu::GpuSampler;
 
 #[cfg(target_os = "linux")]
 static LIGHT_ICONS: AtomicBool = AtomicBool::new(true);
@@ -67,15 +83,6 @@ impl IconCache {
 static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
 
 static FONT_BASELINE: OnceLock<f32> = OnceLock::new();
-
-/// Reusable buffer for tray icon rendering to reduce allocations.
-/// On Linux with libappindicator/Wayland, frequent allocations can cause
-/// compositor resource accumulation leading to cursor slowdown.
-static ICON_BUFFER: OnceLock<Mutex<Vec<u8>>> = OnceLock::new();
-
-/// Maximum buffer size to reuse (prevents unbounded growth).
-/// 4 bytes per pixel * 800px max width * 64px height = 204,800 bytes
-const MAX_REUSABLE_BUFFER_SIZE: usize = 4 * 800 * 64;
 
 fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     let reference_text = "0123456789% KMGTP";
@@ -155,23 +162,6 @@ fn detect_light_icons_impl() -> bool {
     true
 }
 
-
-use std::thread;
-use std::time::Duration;
-use std::path::PathBuf;
-use std::fs;
-use image::{ImageBuffer, Rgba};
-use rusttype::{Font, Scale};
-use font_kit::source::SystemSource;
-use font_kit::family_name::FamilyName;
-use font_kit::properties::{Properties, Weight};
-use font_kit::handle::Handle;
-
-use gpu::GpuSampler;
-
-#[cfg(desktop)]
-use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
-
 const SETTINGS_FILE: &str = "settings.json";
 
 mod menu_id {
@@ -240,7 +230,7 @@ fn get_update_interval_ms() -> u64 {
     std::env::var("SILICON_UPDATE_INTERVAL")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_UPDATE_INTERVAL_MS)
+        .unwrap_or(UPDATE_INTERVAL_MS)
 }
 
 fn cap_percent(value: f32) -> f32 {
@@ -293,9 +283,19 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
     let transform = resvg::tiny_skia::Transform::from_translate(tx, ty).post_scale(scale, scale);
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
-    pixmap.take()
+    // Convert premultiplied to straight alpha once at cache time
+    // (resvg produces premultiplied, ImageBuffer expects straight alpha)
+    let mut pixels = pixmap.take();
+    for chunk in pixels.chunks_exact_mut(4) {
+        let alpha = chunk[3];
+        if alpha > 0 && alpha < 255 {
+            chunk[0] = (chunk[0] as u16 * 255 / alpha as u16) as u8;
+            chunk[1] = (chunk[1] as u16 * 255 / alpha as u16) as u8;
+            chunk[2] = (chunk[2] as u16 * 255 / alpha as u16) as u8;
+        }
+    }
+    pixels
 }
-
 
 #[cfg(target_os = "macos")]
 mod sizing {
@@ -346,22 +346,26 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
 #[cfg(test)]
 mod tests;
 
-
-/// Renders tray icon. Returns (pixels, width, height, has_active_alert).
+/// Renders tray icon into caller-provided buffer for reuse.
+/// Returns (width, height, has_active_alert).
 /// When has_active_alert is true, the icon should NOT be used as template.
-fn render_tray_icon(
+///
+/// Buffer reuse is critical on Linux to prevent compositor resource accumulation
+/// that causes cursor slowdown on Ubuntu/GNOME.
+fn render_tray_icon_into(
     font: &Font,
+    buffer: &mut Vec<u8>,
     cpu_usage: f32,
     mem_percent: f32,
     gpu_usage: f32,
-    down_speed: f64,
-    up_speed: f64,
+    down_str: &str,
+    up_str: &str,
     show_cpu: bool,
     show_mem: bool,
     show_gpu: bool,
     show_net: bool,
     show_alerts: bool,
-) -> (Vec<u8>, u32, u32, bool) {
+) -> (u32, u32, bool) {
     struct Segment {
         icon: IconType,
         value: String,
@@ -369,46 +373,35 @@ fn render_tray_icon(
         alert: bool,
     }
 
-    let cpu_alert = cpu_usage >= ALERT_THRESHOLD;
-    let mem_alert = mem_percent >= ALERT_THRESHOLD;
-    let gpu_alert = gpu_usage >= ALERT_THRESHOLD;
+    let mut segments = Vec::with_capacity(5);
 
-    let mut segments = Vec::new();
+    let percent_segments = [
+        (show_cpu, IconType::Cpu, cpu_usage),
+        (show_mem, IconType::Memory, mem_percent),
+        (show_gpu, IconType::Gpu, gpu_usage),
+    ];
+    for (show, icon, value) in percent_segments {
+        if show {
+            segments.push(Segment {
+                icon,
+                value: format!("{:.0}%", cap_percent(value)),
+                width: sizing::SEGMENT_WIDTH,
+                alert: value >= ALERT_THRESHOLD,
+            });
+        }
+    }
 
-    if show_cpu {
-        segments.push(Segment {
-            icon: IconType::Cpu,
-            value: format!("{:.0}%", cap_percent(cpu_usage)),
-            width: sizing::SEGMENT_WIDTH,
-            alert: cpu_alert,
-        });
-    }
-    if show_mem {
-        segments.push(Segment {
-            icon: IconType::Memory,
-            value: format!("{:.0}%", cap_percent(mem_percent)),
-            width: sizing::SEGMENT_WIDTH,
-            alert: mem_alert,
-        });
-    }
-    if show_gpu {
-        segments.push(Segment {
-            icon: IconType::Gpu,
-            value: format!("{:.0}%", cap_percent(gpu_usage)),
-            width: sizing::SEGMENT_WIDTH,
-            alert: gpu_alert,
-        });
-    }
+    // Network segments (no alerts, different width)
     if show_net {
         segments.push(Segment {
             icon: IconType::ArrowDown,
-            value: format_speed(down_speed),
+            value: down_str.to_owned(),
             width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
         });
         segments.push(Segment {
             icon: IconType::ArrowUp,
-            value: format_speed(up_speed),
+            value: up_str.to_owned(),
             width: sizing::SEGMENT_WIDTH_NET,
             alert: false,
         });
@@ -423,18 +416,16 @@ fn render_tray_icon(
 
     let required_size = (total_width * sizing::ICON_HEIGHT * 4) as usize;
 
-    // Reuse buffer to reduce allocations (helps prevent Wayland compositor resource leak)
-    let buffer_mutex = ICON_BUFFER.get_or_init(|| Mutex::new(Vec::with_capacity(MAX_REUSABLE_BUFFER_SIZE)));
-    let mut buffer = buffer_mutex.lock().expect("icon buffer lock poisoned");
-
-    // Clear and resize buffer (reuses allocation if capacity is sufficient)
+    // Reuse buffer capacity when possible - critical for Linux compositor performance
     buffer.clear();
     buffer.resize(required_size, 0);
 
+    // Create ImageBuffer backed by our reusable buffer
+    // Note: into_raw() will return the same Vec we passed in
     let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(
         total_width,
         sizing::ICON_HEIGHT,
-        std::mem::take(&mut *buffer),
+        std::mem::take(buffer),
     ).expect("buffer size matches dimensions");
 
     let scale = Scale::uniform(sizing::FONT_SIZE);
@@ -443,7 +434,8 @@ fn render_tray_icon(
         calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
 
-    // Always render in white - macOS template mode will invert as needed
+    // Base color is white - macOS template mode will invert as needed.
+    // When alerts are active, we use ALERT_COLOR for ALL segments (KISS approach).
     let base_color = (255, 255, 255);
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
@@ -475,12 +467,13 @@ fn render_tray_icon(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            // Un-premultiply alpha: resvg/tiny-skia produces premultiplied alpha,
-                            // but ImageBuffer expects straight alpha
-                            let r = (icon_pixels[src_idx] as u16 * 255 / alpha as u16) as u8;
-                            let g = (icon_pixels[src_idx + 1] as u16 * 255 / alpha as u16) as u8;
-                            let b = (icon_pixels[src_idx + 2] as u16 * 255 / alpha as u16) as u8;
-                            img.put_pixel(dst_x, y, Rgba([r, g, b, alpha]));
+                            // Alpha already converted to straight at cache time
+                            img.put_pixel(dst_x, y, Rgba([
+                                icon_pixels[src_idx],
+                                icon_pixels[src_idx + 1],
+                                icon_pixels[src_idx + 2],
+                                alpha,
+                            ]));
                         }
                     }
                 }
@@ -494,8 +487,9 @@ fn render_tray_icon(
             x_offset += sizing::SEGMENT_GAP;
         }
 
-        // Use alert color only when alerts are enabled and this segment is in alert state
-        let segment_color = if segment.alert && show_alerts {
+        // KISS: When ANY segment is in alert state, ALL segments use alert color.
+        // This ensures visibility on light themes when template mode is disabled.
+        let segment_color = if has_active_alert {
             ALERT_COLOR
         } else {
             base_color
@@ -512,7 +506,9 @@ fn render_tray_icon(
         x_offset += segment.width;
     }
 
-    (img.into_raw(), total_width, sizing::ICON_HEIGHT, has_active_alert)
+    // Return buffer back to caller for reuse
+    *buffer = img.into_raw();
+    (total_width, sizing::ICON_HEIGHT, has_active_alert)
 }
 
 fn toggle_setting(
@@ -523,8 +519,9 @@ fn toggle_setting(
 ) {
     let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
     if !flag.load(Relaxed) || enabled_count > 1 {
-        flag.fetch_xor(true, Relaxed);
-        save_setting(app, key, flag.load(Relaxed));
+        let new_value = !flag.load(Relaxed);
+        flag.store(new_value, Relaxed);
+        save_setting(app, key, new_value);
     }
 }
 
@@ -610,16 +607,18 @@ fn setup_tray(
 
     let font = load_system_font();
 
-    let (pixels, width, height, _has_alert) = render_tray_icon(
+    let mut initial_buffer = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
+    let (width, height, _has_alert) = render_tray_icon_into(
         &font,
-        0.0, 0.0, 0.0, 0.0, 0.0,
+        &mut initial_buffer,
+        0.0, 0.0, 0.0, "0 KB", "0 KB",
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
         show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
         show_alerts.load(Relaxed),
     );
-    let initial_icon = Image::new_owned(pixels, width, height);
+    let initial_icon = Image::new_owned(initial_buffer, width, height);
 
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
@@ -652,8 +651,9 @@ fn setup_tray(
                 menu_id::SHOW_GPU => toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags),
                 menu_id::SHOW_NET => toggle_setting(app, menu_id::SHOW_NET, &show_net, flags),
                 menu_id::SHOW_ALERTS => {
-                    show_alerts.fetch_xor(true, Relaxed);
-                    save_setting(app, menu_id::SHOW_ALERTS, show_alerts.load(Relaxed));
+                    let new_value = !show_alerts.load(Relaxed);
+                    show_alerts.store(new_value, Relaxed);
+                    save_setting(app, menu_id::SHOW_ALERTS, new_value);
                 }
                 menu_id::QUIT => app.exit(0),
                 _ => {}
@@ -690,6 +690,10 @@ fn start_monitoring(
         let mut last_update = std::time::Instant::now();
         let update_interval = get_update_interval_ms();
 
+        // Reusable buffer owned by monitoring thread - prevents compositor resource
+        // accumulation on Linux that causes cursor slowdown
+        let mut render_buffer: Vec<u8> = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
+
         loop {
             thread::sleep(Duration::from_millis(update_interval));
 
@@ -717,9 +721,7 @@ fn start_monitoring(
             (prev_rx, prev_tx) = (total_rx, total_tx);
 
             if let Some(ref mut sampler) = gpu_sampler {
-                if let Some(usage) = sampler.sample() {
-                    gpu_usage = usage;
-                }
+                gpu_usage = sampler.sample().unwrap_or(0.0);
             }
 
             let sc = show_cpu.load(Relaxed);
@@ -728,33 +730,37 @@ fn start_monitoring(
             let sn = show_net.load(Relaxed);
             let sa = show_alerts.load(Relaxed);
 
-            #[cfg(target_os = "linux")]
-            let dm = detect_light_icons();
+            // Cache formatted strings to avoid duplicate format_speed() calls
+            let down_str = format_speed(down_speed);
+            let up_str = format_speed(up_speed);
+
             #[cfg(target_os = "linux")]
             let display_key = format!(
-                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}{}",
+                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}|{}",
                 cpu_usage, mem_percent, gpu_usage,
-                format_speed(down_speed), format_speed(up_speed),
-                sc, sm, sg, sn, sa, dm
+                &down_str, &up_str,
+                sc, sm, sg, sn, sa,
+                detect_light_icons()
             );
             #[cfg(not(target_os = "linux"))]
             let display_key = format!(
                 "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
                 cpu_usage, mem_percent, gpu_usage,
-                format_speed(down_speed), format_speed(up_speed),
+                &down_str, &up_str,
                 sc, sm, sg, sn, sa
             );
 
             if prev_display.as_ref() != Some(&display_key) {
                 prev_display = Some(display_key);
 
-                let (pixels, width, height, has_active_alert) = render_tray_icon(
+                let (width, height, has_active_alert) = render_tray_icon_into(
                     &font,
+                    &mut render_buffer,
                     cpu_usage,
                     mem_percent,
                     gpu_usage,
-                    down_speed,
-                    up_speed,
+                    &down_str,
+                    &up_str,
                     sc, sm, sg, sn, sa,
                 );
 
@@ -762,7 +768,8 @@ fn start_monitoring(
                     #[cfg(target_os = "macos")]
                     {
                         let use_template = !has_active_alert;
-                        let icon = tray_icon::Icon::from_rgba(pixels, width, height)
+                        // Clone buffer since Icon takes ownership; render_buffer is reused next iteration
+                        let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
                         if let Err(e) = tray.with_inner_tray_icon(move |inner| {
                             inner.set_icon_with_as_template(Some(icon), use_template)
@@ -773,7 +780,8 @@ fn start_monitoring(
 
                     #[cfg(not(target_os = "macos"))]
                     {
-                        let icon = Image::new_owned(pixels, width, height);
+                        // Clone buffer since Image takes ownership; render_buffer is reused next iteration
+                        let icon = Image::new_owned(render_buffer.clone(), width, height);
                         if let Err(e) = tray.set_icon(Some(icon)) {
                             log::error!("Failed to set tray icon: {e:?}");
                         }
