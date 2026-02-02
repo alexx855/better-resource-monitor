@@ -826,7 +826,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_store::Builder::new().build());
 
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "dev-logging")]
     let builder = builder.plugin(tauri_plugin_log::Builder::new().build());
 
     builder

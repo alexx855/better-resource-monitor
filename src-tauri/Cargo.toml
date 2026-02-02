@@ -32,10 +32,6 @@ tauri-plugin-store = "2"
 # Only included in debug builds via conditional compilation
 tauri-plugin-log = { version = "2", optional = true }
 log = "0.4"
-
-[features]
-default = []
-dev-logging = ["tauri-plugin-log"]
 serde_json = "1"
 sysinfo = "0.37.2"
 image = "0.24"
@@ -56,5 +52,9 @@ objc2-foundation = "0.3"
 nvml-wrapper = "0.10"
 
 [dev-dependencies]
+
+[features]
+default = []
+dev-logging = ["tauri-plugin-log"]
 
 
