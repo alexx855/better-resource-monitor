@@ -14,24 +14,9 @@ use serde_json::json;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 
-#[cfg(target_os = "macos")]
-fn detect_macos_dark_mode() -> bool {
-    use objc2::MainThreadMarker;
-    use objc2_app_kit::NSApplication;
-
-    let Some(mtm) = MainThreadMarker::new() else {
-        return true; // Default to dark mode (light icons) when not on main thread
-    };
-    let app = NSApplication::sharedApplication(mtm);
-    let appearance = app.effectiveAppearance();
-    let name = appearance.name();
-    name.to_string().contains("Dark")
-}
-
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
-
-use std::sync::{OnceLock, Mutex};
+use std::sync::OnceLock;
 use std::collections::HashMap;
 
 #[cfg(target_os = "linux")]
@@ -52,11 +37,10 @@ struct IconCache {
 
 impl IconCache {
     fn new(size: u32) -> Self {
+        // Only white (for template mode) and alert color needed
         let colors = [
-            (255, 255, 255), // Light (dark mode)
-            (0, 0, 0),       // Dark (light mode)
-            ALERT_COLOR_DARK,
-            ALERT_COLOR_LIGHT,
+            (255, 255, 255), // White - macOS will invert as needed via template mode
+            ALERT_COLOR,     // Orange alert color - used when template mode is off
         ];
         let icon_svgs = [
             (IconType::Cpu, SVG_CPU),
@@ -196,7 +180,7 @@ mod menu_id {
     pub const SHOW_MEM: &str = "show_mem";
     pub const SHOW_GPU: &str = "show_gpu";
     pub const SHOW_NET: &str = "show_net";
-    pub const LIGHT_ICONS: &str = "light_icons";
+    pub const SHOW_ALERTS: &str = "show_alerts";
     pub const QUIT: &str = "quit";
 }
 
@@ -218,22 +202,12 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
             .unwrap_or(true)
     };
 
-    #[cfg(target_os = "macos")]
-    let dark_mode_default = detect_macos_dark_mode();
-    #[cfg(not(target_os = "macos"))]
-    let dark_mode_default = true;
-
-    let dark_mode = store.as_ref()
-        .and_then(|s| s.get("dark_mode"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(dark_mode_default);
-
     (
         get_bool("show_cpu"),
         get_bool("show_mem"),
         get_bool("show_gpu"),
         get_bool("show_net"),
-        dark_mode,
+        get_bool("show_alerts"),
     )
 }
 
@@ -256,9 +230,8 @@ const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
 
 const ALERT_THRESHOLD: f32 = 90.0;
-const ALERT_COLOR_DARK: (u8, u8, u8) = (255, 149, 0);
-const ALERT_COLOR_LIGHT: (u8, u8, u8) = (191, 54, 12);
-const DEFAULT_UPDATE_INTERVAL_MS: u64 = 800;
+const ALERT_COLOR: (u8, u8, u8) = (209, 71, 21); // #D14715 - visible on both light and dark backgrounds
+const UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
 
 /// Get update interval from environment variable or use default.
@@ -374,6 +347,8 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
 mod tests;
 
 
+/// Renders tray icon. Returns (pixels, width, height, has_active_alert).
+/// When has_active_alert is true, the icon should NOT be used as template.
 fn render_tray_icon(
     font: &Font,
     cpu_usage: f32,
@@ -385,8 +360,8 @@ fn render_tray_icon(
     show_mem: bool,
     show_gpu: bool,
     show_net: bool,
-    is_dark_mode: bool,
-) -> (Vec<u8>, u32, u32) {
+    show_alerts: bool,
+) -> (Vec<u8>, u32, u32, bool) {
     struct Segment {
         icon: IconType,
         value: String,
@@ -439,6 +414,9 @@ fn render_tray_icon(
         });
     }
 
+    // Check if any segment has an active alert (and alerts are enabled)
+    let has_active_alert = show_alerts && segments.iter().any(|s| s.alert);
+
     let total_width = sizing::EDGE_PADDING * 2
         + segments.iter().map(|s| s.width).sum::<u32>()
         + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1);
@@ -465,7 +443,8 @@ fn render_tray_icon(
         calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
 
-    let base_color = if is_dark_mode { (255, 255, 255) } else { (0, 0, 0) };
+    // Always render in white - macOS template mode will invert as needed
+    let base_color = (255, 255, 255);
 
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
@@ -515,8 +494,9 @@ fn render_tray_icon(
             x_offset += sizing::SEGMENT_GAP;
         }
 
-        let segment_color = if segment.alert {
-            if is_dark_mode { ALERT_COLOR_DARK } else { ALERT_COLOR_LIGHT }
+        // Use alert color only when alerts are enabled and this segment is in alert state
+        let segment_color = if segment.alert && show_alerts {
+            ALERT_COLOR
         } else {
             base_color
         };
@@ -532,11 +512,7 @@ fn render_tray_icon(
         x_offset += segment.width;
     }
 
-    // Get the raw pixels back and store in buffer for reuse (preserves capacity)
-    *buffer = img.into_raw();
-
-    // Return a clone for the caller (buffer keeps original capacity for next render)
-    (buffer.clone(), total_width, sizing::ICON_HEIGHT)
+    (img.into_raw(), total_width, sizing::ICON_HEIGHT, has_active_alert)
 }
 
 fn toggle_setting(
@@ -558,7 +534,7 @@ fn setup_tray(
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
-    dark_mode: Arc<AtomicBool>,
+    show_alerts: Arc<AtomicBool>,
     gpu_available: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(desktop)]
@@ -571,7 +547,7 @@ fn setup_tray(
             .app_data_dir()
             .unwrap_or_else(|_| PathBuf::from("."))
             .join(".autostart_configured");
-        
+
         if !marker_path.exists() {
             if let Err(e) = autostart_manager.enable() {
                 log::warn!("Failed to enable autostart: {e}");
@@ -606,12 +582,10 @@ fn setup_tray(
         app, menu_id::SHOW_NET, "Show Network", true, show_net.load(Relaxed), None::<&str>,
     )?;
 
-    #[cfg(target_os = "macos")]
     let separator2 = PredefinedMenuItem::separator(app)?;
 
-    #[cfg(target_os = "macos")]
-    let light_icons_item = CheckMenuItem::with_id(
-        app, menu_id::LIGHT_ICONS, "Use Light Icons", true, dark_mode.load(Relaxed), None::<&str>,
+    let show_alerts_item = CheckMenuItem::with_id(
+        app, menu_id::SHOW_ALERTS, "Show Alert Colors", true, show_alerts.load(Relaxed), None::<&str>,
     )?;
 
     let separator3 = PredefinedMenuItem::separator(app)?;
@@ -629,36 +603,29 @@ fn setup_tray(
         menu.append(&show_gpu_item)?;
     }
     menu.append(&show_net_item)?;
-    #[cfg(target_os = "macos")]
-    {
-        menu.append(&separator2)?;
-        menu.append(&light_icons_item)?;
-    }
+    menu.append(&separator2)?;
+    menu.append(&show_alerts_item)?;
     menu.append(&separator3)?;
     menu.append(&quit_item)?;
 
     let font = load_system_font();
 
-    #[cfg(target_os = "macos")]
-    let is_light_icons = dark_mode.load(Relaxed);
-    #[cfg(target_os = "linux")]
-    let is_light_icons = detect_light_icons();
-
-    let (pixels, width, height) = render_tray_icon(
+    let (pixels, width, height, _has_alert) = render_tray_icon(
         &font,
         0.0, 0.0, 0.0, 0.0, 0.0,
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
         show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
-        is_light_icons,
+        show_alerts.load(Relaxed),
     );
     let initial_icon = Image::new_owned(pixels, width, height);
 
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
+    // Use template mode by default - macOS will handle light/dark adaptation
     #[cfg(target_os = "macos")]
-    let tray_builder = tray_builder.icon_as_template(false);
+    let tray_builder = tray_builder.icon_as_template(true);
 
     let _tray = tray_builder
         .menu(&menu)
@@ -684,9 +651,9 @@ fn setup_tray(
                 menu_id::SHOW_MEM => toggle_setting(app, menu_id::SHOW_MEM, &show_mem, flags),
                 menu_id::SHOW_GPU => toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags),
                 menu_id::SHOW_NET => toggle_setting(app, menu_id::SHOW_NET, &show_net, flags),
-                menu_id::LIGHT_ICONS => {
-                    dark_mode.fetch_xor(true, Relaxed);
-                    save_setting(app, "dark_mode", dark_mode.load(Relaxed));
+                menu_id::SHOW_ALERTS => {
+                    show_alerts.fetch_xor(true, Relaxed);
+                    save_setting(app, menu_id::SHOW_ALERTS, show_alerts.load(Relaxed));
                 }
                 menu_id::QUIT => app.exit(0),
                 _ => {}
@@ -703,13 +670,10 @@ fn start_monitoring(
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
-    dark_mode: Arc<AtomicBool>,
+    show_alerts: Arc<AtomicBool>,
     mut gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
-        // On Linux, dark_mode is detected via system theme, not passed in
-        #[cfg(target_os = "linux")]
-        let _ = &dark_mode;
         let font = load_system_font();
 
         let mut sys = System::new();
@@ -762,36 +726,48 @@ fn start_monitoring(
             let sm = show_mem.load(Relaxed);
             let sg = show_gpu.load(Relaxed) && gpu_sampler.is_some();
             let sn = show_net.load(Relaxed);
+            let sa = show_alerts.load(Relaxed);
 
-            #[cfg(target_os = "macos")]
-            let dm = dark_mode.load(Relaxed);
             #[cfg(target_os = "linux")]
             let dm = detect_light_icons();
-
+            #[cfg(target_os = "linux")]
+            let display_key = format!(
+                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}{}",
+                cpu_usage, mem_percent, gpu_usage,
+                format_speed(down_speed), format_speed(up_speed),
+                sc, sm, sg, sn, sa, dm
+            );
+            #[cfg(not(target_os = "linux"))]
             let display_key = format!(
                 "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
                 cpu_usage, mem_percent, gpu_usage,
                 format_speed(down_speed), format_speed(up_speed),
-                sc, sm, sg, sn, dm
+                sc, sm, sg, sn, sa
             );
 
             if prev_display.as_ref() != Some(&display_key) {
                 prev_display = Some(display_key);
 
-                let (pixels, width, height) = render_tray_icon(
+                let (pixels, width, height, has_active_alert) = render_tray_icon(
                     &font,
                     cpu_usage,
                     mem_percent,
                     gpu_usage,
                     down_speed,
                     up_speed,
-                    sc, sm, sg, sn, dm,
+                    sc, sm, sg, sn, sa,
                 );
 
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     let icon = Image::new_owned(pixels, width, height);
                     if let Err(e) = tray.set_icon(Some(icon)) {
                         log::error!("Failed to set tray icon: {e:?}");
+                    }
+                    // Toggle template mode: use template when no alert (macOS handles color),
+                    // disable template when alert active (show our orange color)
+                    #[cfg(target_os = "macos")]
+                    if let Err(e) = tray.set_icon_as_template(!has_active_alert) {
+                        log::error!("Failed to set icon_as_template: {e:?}");
                     }
                 }
             }
@@ -811,13 +787,13 @@ pub fn run() {
     let show_mem = Arc::new(AtomicBool::new(true));
     let show_gpu = Arc::new(AtomicBool::new(true));
     let show_net = Arc::new(AtomicBool::new(true));
-    let dark_mode = Arc::new(AtomicBool::new(true));
+    let show_alerts = Arc::new(AtomicBool::new(true));
 
     let show_cpu_tray = show_cpu.clone();
     let show_mem_tray = show_mem.clone();
     let show_gpu_tray = show_gpu.clone();
     let show_net_tray = show_net.clone();
-    let dark_mode_tray = dark_mode.clone();
+    let show_alerts_tray = show_alerts.clone();
 
     let gpu_sampler = GpuSampler::new();
     let gpu_available = gpu_sampler.is_some();
@@ -848,12 +824,12 @@ pub fn run() {
             start_theme_detection_thread();
 
             // Load persisted settings
-            let (cpu, mem, gpu, net, dark) = load_settings(app.handle());
+            let (cpu, mem, gpu, net, alerts) = load_settings(app.handle());
             show_cpu_tray.store(cpu, Relaxed);
             show_mem_tray.store(mem, Relaxed);
             show_gpu_tray.store(gpu, Relaxed);
             show_net_tray.store(net, Relaxed);
-            dark_mode_tray.store(dark, Relaxed);
+            show_alerts_tray.store(alerts, Relaxed);
 
             setup_tray(
                 app.handle(),
@@ -861,7 +837,7 @@ pub fn run() {
                 show_mem_tray,
                 show_gpu_tray,
                 show_net_tray,
-                dark_mode_tray,
+                show_alerts_tray,
                 gpu_available,
             )?;
 
@@ -871,7 +847,7 @@ pub fn run() {
                 show_mem,
                 show_gpu,
                 show_net,
-                dark_mode,
+                show_alerts,
                 gpu_sampler,
             );
 
