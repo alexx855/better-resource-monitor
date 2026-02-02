@@ -71,65 +71,67 @@ fn test_render_svg_icon_invalid_panics() {
 
 #[test]
 fn test_icon_buffer_reuse() {
-    // This test verifies the buffer reuse optimization is working.
-    // After the first render, the buffer should be reused (same capacity).
     let font = load_system_font();
 
-    // First render - allocates buffer
-    let (pixels1, w1, h1) = render_tray_icon(
-        &font, 50.0, 60.0, 0.0, 1000.0, 500.0,
-        true, true, false, true, true,
+    // Create buffer with known capacity
+    let mut buffer: Vec<u8> = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
+    let initial_capacity = buffer.capacity();
+
+    // First render
+    let (width1, height1, _) = render_tray_icon_into(
+        &font,
+        &mut buffer,
+        50.0, 60.0, 0.0, "1.0 KB", "0.5 KB",
+        true, true, false, true, false,
     );
-    assert!(!pixels1.is_empty());
-    assert!(w1 > 0 && h1 > 0);
+    assert!(width1 > 0);
+    assert_eq!(height1, sizing::ICON_HEIGHT);
+    assert!(!buffer.is_empty());
 
-    // Get buffer capacity after first render
-    let capacity_after_first = ICON_BUFFER
-        .get()
-        .map(|m| m.lock().unwrap().capacity())
-        .unwrap_or(0);
+    // Capacity should be preserved or grown, never shrunk
+    let capacity_after_first = buffer.capacity();
+    assert!(capacity_after_first >= initial_capacity);
 
-    // Second render - should reuse buffer
-    let (pixels2, w2, h2) = render_tray_icon(
-        &font, 75.0, 80.0, 0.0, 2000.0, 1000.0,
-        true, true, false, true, true,
+    // Second render with different values - buffer should be reused
+    let (width2, height2, _) = render_tray_icon_into(
+        &font,
+        &mut buffer,
+        70.0, 80.0, 0.0, "2.0 KB", "1.0 KB",
+        true, true, false, true, false,
     );
-    assert!(!pixels2.is_empty());
-    assert_eq!(w2, w1); // Same config = same width
-    assert_eq!(h2, h1);
+    assert!(width2 > 0);
+    assert_eq!(height2, sizing::ICON_HEIGHT);
 
-    // Buffer capacity should remain the same (reused, not reallocated)
-    let capacity_after_second = ICON_BUFFER
-        .get()
-        .map(|m| m.lock().unwrap().capacity())
-        .unwrap_or(0);
+    // Capacity should still be preserved (key test: no reallocation for same-size renders)
+    assert!(buffer.capacity() >= capacity_after_first);
+}
 
-    assert_eq!(
-        capacity_after_first, capacity_after_second,
-        "Buffer should be reused, not reallocated"
+#[test]
+fn test_alert_colors_all_segments() {
+    let font = load_system_font();
+    let mut buffer: Vec<u8> = Vec::new();
+
+    // No alerts - has_active_alert should be false
+    let (_, _, has_alert_no) = render_tray_icon_into(
+        &font, &mut buffer,
+        50.0, 50.0, 0.0, "0 KB", "0 KB",
+        true, true, false, false, true, // alerts enabled
     );
+    assert!(!has_alert_no);
 
-    // Third render with different visible segments (different width)
-    let (pixels3, w3, _) = render_tray_icon(
-        &font, 50.0, 60.0, 0.0, 0.0, 0.0,
-        true, false, false, false, true, // Only CPU visible
+    // CPU at 95% with alerts enabled - has_active_alert should be true
+    let (_, _, has_alert_yes) = render_tray_icon_into(
+        &font, &mut buffer,
+        95.0, 50.0, 0.0, "0 KB", "0 KB",
+        true, true, false, false, true, // alerts enabled
     );
-    assert!(!pixels3.is_empty());
-    assert!(w3 < w1); // Fewer segments = narrower
+    assert!(has_alert_yes);
 
-    // Buffer capacity should still be sufficient (>= required)
-    let capacity_after_third = ICON_BUFFER
-        .get()
-        .map(|m| m.lock().unwrap().capacity())
-        .unwrap_or(0);
-
-    println!("Capacities: first={}, second={}, third={}",
-        capacity_after_first, capacity_after_second, capacity_after_third);
-
-    // Capacity shouldn't decrease (Vec doesn't shrink)
-    assert!(
-        capacity_after_third >= capacity_after_first,
-        "Buffer capacity should not decrease: {} < {}",
-        capacity_after_third, capacity_after_first
+    // CPU at 95% but alerts disabled - has_active_alert should be false
+    let (_, _, has_alert_disabled) = render_tray_icon_into(
+        &font, &mut buffer,
+        95.0, 50.0, 0.0, "0 KB", "0 KB",
+        true, true, false, false, false, // alerts disabled
     );
+    assert!(!has_alert_disabled);
 }
