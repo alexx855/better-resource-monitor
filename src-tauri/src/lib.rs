@@ -29,7 +29,7 @@ fn detect_macos_dark_mode() -> bool {
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 
-use std::sync::OnceLock;
+use std::sync::{OnceLock, Mutex};
 use std::collections::HashMap;
 
 #[cfg(target_os = "linux")]
@@ -81,6 +81,15 @@ impl IconCache {
 static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
 
 static FONT_BASELINE: OnceLock<f32> = OnceLock::new();
+
+/// Reusable buffer for tray icon rendering to reduce allocations.
+/// On Linux with libappindicator/Wayland, frequent allocations can cause
+/// compositor resource accumulation leading to cursor slowdown.
+static ICON_BUFFER: OnceLock<Mutex<Vec<u8>>> = OnceLock::new();
+
+/// Maximum buffer size to reuse (prevents unbounded growth).
+/// 4 bytes per pixel * 800px max width * 64px height = 204,800 bytes
+const MAX_REUSABLE_BUFFER_SIZE: usize = 4 * 800 * 64;
 
 fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     let reference_text = "0123456789% KMGTP";
@@ -247,8 +256,17 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 const ALERT_THRESHOLD: f32 = 90.0;
 const ALERT_COLOR_DARK: (u8, u8, u8) = (255, 149, 0);
 const ALERT_COLOR_LIGHT: (u8, u8, u8) = (191, 54, 12);
-const UPDATE_INTERVAL_MS: u64 = 800;
+const DEFAULT_UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
+
+/// Get update interval from environment variable or use default.
+/// Set SILICON_UPDATE_INTERVAL=2000 to reduce icon updates (helps debug compositor leaks).
+fn get_update_interval_ms() -> u64 {
+    std::env::var("SILICON_UPDATE_INTERVAL")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_UPDATE_INTERVAL_MS)
+}
 
 fn cap_percent(value: f32) -> f32 {
     value.clamp(0.0, 99.0)
@@ -423,7 +441,21 @@ fn render_tray_icon(
         + segments.iter().map(|s| s.width).sum::<u32>()
         + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1);
 
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(total_width, sizing::ICON_HEIGHT);
+    let required_size = (total_width * sizing::ICON_HEIGHT * 4) as usize;
+
+    // Reuse buffer to reduce allocations (helps prevent Wayland compositor resource leak)
+    let buffer_mutex = ICON_BUFFER.get_or_init(|| Mutex::new(Vec::with_capacity(MAX_REUSABLE_BUFFER_SIZE)));
+    let mut buffer = buffer_mutex.lock().expect("icon buffer lock poisoned");
+
+    // Clear and resize buffer (reuses allocation if capacity is sufficient)
+    buffer.clear();
+    buffer.resize(required_size, 0);
+
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(
+        total_width,
+        sizing::ICON_HEIGHT,
+        std::mem::take(&mut *buffer),
+    ).expect("buffer size matches dimensions");
 
     let scale = Scale::uniform(sizing::FONT_SIZE);
 
@@ -498,7 +530,11 @@ fn render_tray_icon(
         x_offset += segment.width;
     }
 
-    (img.into_raw(), total_width, sizing::ICON_HEIGHT)
+    // Get the raw pixels back and store in buffer for reuse (preserves capacity)
+    *buffer = img.into_raw();
+
+    // Return a clone for the caller (buffer keeps original capacity for next render)
+    (buffer.clone(), total_width, sizing::ICON_HEIGHT)
 }
 
 fn toggle_setting(
@@ -686,9 +722,10 @@ fn start_monitoring(
         let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
         let mut last_update = std::time::Instant::now();
+        let update_interval = get_update_interval_ms();
 
         loop {
-            thread::sleep(Duration::from_millis(UPDATE_INTERVAL_MS));
+            thread::sleep(Duration::from_millis(update_interval));
 
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
@@ -783,12 +820,16 @@ pub fn run() {
     let gpu_sampler = GpuSampler::new();
     let gpu_available = gpu_sampler.is_some();
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
             // No-op: tray-only app, nothing to focus
         }))
-        .plugin(tauri_plugin_log::Builder::new().build())
-        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_store::Builder::new().build());
+
+    #[cfg(debug_assertions)]
+    let builder = builder.plugin(tauri_plugin_log::Builder::new().build());
+
+    builder
         .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(ActivationPolicy::Accessory);

@@ -68,3 +68,68 @@ fn test_render_svg_icon_invalid_panics() {
     // Invalid SVG should panic (current behavior uses .expect())
     render_svg_icon("not valid svg", 16, (255, 255, 255));
 }
+
+#[test]
+fn test_icon_buffer_reuse() {
+    // This test verifies the buffer reuse optimization is working.
+    // After the first render, the buffer should be reused (same capacity).
+    let font = load_system_font();
+
+    // First render - allocates buffer
+    let (pixels1, w1, h1) = render_tray_icon(
+        &font, 50.0, 60.0, 0.0, 1000.0, 500.0,
+        true, true, false, true, true,
+    );
+    assert!(!pixels1.is_empty());
+    assert!(w1 > 0 && h1 > 0);
+
+    // Get buffer capacity after first render
+    let capacity_after_first = ICON_BUFFER
+        .get()
+        .map(|m| m.lock().unwrap().capacity())
+        .unwrap_or(0);
+
+    // Second render - should reuse buffer
+    let (pixels2, w2, h2) = render_tray_icon(
+        &font, 75.0, 80.0, 0.0, 2000.0, 1000.0,
+        true, true, false, true, true,
+    );
+    assert!(!pixels2.is_empty());
+    assert_eq!(w2, w1); // Same config = same width
+    assert_eq!(h2, h1);
+
+    // Buffer capacity should remain the same (reused, not reallocated)
+    let capacity_after_second = ICON_BUFFER
+        .get()
+        .map(|m| m.lock().unwrap().capacity())
+        .unwrap_or(0);
+
+    assert_eq!(
+        capacity_after_first, capacity_after_second,
+        "Buffer should be reused, not reallocated"
+    );
+
+    // Third render with different visible segments (different width)
+    let (pixels3, w3, _) = render_tray_icon(
+        &font, 50.0, 60.0, 0.0, 0.0, 0.0,
+        true, false, false, false, true, // Only CPU visible
+    );
+    assert!(!pixels3.is_empty());
+    assert!(w3 < w1); // Fewer segments = narrower
+
+    // Buffer capacity should still be sufficient (>= required)
+    let capacity_after_third = ICON_BUFFER
+        .get()
+        .map(|m| m.lock().unwrap().capacity())
+        .unwrap_or(0);
+
+    println!("Capacities: first={}, second={}, third={}",
+        capacity_after_first, capacity_after_second, capacity_after_third);
+
+    // Capacity shouldn't decrease (Vec doesn't shrink)
+    assert!(
+        capacity_after_third >= capacity_after_first,
+        "Buffer capacity should not decrease: {} < {}",
+        capacity_after_third, capacity_after_first
+    );
+}
