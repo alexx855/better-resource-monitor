@@ -177,7 +177,13 @@ mod menu_id {
 const TRAY_ID: &str = "main";
 
 fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
-    let store = app.store(SETTINGS_FILE).ok();
+    let store = match app.store(SETTINGS_FILE) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            eprintln!("Failed to load settings store: {e}");
+            None
+        }
+    };
 
     let get_bool = |key: &str| -> bool {
         store.as_ref()
@@ -198,7 +204,9 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
 fn save_setting(app: &AppHandle, key: &str, value: bool) {
     if let Ok(store) = app.store(SETTINGS_FILE) {
         store.set(key, json!(value));
-        let _ = store.save();
+        if let Err(e) = store.save() {
+            eprintln!("Failed to save setting {key}: {e}");
+        }
     }
 }
 
