@@ -167,7 +167,6 @@ mod macos {
             unsafe {
                 let current = IOReportCreateSamples(self.subs, self.chan, null());
                 if current.is_null() {
-                    log::debug!("IOReportCreateSamples returned null");
                     return None;
                 }
 
@@ -216,7 +215,6 @@ mod macos {
                 return self.calc_residency_usage(item);
             }
 
-            log::debug!("No GPU performance channel found in IOReport data");
             None
         }
 

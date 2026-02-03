@@ -177,13 +177,7 @@ mod menu_id {
 const TRAY_ID: &str = "main";
 
 fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
-    let store = match app.store(SETTINGS_FILE) {
-        Ok(s) => Some(s),
-        Err(e) => {
-            log::warn!("Failed to load settings store, using defaults: {e}");
-            None
-        }
-    };
+    let store = app.store(SETTINGS_FILE).ok();
 
     let get_bool = |key: &str| -> bool {
         store.as_ref()
@@ -202,14 +196,9 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
 }
 
 fn save_setting(app: &AppHandle, key: &str, value: bool) {
-    match app.store(SETTINGS_FILE) {
-        Ok(store) => {
-            store.set(key, json!(value));
-            if let Err(e) = store.save() {
-                log::warn!("Failed to save setting {key}: {e}");
-            }
-        }
-        Err(e) => log::warn!("Failed to open settings store: {e}"),
+    if let Ok(store) = app.store(SETTINGS_FILE) {
+        store.set(key, json!(value));
+        let _ = store.save();
     }
 }
 
@@ -535,9 +524,7 @@ fn setup_tray(
             .join(".autostart_configured");
 
         if !marker_path.exists() {
-            if let Err(e) = autostart_manager.enable() {
-                log::warn!("Failed to enable autostart: {e}");
-            }
+            let _ = autostart_manager.enable();
             if let Some(parent) = marker_path.parent() {
                 let _ = fs::create_dir_all(parent);
             }
@@ -627,11 +614,9 @@ fn setup_tray(
                     {
                         let manager = app.autolaunch();
                         if manager.is_enabled().unwrap_or(false) {
-                            if let Err(e) = manager.disable() {
-                                log::warn!("Failed to disable autostart: {e}");
-                            }
-                        } else if let Err(e) = manager.enable() {
-                            log::warn!("Failed to enable autostart: {e}");
+                            let _ = manager.disable();
+                        } else {
+                            let _ = manager.enable();
                         }
                     }
                 }
@@ -758,19 +743,15 @@ fn start_monitoring(
                         let use_template = !has_active_alert;
                         let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
-                        if let Err(e) = tray.with_inner_tray_icon(move |inner| {
+                        let _ = tray.with_inner_tray_icon(move |inner| {
                             inner.set_icon_with_as_template(Some(icon), use_template)
-                        }) {
-                            log::error!("Failed to set tray icon: {e:?}");
-                        }
+                        });
                     }
 
                     #[cfg(not(target_os = "macos"))]
                     {
                         let icon = Image::new_owned(render_buffer.clone(), width, height);
-                        if let Err(e) = tray.set_icon(Some(icon)) {
-                            log::error!("Failed to set tray icon: {e:?}");
-                        }
+                        let _ = tray.set_icon(Some(icon));
                     }
                 }
             }
@@ -806,9 +787,6 @@ pub fn run() {
             // No-op: tray-only app, nothing to focus
         }))
         .plugin(tauri_plugin_store::Builder::new().build());
-
-    #[cfg(feature = "dev-logging")]
-    let builder = builder.plugin(tauri_plugin_log::Builder::new().build());
 
     builder
         .setup(move |app| {
