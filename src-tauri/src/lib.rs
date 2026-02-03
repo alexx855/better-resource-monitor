@@ -221,6 +221,14 @@ const ALERT_COLOR: (u8, u8, u8) = (209, 71, 21); // #D14715 - visible on both li
 const UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
 
+/// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
+const HYSTERESIS_THRESHOLD: f32 = 2.0;
+
+/// Returns true if the new value differs from previous by at least the threshold
+fn should_update(prev: f32, new: f32, threshold: f32) -> bool {
+    (new - prev).abs() >= threshold
+}
+
 /// Get update interval from environment variable or use default.
 /// Set SILICON_UPDATE_INTERVAL=2000 to reduce icon updates (helps debug compositor leaks).
 fn get_update_interval_ms() -> u64 {
@@ -667,9 +675,16 @@ fn start_monitoring(
 
         // Initialize network counters from current values to avoid spike on first iteration
         let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
-        let mut prev_display: Option<String> = None;
         let mut gpu_usage: f32 = 0.0;
         let mut last_update = std::time::Instant::now();
+
+        // Track previous values for hysteresis-based updates (prevents compositor leak on Linux)
+        let mut prev_cpu: f32 = -100.0; // Force initial update
+        let mut prev_mem: f32 = -100.0;
+        let mut prev_gpu: f32 = -100.0;
+        let mut prev_down = String::new();
+        let mut prev_up = String::new();
+        let mut prev_flags: (bool, bool, bool, bool, bool, bool) = (false, false, false, false, false, false);
         let update_interval = get_update_interval_ms();
 
         // Reusable buffer owned by monitoring thread - prevents compositor resource
@@ -715,26 +730,30 @@ fn start_monitoring(
             let down_str = format_speed(down_speed);
             let up_str = format_speed(up_speed);
 
+            // Hysteresis: only update if values change by meaningful threshold
+            // This dramatically reduces icon updates, preventing compositor resource
+            // accumulation that causes cursor slowdown on Ubuntu/GNOME
+            let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
+            let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
+            let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
+            let net_changed = prev_down != down_str || prev_up != up_str;
+
             #[cfg(target_os = "linux")]
-            let display_key = format!(
-                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}|{}",
-                cpu_usage, mem_percent, gpu_usage,
-                &down_str, &up_str,
-                sc, sm, sg, sn, sa,
-                detect_light_icons()
-            );
+            let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
             #[cfg(not(target_os = "linux"))]
-            let display_key = format!(
-                "{:.0}|{:.0}|{:.0}|{}|{}|{}{}{}{}{}",
-                cpu_usage, mem_percent, gpu_usage,
-                &down_str, &up_str,
-                sc, sm, sg, sn, sa
-            );
+            let current_flags = (sc, sm, sg, sn, sa, false);
 
-            if prev_display.as_ref() != Some(&display_key) {
-                prev_display = Some(display_key);
+            let flags_changed = prev_flags != current_flags;
 
-                let (width, height, has_active_alert) = render_tray_icon_into(
+            if cpu_changed || mem_changed || gpu_changed || net_changed || flags_changed {
+                prev_cpu = cpu_usage;
+                prev_mem = mem_percent;
+                prev_gpu = gpu_usage;
+                prev_down = down_str.clone();
+                prev_up = up_str.clone();
+                prev_flags = current_flags;
+
+                let (width, height, _has_active_alert) = render_tray_icon_into(
                     &font,
                     &mut render_buffer,
                     cpu_usage,
@@ -748,7 +767,7 @@ fn start_monitoring(
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     #[cfg(target_os = "macos")]
                     {
-                        let use_template = !has_active_alert;
+                        let use_template = !_has_active_alert;
                         let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
                         let _ = tray.with_inner_tray_icon(move |inner| {
