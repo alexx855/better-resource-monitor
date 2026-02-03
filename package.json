@@ -33,7 +33,7 @@
   "type": "module",
   "scripts": {
     "tauri": "tauri",
-    "dev": "tauri dev -f dev-logging",
+    "dev": "tauri dev",
     "build": "tauri build",
     "dev:www": "pnpm --filter www dev",
     "build:www": "pnpm --filter www build",
