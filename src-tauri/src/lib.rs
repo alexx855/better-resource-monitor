@@ -432,8 +432,6 @@ fn render_tray_icon_into(
         calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
     });
 
-    let base_color = (255, 255, 255);
-
     let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
             if let Some(bb) = glyph.pixel_bounding_box() {
@@ -484,7 +482,7 @@ fn render_tray_icon_into(
         let segment_color = if has_active_alert {
             ALERT_COLOR
         } else {
-            base_color
+            (255, 255, 255) // White - macOS template mode inverts as needed
         };
 
         draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
