@@ -369,6 +369,7 @@ fn render_tray_icon_into(
     show_gpu: bool,
     show_net: bool,
     show_alerts: bool,
+    use_light_icons: bool,
 ) -> (u32, u32, bool) {
     struct Segment {
         icon: IconType,
@@ -482,8 +483,10 @@ fn render_tray_icon_into(
 
         let segment_color = if has_active_alert {
             ALERT_COLOR
+        } else if use_light_icons {
+            (255, 255, 255)
         } else {
-            (255, 255, 255) // White - macOS template mode inverts as needed
+            (0, 0, 0)
         };
 
         draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
@@ -605,6 +608,7 @@ fn setup_tray(
         show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
         show_alerts.load(Relaxed),
+        true, // Use light icons for initial render
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
 
@@ -758,6 +762,7 @@ fn start_monitoring(
                     &down_str,
                     &up_str,
                     sc, sm, sg, sn, sa,
+                    current_flags.5, // Pass the detected theme flag
                 );
 
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
