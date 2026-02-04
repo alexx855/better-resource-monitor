@@ -240,7 +240,7 @@ fn cap_percent(value: f32) -> f32 {
     value.clamp(0.0, 99.0)
 }
 
-fn load_system_font() -> Font<'static> {
+fn load_system_font() -> Result<Font<'static>, String> {
     let source = SystemSource::new();
 
     let handle = source
@@ -249,14 +249,14 @@ fn load_system_font() -> Font<'static> {
             Properties::new().weight(Weight::NORMAL),
         )
         .or_else(|_| source.select_best_match(&[FamilyName::SansSerif], &Properties::new()))
-        .expect("Failed to select a system font");
+        .map_err(|e| format!("Failed to select a system font: {e}"))?;
 
     let font_data = match &handle {
-        Handle::Path { path, .. } => std::fs::read(path).expect("Failed to read font file"),
+        Handle::Path { path, .. } => std::fs::read(path).map_err(|e| format!("Failed to read font file: {e}"))?,
         Handle::Memory { bytes, .. } => bytes.to_vec(),
     };
 
-    Font::try_from_vec(font_data).expect("Error constructing font")
+    Font::try_from_vec(font_data).ok_or_else(|| "Error constructing font".to_string())
 }
 
 fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
@@ -596,7 +596,7 @@ fn setup_tray(
     menu.append(&separator3)?;
     menu.append(&quit_item)?;
 
-    let font = load_system_font();
+    let font = load_system_font().expect("Font required for tray icon");
 
     let mut initial_buffer = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
     let (width, height, _has_alert) = render_tray_icon_into(
@@ -664,7 +664,13 @@ fn start_monitoring(
     mut gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
-        let font = load_system_font();
+        let font = match load_system_font() {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("Failed to load system font: {e}");
+                return;
+            }
+        };
 
         let mut sys = System::new();
         // Warm up CPU measurement before loop so first render has valid data
