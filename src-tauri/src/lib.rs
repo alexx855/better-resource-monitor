@@ -113,9 +113,6 @@ fn detect_light_icons() -> bool {
 
 #[cfg(target_os = "linux")]
 fn start_theme_detection_thread() {
-    use std::thread;
-    use std::time::Duration;
-
     thread::spawn(|| {
         loop {
             let detected = detect_light_icons_impl();
