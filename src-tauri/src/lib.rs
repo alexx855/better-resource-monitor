@@ -56,6 +56,7 @@ impl IconCache {
         // Only white (for template mode) and alert color needed
         let colors = [
             (255, 255, 255), // White - macOS will invert as needed via template mode
+            (0, 0, 0),       // Black - for Linux light themes
             ALERT_COLOR,     // Orange alert color - used when template mode is off
         ];
         let icon_svgs = [
