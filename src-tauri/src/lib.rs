@@ -506,11 +506,11 @@ fn toggle_setting(
     flag: &AtomicBool,
     all_flags: [&AtomicBool; 4],
 ) {
+    let current = flag.load(Relaxed);
     let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
-    if !flag.load(Relaxed) || enabled_count > 1 {
-        let new_value = !flag.load(Relaxed);
-        flag.store(new_value, Relaxed);
-        save_setting(app, key, new_value);
+    if !current || enabled_count > 1 {
+        flag.store(!current, Relaxed);
+        save_setting(app, key, !current);
     }
 }
 
