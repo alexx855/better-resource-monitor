@@ -520,6 +520,7 @@ fn toggle_setting(
 
 fn setup_tray(
     app: &AppHandle,
+    font: &Font,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
@@ -596,11 +597,14 @@ fn setup_tray(
     menu.append(&separator3)?;
     menu.append(&quit_item)?;
 
-    let font = load_system_font().expect("Font required for tray icon");
+    #[cfg(target_os = "linux")]
+    let use_light_icons = detect_light_icons();
+    #[cfg(not(target_os = "linux"))]
+    let use_light_icons = true;
 
     let mut initial_buffer = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
     let (width, height, _has_alert) = render_tray_icon_into(
-        &font,
+        font,
         &mut initial_buffer,
         0.0, 0.0, 0.0, "0 KB", "0 KB",
         show_cpu.load(Relaxed),
@@ -608,7 +612,7 @@ fn setup_tray(
         show_gpu.load(Relaxed) && gpu_available,
         show_net.load(Relaxed),
         show_alerts.load(Relaxed),
-        true, // Use light icons for initial render
+        use_light_icons,
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
 
@@ -656,6 +660,7 @@ fn setup_tray(
 
 fn start_monitoring(
     app: AppHandle,
+    font: Font<'static>,
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
@@ -664,14 +669,6 @@ fn start_monitoring(
     mut gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
-        let font = match load_system_font() {
-            Ok(f) => f,
-            Err(e) => {
-                eprintln!("Failed to load system font: {e}");
-                return;
-            }
-        };
-
         let mut sys = System::new();
         // Warm up CPU measurement before loop so first render has valid data
         sys.refresh_cpu_usage();
@@ -846,8 +843,12 @@ pub fn run() {
             show_net_tray.store(net, Relaxed);
             show_alerts_tray.store(alerts, Relaxed);
 
+            let font = load_system_font()
+                .map_err(|e| format!("Font required for tray icon: {e}"))?;
+
             setup_tray(
                 app.handle(),
+                &font,
                 show_cpu_tray,
                 show_mem_tray,
                 show_gpu_tray,
@@ -858,6 +859,7 @@ pub fn run() {
 
             start_monitoring(
                 app.handle().clone(),
+                font,
                 show_cpu,
                 show_mem,
                 show_gpu,
