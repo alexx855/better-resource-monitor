@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/alexx855/silicon-monitor/main/www/public/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
+  <img src="/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
 </p>
 
 <h1 align="center">Better Resource Monitor</h1>
@@ -10,8 +10,12 @@
 
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the Mac App Store" height="40"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-Direct_Download-D14715?logo=apple&logoColor=white&style=for-the-badge" alt="macOS Direct Download"></a>
   &nbsp;&nbsp;
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Download-D14715?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Download Ubuntu .deb"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Direct_Download-D14715?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Ubuntu Direct Download"></a>
 </p>
 
 <p align="center">
@@ -25,23 +29,23 @@
 
 ## Features
 
-* **Cross-Platform** — Same app on macOS and Linux. Apple Silicon Macs and Ubuntu with NVIDIA GPUs.
-* **Zero Impact** — Written in Rust. < 0.1% CPU, ~15MB RAM. Lighter than a browser tab.
-* **GPU Monitoring** — Apple Silicon residency via IOReport. NVIDIA utilization via NVML. No hacks.
-* **Theme Aware** — Auto-detects light/dark mode. Blends seamlessly with your menu bar.
-* **Configurable** — Toggle CPU, GPU, Memory, or Network stats with a click.
-* **Privacy First** — 100% local. No analytics. No network requests. No telemetry.
+* **Cross-Platform** - Same app on macOS and Linux. Apple Silicon Macs and Ubuntu with NVIDIA GPUs.
+* **Zero Impact** - Written in Rust. < 0.1% CPU, ~15MB RAM. Lighter than a browser tab.
+* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML. No hacks.
+* **Theme Aware** - Auto-detects light/dark mode. Blends seamlessly with your menu bar.
+* **Configurable** - Toggle CPU, GPU, Memory, or Network stats with a click.
+* **Privacy First** - 100% local. No analytics. No network requests. No telemetry.
 
 ## Why?
 
-I built this out of necessity. I wanted the simplicity of **GNOME Resource Monitor**—just a clean line of text in the menu bar showing exactly what my system was doing. But I needed it on macOS too.
+I built this out of necessity. I wanted the simplicity of **GNOME Resource Monitor** - just a clean line of text in the menu bar showing exactly what my system was doing. But I needed it on macOS too.
 
 Everything else fell short:
 
-* **Paid apps** — Overkill. $15+ with subscription upgrades for basic stats.
-* **Free alternatives** — Missing GPU support or looking out of place.
+* **Paid apps** - Overkill. $15+ with subscription upgrades for basic stats.
+* **Free alternatives** - Missing GPU support or looking out of place.
 
-**Better Resource Monitor** fills the gap. One app, two platforms, zero compromise. It uses **platform APIs** for GPU monitoring—IOReport on macOS for Apple Silicon, NVML on Linux for NVIDIA GPUs—with no overhead.
+**Better Resource Monitor** fills the gap. One app, two platforms, zero compromise. It uses **platform APIs** for GPU monitoring - IOReport on macOS for Apple Silicon, NVML on Linux for NVIDIA GPUs - with no overhead.
 
 ### How it works
 
@@ -51,7 +55,7 @@ Everything else fell short:
 | **GPU Metrics** | IOReport FFI (private APIs) | NVML via `nvml-wrapper` |
 | **Theme Detection** | Menu bar color sampling | gsettings |
 
-On macOS, it calculates **active residency** instead of just "utilization"—giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
+On macOS, it calculates **active residency** instead of just "utilization" - giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
 
 ### macOS Version Differences
 
@@ -88,7 +92,7 @@ On macOS, it calculates **active residency** instead of just "utilization"—giv
 **App Store (Recommended):**
 Download from the [Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306). Automatic updates, but no GPU monitoring.
 
-**Direct Download (Full Features):**
+**Direct Download (GPU Support):**
 Download the latest `.dmg` from [Releases](../../releases). Includes GPU monitoring for Apple Silicon.
 
 ### Ubuntu
@@ -109,7 +113,7 @@ nvidia-smi
 sudo ubuntu-drivers autoinstall
 ```
 
-If NVIDIA drivers are not available, the app will still work—GPU monitoring will simply be hidden.
+If NVIDIA drivers are not available, the app will still work - GPU monitoring will simply be hidden.
 
 ### Build from Source
 
@@ -167,9 +171,9 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ## Linux Troubleshooting
 
 **Desktop Environment Support:**
-- **GNOME Shell**: ⚠️ Requires `ubuntu-appindicators` extension (doesn't display tray icons natively)
-- **KDE Plasma**: ✅ SNI support (works out of the box)
-- **XFCE**: ✅ System tray support
+- **GNOME Shell**: Requires `ubuntu-appindicators` extension (doesn't display tray icons natively)
+- **KDE Plasma**: SNI support (works out of the box)
+- **XFCE**: System tray support
 - **Other DEs**: Depends on SNI/tray support
 
 ### GPU Monitoring on Linux
@@ -186,14 +190,12 @@ If the command is not found, install NVIDIA drivers:
 sudo ubuntu-drivers autoinstall
 ```
 
-The app will work without GPU monitoring—it will simply be hidden from the display.
+The app will work without GPU monitoring - it will simply be hidden from the display.
 
 
 
 ## Credits
 
-- [Phosphor Icons](https://github.com/phosphor-icons) — Icon set used in the tray
-
-
-
+- [Created and maintained by Alex Pedersen](https://alexpedersen.dev/)
+- [Phosphor Icons](https://github.com/phosphor-icons) - Icon set used in the tray
 
