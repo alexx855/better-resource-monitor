@@ -44,3 +44,32 @@ cargo clippy
 
 - Always add a final verification step for changes (run a relevant command or manual check).
 - On Linux, minimize tray icon updates to avoid compositor resource accumulation (cursor lag).
+
+## Known Issues
+
+### Linux: Cursor Lag After Extended Use (Ubuntu/GNOME Wayland)
+
+**Symptom**: Cursor lag and system slowdown after 2-4 hours of app running. Lag persists even after app exits. Can freeze video playback overnight.
+
+**Root Cause**: Bug in Ubuntu's `gnome-shell-extension-appindicator` (Ubuntu Bug #2130726). The extension leaks GPU textures when tray icons update frequently. The leak occurs in GNOME Shell's compositor memory, not our application process.
+
+**Status**: Waiting for Tauri upstream fix via KSNI migration
+
+**Track These PRs** (click to view progress):
+- [Tauri PR #12319 - Add linux-ksni feature](https://github.com/tauri-apps/tauri/pull/12319)
+- [tray-icon PR #201 - Replace libappindicator with ksni](https://github.com/tauri-apps/tray-icon/pull/201)
+- [Tauri Issue #11293 - Use ksni for tray icons](https://github.com/tauri-apps/tauri/issues/11293)
+
+**Technical Details**:
+- Current stack: Tauri → libappindicator → D-Bus StatusNotifierItem → ubuntu-appindicators extension → Mutter (Wayland compositor)
+- libappindicator is abandoned (last meaningful commit ~15 years ago) and doesn't properly manage icon lifecycle
+- The extension creates GPU textures for each icon update but never releases old ones
+
+**Workarounds**:
+- Disable ubuntu-appindicators extension (loses all tray icon functionality)
+- Use KDE Plasma instead of GNOME (handles StatusNotifierItem natively without leak)
+- Wait for Tauri 2.x with KSNI support
+
+**References**:
+- https://bugs.launchpad.net/ubuntu/+source/gnome-shell-extension-appindicator/+bug/2130726
+- https://github.com/tauri-apps/tauri/issues/11293
