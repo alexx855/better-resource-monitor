@@ -92,8 +92,12 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
 
     for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
         if let Some(bb) = glyph.pixel_bounding_box() {
-            if bb.min.y < min_y { min_y = bb.min.y; }
-            if bb.max.y > max_y { max_y = bb.max.y; }
+            if bb.min.y < min_y {
+                min_y = bb.min.y;
+            }
+            if bb.max.y > max_y {
+                max_y = bb.max.y;
+            }
         }
     }
 
@@ -114,12 +118,13 @@ fn detect_light_icons() -> bool {
 
 #[cfg(target_os = "linux")]
 fn start_theme_detection_thread() {
-    thread::spawn(|| {
-        loop {
-            let detected = detect_light_icons_impl();
-            LIGHT_ICONS.store(detected, Relaxed);
-            thread::sleep(Duration::from_secs(THEME_POLL_INTERVAL_SECS));
-        }
+    // Initialize with actual value before spawning polling thread to avoid race condition
+    LIGHT_ICONS.store(detect_light_icons_impl(), Relaxed);
+
+    thread::spawn(|| loop {
+        thread::sleep(Duration::from_secs(THEME_POLL_INTERVAL_SECS));
+        let detected = detect_light_icons_impl();
+        LIGHT_ICONS.store(detected, Relaxed);
     });
 }
 
@@ -139,7 +144,11 @@ fn ensure_display_available() -> Result<(), String> {
 fn detect_light_icons_impl() -> bool {
     // Try gsettings (GNOME/GTK)
     if let Ok(output) = std::process::Command::new("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "gtk-application-prefer-dark-theme"])
+        .args([
+            "get",
+            "org.gnome.desktop.interface",
+            "gtk-application-prefer-dark-theme",
+        ])
         .output()
     {
         let result = String::from_utf8_lossy(&output.stdout);
@@ -184,7 +193,8 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
     };
 
     let get_bool = |key: &str| -> bool {
-        store.as_ref()
+        store
+            .as_ref()
             .and_then(|s| s.get(key))
             .and_then(|v| v.as_bool())
             .unwrap_or(true)
@@ -222,6 +232,13 @@ const CPU_STABILIZE_MS: u64 = 200;
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
 const HYSTERESIS_THRESHOLD: f32 = 2.0;
 
+/// Minimum network speed change (bytes/sec) to trigger an update.
+/// Reduces tray icon churn that can accumulate compositor resources on Linux.
+const NET_HYSTERESIS_BPS: f64 = 50_000.0;
+
+/// Minimum interval between network-driven updates.
+const NET_MIN_UPDATE_INTERVAL_SECS: u64 = 2;
+
 /// Returns true if the new value differs from previous by at least the threshold
 fn should_update(prev: f32, new: f32, threshold: f32) -> bool {
     (new - prev).abs() >= threshold
@@ -252,7 +269,9 @@ fn load_system_font() -> Result<Font<'static>, String> {
         .map_err(|e| format!("Failed to select a system font: {e}"))?;
 
     let font_data = match &handle {
-        Handle::Path { path, .. } => std::fs::read(path).map_err(|e| format!("Failed to read font file: {e}"))?,
+        Handle::Path { path, .. } => {
+            std::fs::read(path).map_err(|e| format!("Failed to read font file: {e}"))?
+        }
         Handle::Memory { bytes, .. } => bytes.to_vec(),
     };
 
@@ -267,8 +286,7 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
         .replace("<svg ", &format!("<svg fill=\"{color_hex}\" "));
 
     let opts = resvg::usvg::Options::default();
-    let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts)
-        .expect("Failed to parse SVG");
+    let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts).expect("Failed to parse SVG");
 
     let svg_size = tree.size();
     let scale = size as f32 / svg_size.width().max(svg_size.height());
@@ -277,8 +295,7 @@ fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
     let scaled_height = svg_size.height() * scale;
 
     // Always create a square pixmap to match draw_cached_icon's stride assumption
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size)
-        .expect("Failed to create pixmap");
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size).expect("Failed to create pixmap");
 
     // Center the icon within the square pixmap
     let tx = (size as f32 - scaled_width) / 2.0;
@@ -422,19 +439,19 @@ fn render_tray_icon_into(
     buffer.clear();
     buffer.resize(required_size, 0);
 
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(
-        total_width,
-        sizing::ICON_HEIGHT,
-        std::mem::take(buffer),
-    ).expect("buffer size matches dimensions");
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> =
+        ImageBuffer::from_raw(total_width, sizing::ICON_HEIGHT, std::mem::take(buffer))
+            .expect("buffer size matches dimensions");
 
     let scale = Scale::uniform(sizing::FONT_SIZE);
 
-    let baseline = *FONT_BASELINE.get_or_init(|| {
-        calculate_font_baseline(font, sizing::ICON_HEIGHT, scale)
-    });
+    let baseline =
+        *FONT_BASELINE.get_or_init(|| calculate_font_baseline(font, sizing::ICON_HEIGHT, scale));
 
-    let draw_text = |text: &str, start_x: f32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+    let draw_text = |text: &str,
+                     start_x: f32,
+                     color: (u8, u8, u8),
+                     img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
             if let Some(bb) = glyph.pixel_bounding_box() {
                 glyph.draw(|gx, gy, v| {
@@ -451,7 +468,10 @@ fn render_tray_icon_into(
 
     let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(sizing::ICON_HEIGHT));
 
-    let draw_cached_icon = |icon_type: IconType, start_x: u32, color: (u8, u8, u8), img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+    let draw_cached_icon = |icon_type: IconType,
+                            start_x: u32,
+                            color: (u8, u8, u8),
+                            img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
         let icon_pixels = icon_cache.get(icon_type, color);
 
         for y in 0..sizing::ICON_HEIGHT {
@@ -462,12 +482,16 @@ fn render_tray_icon_into(
                     if alpha > 0 {
                         let dst_x = start_x + x;
                         if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            img.put_pixel(dst_x, y, Rgba([
-                                icon_pixels[src_idx],
-                                icon_pixels[src_idx + 1],
-                                icon_pixels[src_idx + 2],
-                                alpha,
-                            ]));
+                            img.put_pixel(
+                                dst_x,
+                                y,
+                                Rgba([
+                                    icon_pixels[src_idx],
+                                    icon_pixels[src_idx + 1],
+                                    icon_pixels[src_idx + 2],
+                                    alpha,
+                                ]),
+                            );
                         }
                     }
                 }
@@ -491,7 +515,8 @@ fn render_tray_icon_into(
 
         draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
-        let value_width: f32 = font.layout(&segment.value, scale, rusttype::point(0.0, 0.0))
+        let value_width: f32 = font
+            .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
             .map(|g| g.unpositioned().h_metrics().advance_width)
             .sum();
         let value_x = x_offset as f32 + segment.width as f32 - value_width;
@@ -504,12 +529,7 @@ fn render_tray_icon_into(
     (total_width, sizing::ICON_HEIGHT, has_active_alert)
 }
 
-fn toggle_setting(
-    app: &AppHandle,
-    key: &str,
-    flag: &AtomicBool,
-    all_flags: [&AtomicBool; 4],
-) {
+fn toggle_setting(app: &AppHandle, key: &str, flag: &AtomicBool, all_flags: [&AtomicBool; 4]) {
     let current = flag.load(Relaxed);
     let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
     if !current || enabled_count > 1 {
@@ -554,27 +574,52 @@ fn setup_tray(
     let is_autostart_enabled = false;
 
     let autostart_item = CheckMenuItem::with_id(
-        app, menu_id::AUTOSTART, "Start at Login", true, is_autostart_enabled, None::<&str>,
+        app,
+        menu_id::AUTOSTART,
+        "Start at Login",
+        true,
+        is_autostart_enabled,
+        None::<&str>,
     )?;
 
     let separator1 = PredefinedMenuItem::separator(app)?;
 
     let show_cpu_item = CheckMenuItem::with_id(
-        app, menu_id::SHOW_CPU, "Show CPU", true, show_cpu.load(Relaxed), None::<&str>,
+        app,
+        menu_id::SHOW_CPU,
+        "Show CPU",
+        true,
+        show_cpu.load(Relaxed),
+        None::<&str>,
     )?;
 
     let show_mem_item = CheckMenuItem::with_id(
-        app, menu_id::SHOW_MEM, "Show Memory", true, show_mem.load(Relaxed), None::<&str>,
+        app,
+        menu_id::SHOW_MEM,
+        "Show Memory",
+        true,
+        show_mem.load(Relaxed),
+        None::<&str>,
     )?;
 
     let show_net_item = CheckMenuItem::with_id(
-        app, menu_id::SHOW_NET, "Show Network", true, show_net.load(Relaxed), None::<&str>,
+        app,
+        menu_id::SHOW_NET,
+        "Show Network",
+        true,
+        show_net.load(Relaxed),
+        None::<&str>,
     )?;
 
     let separator2 = PredefinedMenuItem::separator(app)?;
 
     let show_alerts_item = CheckMenuItem::with_id(
-        app, menu_id::SHOW_ALERTS, "Show Alert Colors", true, show_alerts.load(Relaxed), None::<&str>,
+        app,
+        menu_id::SHOW_ALERTS,
+        "Show Alert Colors",
+        true,
+        show_alerts.load(Relaxed),
+        None::<&str>,
     )?;
 
     let separator3 = PredefinedMenuItem::separator(app)?;
@@ -587,7 +632,12 @@ fn setup_tray(
     menu.append(&show_mem_item)?;
     if gpu_available {
         let show_gpu_item = CheckMenuItem::with_id(
-            app, menu_id::SHOW_GPU, "Show GPU", true, show_gpu.load(Relaxed), None::<&str>,
+            app,
+            menu_id::SHOW_GPU,
+            "Show GPU",
+            true,
+            show_gpu.load(Relaxed),
+            None::<&str>,
         )?;
         menu.append(&show_gpu_item)?;
     }
@@ -606,7 +656,11 @@ fn setup_tray(
     let (width, height, _has_alert) = render_tray_icon_into(
         font,
         &mut initial_buffer,
-        0.0, 0.0, 0.0, "0 KB", "0 KB",
+        0.0,
+        0.0,
+        0.0,
+        "0 KB",
+        "0 KB",
         show_cpu.load(Relaxed),
         show_mem.load(Relaxed),
         show_gpu.load(Relaxed) && gpu_available,
@@ -627,7 +681,12 @@ fn setup_tray(
         .show_menu_on_left_click(true)
         .tooltip("System Monitor")
         .on_menu_event(move |app, event| {
-            let flags = [show_cpu.as_ref(), show_mem.as_ref(), show_gpu.as_ref(), show_net.as_ref()];
+            let flags = [
+                show_cpu.as_ref(),
+                show_mem.as_ref(),
+                show_gpu.as_ref(),
+                show_net.as_ref(),
+            ];
             match event.id.as_ref() {
                 menu_id::AUTOSTART => {
                     #[cfg(desktop)]
@@ -687,7 +746,12 @@ fn start_monitoring(
         let mut prev_gpu: f32 = -100.0;
         let mut prev_down = String::new();
         let mut prev_up = String::new();
-        let mut prev_flags: (bool, bool, bool, bool, bool, bool) = (false, false, false, false, false, false);
+        let mut prev_down_speed: f64 = -1.0;
+        let mut prev_up_speed: f64 = -1.0;
+        let mut last_net_update =
+            std::time::Instant::now() - Duration::from_secs(NET_MIN_UPDATE_INTERVAL_SECS);
+        let mut prev_flags: (bool, bool, bool, bool, bool, bool) =
+            (false, false, false, false, false, false);
         let update_interval = get_update_interval_ms();
 
         // Reusable buffer owned by monitoring thread - prevents compositor resource
@@ -720,15 +784,20 @@ fn start_monitoring(
             let up_speed = total_tx.saturating_sub(prev_tx) as f64 / dt;
             (prev_rx, prev_tx) = (total_rx, total_tx);
 
-            if let Some(ref mut sampler) = gpu_sampler {
-                gpu_usage = sampler.sample().unwrap_or(0.0);
-            }
-
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
-            let sg = show_gpu.load(Relaxed) && gpu_sampler.is_some();
+            let show_gpu_enabled = show_gpu.load(Relaxed);
+            let sg = show_gpu_enabled && gpu_sampler.is_some();
             let sn = show_net.load(Relaxed);
             let sa = show_alerts.load(Relaxed);
+
+            if sg {
+                if let Some(ref mut sampler) = gpu_sampler {
+                    gpu_usage = sampler.sample().unwrap_or(0.0);
+                }
+            } else {
+                gpu_usage = 0.0;
+            }
 
             let down_str = format_speed(down_speed);
             let up_str = format_speed(up_speed);
@@ -739,7 +808,15 @@ fn start_monitoring(
             let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
             let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
             let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
-            let net_changed = prev_down != down_str || prev_up != up_str;
+            let net_display_changed = prev_down != down_str || prev_up != up_str;
+            let down_diff = (down_speed - prev_down_speed).abs();
+            let up_diff = (up_speed - prev_up_speed).abs();
+            let net_value_changed =
+                down_diff >= NET_HYSTERESIS_BPS || up_diff >= NET_HYSTERESIS_BPS;
+            let net_interval_elapsed = now.duration_since(last_net_update)
+                >= Duration::from_secs(NET_MIN_UPDATE_INTERVAL_SECS);
+            let net_changed =
+                sn && (net_value_changed || (net_display_changed && net_interval_elapsed));
 
             #[cfg(target_os = "linux")]
             let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
@@ -754,6 +831,11 @@ fn start_monitoring(
                 prev_gpu = gpu_usage;
                 prev_down = down_str.clone();
                 prev_up = up_str.clone();
+                prev_down_speed = down_speed;
+                prev_up_speed = up_speed;
+                if sn && (net_value_changed || net_display_changed) {
+                    last_net_update = now;
+                }
                 prev_flags = current_flags;
 
                 let (width, height, _has_active_alert) = render_tray_icon_into(
@@ -764,7 +846,11 @@ fn start_monitoring(
                     gpu_usage,
                     &down_str,
                     &up_str,
-                    sc, sm, sg, sn, sa,
+                    sc,
+                    sm,
+                    sg,
+                    sn,
+                    sa,
                     current_flags.5, // Pass the detected theme flag
                 );
 
@@ -843,8 +929,8 @@ pub fn run() {
             show_net_tray.store(net, Relaxed);
             show_alerts_tray.store(alerts, Relaxed);
 
-            let font = load_system_font()
-                .map_err(|e| format!("Font required for tray icon: {e}"))?;
+            let font =
+                load_system_font().map_err(|e| format!("Font required for tray icon: {e}"))?;
 
             setup_tray(
                 app.handle(),

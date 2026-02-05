@@ -39,3 +39,8 @@ cargo clippy
 - `rusttype` + `image` - text rendering onto tray icon
 - `resvg` + `tiny-skia` - SVG icon rendering
 - `tauri-plugin-autostart` - launch at login
+
+## Verification
+
+- Always add a final verification step for changes (run a relevant command or manual check).
+- On Linux, minimize tray icon updates to avoid compositor resource accumulation (cursor lag).

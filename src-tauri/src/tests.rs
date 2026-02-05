@@ -11,6 +11,16 @@ fn test_cap_percent() {
 }
 
 #[test]
+fn test_should_update_threshold() {
+    assert!(should_update(10.0, 12.0, 2.0));
+    assert!(should_update(10.0, 8.0, 2.0));
+    assert!(should_update(10.0, 12.001, 2.0));
+    assert!(!should_update(10.0, 11.9, 2.0));
+    assert!(!should_update(10.0, 9.1, 2.0));
+    assert!(!should_update(10.0, 10.0, 2.0));
+}
+
+#[test]
 fn test_format_speed() {
     // KB range (0.0 - 999.5)
     assert_eq!(format_speed(0.0), "0.0 KB");
@@ -48,7 +58,6 @@ fn test_format_speed() {
     assert_eq!(format_speed(-100.0), "-0.1 KB");
 }
 
-
 #[test]
 fn test_render_svg_icon_valid() {
     // Simple valid SVG
@@ -71,7 +80,7 @@ fn test_render_svg_icon_invalid_panics() {
 
 #[test]
 fn test_icon_buffer_reuse() {
-    let font = load_system_font();
+    let font = load_system_font().expect("test font required");
 
     // Create buffer with known capacity
     let mut buffer: Vec<u8> = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
@@ -81,8 +90,17 @@ fn test_icon_buffer_reuse() {
     let (width1, height1, _) = render_tray_icon_into(
         &font,
         &mut buffer,
-        50.0, 60.0, 0.0, "1.0 KB", "0.5 KB",
-        true, true, false, true, false,
+        50.0,
+        60.0,
+        0.0,
+        "1.0 KB",
+        "0.5 KB",
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
     );
     assert!(width1 > 0);
     assert_eq!(height1, sizing::ICON_HEIGHT);
@@ -96,8 +114,17 @@ fn test_icon_buffer_reuse() {
     let (width2, height2, _) = render_tray_icon_into(
         &font,
         &mut buffer,
-        70.0, 80.0, 0.0, "2.0 KB", "1.0 KB",
-        true, true, false, true, false,
+        70.0,
+        80.0,
+        0.0,
+        "2.0 KB",
+        "1.0 KB",
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
     );
     assert!(width2 > 0);
     assert_eq!(height2, sizing::ICON_HEIGHT);
@@ -108,30 +135,60 @@ fn test_icon_buffer_reuse() {
 
 #[test]
 fn test_alert_colors_all_segments() {
-    let font = load_system_font();
+    let font = load_system_font().expect("test font required");
     let mut buffer: Vec<u8> = Vec::new();
 
     // No alerts - has_active_alert should be false
     let (_, _, has_alert_no) = render_tray_icon_into(
-        &font, &mut buffer,
-        50.0, 50.0, 0.0, "0 KB", "0 KB",
-        true, true, false, false, true, // alerts enabled
+        &font,
+        &mut buffer,
+        50.0,
+        50.0,
+        0.0,
+        "0 KB",
+        "0 KB",
+        true,
+        true,
+        false,
+        false,
+        true, // alerts enabled
+        true,
     );
     assert!(!has_alert_no);
 
     // CPU at 95% with alerts enabled - has_active_alert should be true
     let (_, _, has_alert_yes) = render_tray_icon_into(
-        &font, &mut buffer,
-        95.0, 50.0, 0.0, "0 KB", "0 KB",
-        true, true, false, false, true, // alerts enabled
+        &font,
+        &mut buffer,
+        95.0,
+        50.0,
+        0.0,
+        "0 KB",
+        "0 KB",
+        true,
+        true,
+        false,
+        false,
+        true, // alerts enabled
+        true,
     );
     assert!(has_alert_yes);
 
     // CPU at 95% but alerts disabled - has_active_alert should be false
     let (_, _, has_alert_disabled) = render_tray_icon_into(
-        &font, &mut buffer,
-        95.0, 50.0, 0.0, "0 KB", "0 KB",
-        true, true, false, false, false, // alerts disabled
+        &font,
+        &mut buffer,
+        95.0,
+        50.0,
+        0.0,
+        "0 KB",
+        "0 KB",
+        true,
+        true,
+        false,
+        false,
+        false, // alerts disabled
+        true,
     );
     assert!(!has_alert_disabled);
 }
