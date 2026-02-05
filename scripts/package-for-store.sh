@@ -1,9 +1,17 @@
 #!/bin/bash
 set -e
 
-# Get script directory
+# Build number is required for TestFlight uploads
+BUILD_NUMBER="${1:?Error: Build number required. Usage: $0 <build_number>}"
+
+# Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
+
+# Extract version from Cargo.tomly
+
+VERSION=$(grep '^version' "$PROJECT_ROOT/src-tauri/Cargo.toml" | head -1 | sed 's/.*"\(.*\)"/\1/')
 
 # Fail fast if .env not found
 if [ ! -f "$ENV_FILE" ]; then
@@ -27,6 +35,9 @@ for var in "${required_vars[@]}"; do
 done
 
 echo "=== App Store Packaging Script ==="
+echo "Version: $VERSION"
+echo "Build: $BUILD_NUMBER"
+echo ""
 
 # Configuration from environment
 APP_NAME="Better Resource Monitor"
@@ -68,6 +79,12 @@ if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
   exit 1
 fi
 echo "Provisioning profile embedded successfully"
+
+# Inject build number into Info.plist (required for TestFlight)
+APP_PLIST="$APP_PATH/Contents/Info.plist"
+echo "Setting CFBundleVersion to $BUILD_NUMBER"
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$APP_PLIST" 2>/dev/null || \
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP_PLIST"
 
 # Re-sign the app with Distribution certificate and entitlements
 echo "Signing app with: $APPLE_DISTRIBUTION_IDENTITY"
