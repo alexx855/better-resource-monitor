@@ -92,7 +92,13 @@ mod macos {
         }
         unsafe {
             let mut buf = [0i8; CFSTRING_BUF_SIZE];
-            if CFStringGetCString(val, buf.as_mut_ptr(), CFSTRING_BUF_SIZE as isize, kCFStringEncodingUTF8) != 0 {
+            if CFStringGetCString(
+                val,
+                buf.as_mut_ptr(),
+                CFSTRING_BUF_SIZE as isize,
+                kCFStringEncodingUTF8,
+            ) != 0
+            {
                 std::ffi::CStr::from_ptr(buf.as_ptr())
                     .to_string_lossy()
                     .to_string()
@@ -143,12 +149,14 @@ mod macos {
             }
 
             let size = unsafe { CFDictionaryGetCount(chan) };
-            let mutable_chan = unsafe { CFDictionaryCreateMutableCopy(kCFAllocatorDefault, size, chan) };
+            let mutable_chan =
+                unsafe { CFDictionaryCreateMutableCopy(kCFAllocatorDefault, size, chan) };
             unsafe { CFRelease(chan as _) };
 
             // Initialize to null so we can safely check it later
             let mut s: CFMutableDictionaryRef = std::ptr::null_mut();
-            let subs = unsafe { IOReportCreateSubscription(null(), mutable_chan, &mut s, 0, null()) };
+            let subs =
+                unsafe { IOReportCreateSubscription(null(), mutable_chan, &mut s, 0, null()) };
 
             // Release the out-parameter dictionary if it was set (we don't need it)
             if !s.is_null() {
@@ -160,7 +168,11 @@ mod macos {
                 return None;
             }
 
-            Some(Self { subs, chan: mutable_chan, prev_sample: None })
+            Some(Self {
+                subs,
+                chan: mutable_chan,
+                prev_sample: None,
+            })
         }
 
         pub fn sample(&mut self) -> Option<f32> {
