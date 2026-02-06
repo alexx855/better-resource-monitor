@@ -398,8 +398,9 @@ fn render_tray_icon_into(
     let mut segments = Vec::with_capacity(5);
 
     let percent_segments = [
-        (show_cpu, IconType::Cpu, cpu_usage),
+        // Display order: RAM, CPU, GPU (network appended afterwards)
         (show_mem, IconType::Memory, mem_percent),
+        (show_cpu, IconType::Cpu, cpu_usage),
         (show_gpu, IconType::Gpu, gpu_usage),
     ];
     for (show, icon, value) in percent_segments {
@@ -584,21 +585,21 @@ fn setup_tray(
 
     let separator1 = PredefinedMenuItem::separator(app)?;
 
-    let show_cpu_item = CheckMenuItem::with_id(
-        app,
-        menu_id::SHOW_CPU,
-        "Show CPU",
-        true,
-        show_cpu.load(Relaxed),
-        None::<&str>,
-    )?;
-
     let show_mem_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_MEM,
         "Show Memory",
         true,
         show_mem.load(Relaxed),
+        None::<&str>,
+    )?;
+
+    let show_cpu_item = CheckMenuItem::with_id(
+        app,
+        menu_id::SHOW_CPU,
+        "Show CPU",
+        true,
+        show_cpu.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -628,8 +629,8 @@ fn setup_tray(
     let menu = Menu::new(app)?;
     menu.append(&autostart_item)?;
     menu.append(&separator1)?;
-    menu.append(&show_cpu_item)?;
     menu.append(&show_mem_item)?;
+    menu.append(&show_cpu_item)?;
     if gpu_available {
         let show_gpu_item = CheckMenuItem::with_id(
             app,
