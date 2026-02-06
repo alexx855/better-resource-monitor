@@ -7,251 +7,37 @@ const readme = docs[0];
 const { Content } = await render(readme);
 
 const title = 'Better Resource Monitor - System Monitor for macOS & Linux';
-const description = 'A blazing-fast, lightweight menu bar system monitor for macOS and Linux built with Rust and Tauri.';
+const description = 'A lightweight menu bar system monitor for macOS and Linux built with Rust and Tauri.';
 ---
 
 <Layout title={title} description={description}>
   <style>
-    /* ===== Modern CSS Reset ===== */
-    *, *::before, *::after { box-sizing: border-box; }
-    * { margin: 0; padding: 0; }
-    
-    html {
-      -webkit-text-size-adjust: 100%;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    body {
-      min-height: 100vh;
-      line-height: 1.6;
-    }
-    
-    img, picture, video, canvas, svg {
-      display: block;
-      max-width: 100%;
-      height: auto;
-    }
-    
-    p, h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; }
-    
-    /* ===== Design Tokens ===== */
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --border: #30363d;
-      --brand: #D14715;
-      /* WCAG AA compliant link color (4.5:1 contrast ratio on #0d1117) */
-      --link: #79c0ff;
-      --link-hover: #a5d6ff;
-      --link: #79c0ff;
-      --link-hover: #a5d6ff;
-    }
-
-    /* ===== Global Styles ===== */
-    :global(::marker) {
-      color: var(--brand) !important;
-    }
-    
-    /* ===== Base Styles ===== */
-    html {
-      background: var(--bg);
-      color: var(--text);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 16px;
-    }
-    
-    /* ===== Layout ===== */
-    .container {
-      width: 100%;
-      max-width: 830px;
-      margin: 0 auto;
-      padding:0 1.5rem;
-    }
-    
-    article {
-      width: 100%;
-    }
-    
-    /* ===== Typography ===== */
-    h1, h2, h3, h4 { 
-      color: #fff;
-      font-weight: 600;
-      margin-top: 1.5rem;
-      margin-bottom: 1rem;
-    }
-    
-    h2 { 
-      font-size: 1.5rem; 
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border); 
-    }
-    
-    h3 { 
-      font-size: 1.25rem; 
-    }
-    
-    p { 
-      margin-bottom: 1rem; 
-      color: var(--text);
-    }
-    
-    strong { 
-      color: #fff; 
-      font-weight: 600; 
-    }
-    
-    /* ===== Links (WCAG AA Compliant) ===== */
-    a { 
-      color: var(--link); 
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    
-    a:hover, a:focus { 
-      color: var(--link-hover);
-    }
-    
-    /* ===== Lists ===== */
-    ul, ol { 
-      margin: 1rem 0; 
-      padding-left: 2rem; 
-    }
-    
-    li { 
-      margin: 0.375rem 0; 
-      color: var(--text);
-    }
-    
-    /* ===== Code ===== */
-    code {
-      background: rgba(110, 118, 129, 0.4);
-      padding: 0.2em 0.4em;
-      border-radius: 6px;
-      font-size: 0.875em;
-      color: var(--text);
-    }
-    
-    pre {
-      background: var(--surface);
-      padding: 1rem;
-      border-radius: 6px;
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      margin: 1rem 0;
-    }
-    
-    pre code {
-      background: none;
-      padding: 0;
-      font-size: 0.875em;
-    }
-    
-    /* ===== Tables ===== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1rem 0;
-      display: block;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    
-    th, td {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--border);
-      text-align: left;
-      white-space: nowrap;
-    }
-    
-    th { 
-      background: var(--surface); 
-      font-weight: 600; 
-      color: #fff;
-    }
-    
-    /* ===== Images ===== */
-    img { 
-      height: auto;
-    }
-    
     /* Hero image - full width */
     p[align="center"] img[alt="Better Resource Monitor"] {
       width: 100%;
       max-width: 100%;
       height: auto;
     }
-    
+
     /* Center-aligned paragraphs (GitHub README style) */
-    p[align="center"] { 
-      text-align: center; 
-      margin-bottom: 1rem;
+    p[align="center"] {
+      text-align: center;
+      margin-bottom: var(--space-4);
     }
-    
+
     /* Badge images - inline */
     p[align="center"] img[src^="https://img.shields.io"] {
       display: inline-block;
       vertical-align: middle;
-      margin: 4px;
+      margin: var(--space-1);
       height: auto;
       width: auto;
       max-width: none;
     }
-    
-    /* ===== Horizontal Rule ===== */
-    hr { 
-      border: none; 
-      border-top: 1px solid var(--border); 
-      margin: 2rem 0; 
-    }
-    
-    /* ===== Mobile Responsive ===== */
+
     @media (max-width: 600px) {
-      html {
-        font-size: 15px;
-      }
-      
       .container {
-        padding: 0 1rem;
-      }
-      
-      h2 { font-size: 1.375rem; }
-      h3 { font-size: 1.125rem; }
-      
-      pre {
-        font-size: 0.8125em;
-        padding: 0.75rem;
-      }
-      
-      th, td {
-        padding: 0.375rem 0.5rem;
-        font-size: 0.875rem;
-      }
-
-      /* Navigation Links on Mobile */
-      p:has(a[href="#features"]) {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      p:has(a[href="#features"]) span {
-        display: none; /* Hide dots on mobile */
-      }
-
-      p:has(a[href="#features"]) a {
-        display: block;
-        padding: 0.5rem;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        text-decoration: none;
-        text-align: center;
-        color: var(--text);
-        font-weight: 500;
+        padding: 0 var(--space-4);
       }
     }
   </style>

@@ -19,9 +19,9 @@
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
-  <a href="#why">Why</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
-  <a href="#comparison">Comparison</a> <span style="color: #D14715; font-size: 1.2em;">•</span>
+  <a href="#features">Features</a> <span>•</span>
+  <a href="#why">Why</a> <span>•</span>
+  <a href="#comparison">Comparison</a> <span>•</span>
   <a href="#installation">Installation</a>
 </p>
 
@@ -29,23 +29,16 @@
 
 ## Features
 
-* **Cross-Platform** - Same app on macOS and Linux. Apple Silicon Macs and Ubuntu with NVIDIA GPUs.
-* **Zero Impact** - Written in Rust. < 0.1% CPU, ~15MB RAM. Lighter than a browser tab.
-* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML. No hacks.
-* **Theme Aware** - Auto-detects light/dark mode. Blends seamlessly with your menu bar.
+* **Cross-Platform** - macOS (Apple Silicon) and Linux (Ubuntu with NVIDIA GPUs).
+* **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM.
+* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML.
+* **Theme Aware** - Auto-detects light/dark mode.
 * **Configurable** - Toggle CPU, GPU, Memory, or Network stats with a click.
-* **Privacy First** - 100% local. No analytics. No network requests. No telemetry.
+* **Private** - 100% local. No analytics, network requests, or telemetry.
 
 ## Why?
 
-I built this out of necessity. I wanted the simplicity of **GNOME Resource Monitor** - just a clean line of text in the menu bar showing exactly what my system was doing. But I needed it on macOS too.
-
-Everything else fell short:
-
-* **Paid apps** - Overkill. $15+ with subscription upgrades for basic stats.
-* **Free alternatives** - Missing GPU support or looking out of place.
-
-**Better Resource Monitor** fills the gap. One app, two platforms, zero compromise. It uses **platform APIs** for GPU monitoring - IOReport on macOS for Apple Silicon, NVML on Linux for NVIDIA GPUs - with no overhead.
+I wanted <a href="https://github.com/0ry0n/Resource_Monitor" target="_blank" rel="noopener noreferrer"><strong>GNOME Resource Monitor</strong></a>'s simplicity on macOS. Paid apps charge $15+ for basic stats. Free alternatives lack GPU support. This uses platform-native GPU APIs (IOReport on macOS, NVML on Linux).
 
 ### How it works
 
@@ -73,17 +66,15 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 
 ## Comparison
 
-| Feature | Better Resource Monitor | Stats | iStat Menus |
+| | Better Resource Monitor | Stats | iStat Menus |
 | :--- | :---: | :---: | :---: |
-| **Price** | ✅ Free | ✅ Free | ❌ $14.99 |
-| **Open Source** | ✅ MIT | ✅ MIT | ❌ Proprietary |
-| **Memory Usage** | ✅ ~15 MB | ⚠️ ~45 MB | ⚠️ ~60 MB |
-| **CPU Usage** | ✅ < 0.1% | ✅ < 0.5% | ✅ < 0.5% |
-| **App Size** | ✅ < 7 MB | ⚠️ ~30 MB | ⚠️ ~40 MB |
-| **GPU Monitoring** | ✅ System | ✅ IOReport | ✅ Proprietary |
-| **macOS** | ✅ Apple Silicon | ✅ | ✅ |
-| **Linux** | ✅ Ubuntu/Debian | ❌ | ❌ |
-| **Theme Aware** | ✅ Auto-detect | ✅ | ✅ |
+| **Price** | Free | Free | $14.99 |
+| **License** | MIT | MIT | Proprietary |
+| **Memory** | ~15 MB | ~45 MB | ~60 MB |
+| **CPU** | < 0.1% | < 0.5% | < 0.5% |
+| **App Size** | < 7 MB | ~30 MB | ~40 MB |
+| **GPU** | IOReport / NVML | IOReport | Proprietary |
+| **Linux** | Yes | No | No |
 
 ## Installation
 
@@ -93,57 +84,23 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 Download from the [Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306). Automatic updates, but no GPU monitoring.
 
 **Direct Download (GPU Support):**
-Download the latest `.dmg` from [Releases](../../releases). Includes GPU monitoring for Apple Silicon.
+Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">Releases</a>. Includes GPU monitoring for Apple Silicon.
 
 ### Ubuntu
 
-**Download** the latest `.deb` from [Releases](../../releases) and install:
+**Download** the latest `.deb` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">Releases</a> and install:
 
 ```bash
 sudo dpkg -i better-resource-monitor_*.deb
 ```
 
-**GPU Monitoring (Optional):** To enable NVIDIA GPU monitoring, ensure you have the proprietary NVIDIA drivers installed:
-
-```bash
-# Check if NVIDIA driver is installed
-nvidia-smi
-
-# If not installed, install via:
-sudo ubuntu-drivers autoinstall
-```
-
-If NVIDIA drivers are not available, the app will still work - GPU monitoring will simply be hidden.
+**GPU Monitoring (Optional):** Requires proprietary NVIDIA drivers. Without them, GPU monitoring is hidden.
 
 ### Build from Source
 
 #### Prerequisites
 
-**macOS:**
-- Xcode Command Line Tools
-- Rust toolchain
-- pnpm
-
-**Ubuntu:**
-```bash
-# Install build dependencies
-sudo apt update
-sudo apt install -y \
-    build-essential \
-    curl \
-    wget \
-    file \
-    libwebkit2gtk-4.1-dev \
-    libayatana-appindicator3-dev \
-    librsvg2-dev \
-    patchelf
-
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Install pnpm
-npm install -g pnpm
-```
+Install [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform, plus [pnpm](https://pnpm.io/).
 
 #### Build
 
@@ -168,34 +125,9 @@ cargo install cargo-llvm-cov
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
-## Linux Troubleshooting
-
-**Desktop Environment Support:**
-- **GNOME Shell**: Requires `ubuntu-appindicators` extension (doesn't display tray icons natively)
-- **KDE Plasma**: SNI support (works out of the box)
-- **XFCE**: System tray support
-- **Other DEs**: Depends on SNI/tray support
-
-### GPU Monitoring on Linux
-
-NVIDIA GPU monitoring requires the proprietary NVIDIA drivers. To verify:
-
-```bash
-nvidia-smi
-```
-
-If the command is not found, install NVIDIA drivers:
-
-```bash
-sudo ubuntu-drivers autoinstall
-```
-
-The app will work without GPU monitoring - it will simply be hidden from the display.
-
-
-
 ## Credits
 
-- [Created and maintained by Alex Pedersen](https://alexpedersen.dev/)
+- [Astro](https://astro.build/) - Framework for the website
+- [Tauri](https://tauri.app/) - Framework for building the app
 - [Phosphor Icons](https://github.com/phosphor-icons) - Icon set used in the tray
-
+- [Alex Pedersen](https://alexpedersen.dev/) - Creator and maintainer

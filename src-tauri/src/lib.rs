@@ -1,11 +1,11 @@
 mod gpu;
+pub mod tray_render;
 
 // std
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -14,8 +14,7 @@ use font_kit::family_name::FamilyName;
 use font_kit::handle::Handle;
 use font_kit::properties::{Properties, Weight};
 use font_kit::source::SystemSource;
-use image::{ImageBuffer, Rgba};
-use rusttype::{Font, Scale};
+use rusttype::Font;
 use serde_json::json;
 use sysinfo::{Networks, System};
 use tauri::{
@@ -38,75 +37,11 @@ use gpu::GpuSampler;
 #[cfg(target_os = "linux")]
 static LIGHT_ICONS: AtomicBool = AtomicBool::new(true);
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-enum IconType {
-    Cpu,
-    Memory,
-    Gpu,
-    ArrowDown,
-    ArrowUp,
-}
+#[cfg(target_os = "macos")]
+const APP_SIZING: tray_render::Sizing = tray_render::SIZING_MACOS;
 
-struct IconCache {
-    icons: HashMap<(IconType, (u8, u8, u8)), Vec<u8>>,
-}
-
-impl IconCache {
-    fn new(size: u32) -> Self {
-        // Only white (for template mode) and alert color needed
-        let colors = [
-            (255, 255, 255), // White - macOS will invert as needed via template mode
-            (0, 0, 0),       // Black - for Linux light themes
-            ALERT_COLOR,     // Orange alert color - used when template mode is off
-        ];
-        let icon_svgs = [
-            (IconType::Cpu, SVG_CPU),
-            (IconType::Memory, SVG_MEMORY),
-            (IconType::Gpu, SVG_GPU),
-            (IconType::ArrowDown, SVG_ARROW_DOWN),
-            (IconType::ArrowUp, SVG_ARROW_UP),
-        ];
-
-        let mut icons = HashMap::new();
-        for (icon_type, svg) in icon_svgs {
-            for color in colors {
-                icons.insert((icon_type, color), render_svg_icon(svg, size, color));
-            }
-        }
-        Self { icons }
-    }
-
-    fn get(&self, icon_type: IconType, color: (u8, u8, u8)) -> &[u8] {
-        self.icons.get(&(icon_type, color)).expect("icon cached")
-    }
-}
-
-static ICON_CACHE: OnceLock<IconCache> = OnceLock::new();
-
-static FONT_BASELINE: OnceLock<f32> = OnceLock::new();
-
-fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
-    let reference_text = "0123456789% KMGTP";
-    let mut min_y = i32::MAX;
-    let mut max_y = i32::MIN;
-
-    for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
-        if let Some(bb) = glyph.pixel_bounding_box() {
-            if bb.min.y < min_y {
-                min_y = bb.min.y;
-            }
-            if bb.max.y > max_y {
-                max_y = bb.max.y;
-            }
-        }
-    }
-
-    if min_y < max_y {
-        (icon_height as f32 / 2.0) - ((min_y + max_y) as f32 / 2.0)
-    } else {
-        (icon_height as f32 / 2.0) + (font.v_metrics(scale).ascent / 2.0)
-    }
-}
+#[cfg(not(target_os = "macos"))]
+const APP_SIZING: tray_render::Sizing = tray_render::SIZING_LINUX;
 
 #[cfg(target_os = "linux")]
 const THEME_POLL_INTERVAL_SECS: u64 = 5;
@@ -218,14 +153,6 @@ fn save_setting(app: &AppHandle, key: &str, value: bool) {
     }
 }
 
-const SVG_CPU: &str = include_str!("../assets/icons/svg/fill/cpu-fill.svg");
-const SVG_MEMORY: &str = include_str!("../assets/icons/svg/fill/memory-fill.svg");
-const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
-const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
-const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
-
-const ALERT_THRESHOLD: f32 = 90.0;
-const ALERT_COLOR: (u8, u8, u8) = (209, 71, 21); // #D14715 - visible on both light and dark backgrounds
 const UPDATE_INTERVAL_MS: u64 = 800;
 const CPU_STABILIZE_MS: u64 = 200;
 
@@ -253,11 +180,7 @@ fn get_update_interval_ms() -> u64 {
         .unwrap_or(UPDATE_INTERVAL_MS)
 }
 
-fn cap_percent(value: f32) -> f32 {
-    value.clamp(0.0, 99.0)
-}
-
-fn load_system_font() -> Result<Font<'static>, String> {
+pub fn load_system_font() -> Result<Font<'static>, String> {
     let source = SystemSource::new();
 
     let handle = source
@@ -278,66 +201,7 @@ fn load_system_font() -> Result<Font<'static>, String> {
     Font::try_from_vec(font_data).ok_or_else(|| "Error constructing font".to_string())
 }
 
-fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
-    let color_hex = format!("#{:02x}{:02x}{:02x}", color.0, color.1, color.2);
-
-    let svg_with_color = svg_data
-        .replace("currentColor", &color_hex)
-        .replace("<svg ", &format!("<svg fill=\"{color_hex}\" "));
-
-    let opts = resvg::usvg::Options::default();
-    let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts).expect("Failed to parse SVG");
-
-    let svg_size = tree.size();
-    let scale = size as f32 / svg_size.width().max(svg_size.height());
-
-    let scaled_width = svg_size.width() * scale;
-    let scaled_height = svg_size.height() * scale;
-
-    // Always create a square pixmap to match draw_cached_icon's stride assumption
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size).expect("Failed to create pixmap");
-
-    // Center the icon within the square pixmap
-    let tx = (size as f32 - scaled_width) / 2.0;
-    let ty = (size as f32 - scaled_height) / 2.0;
-    let transform = resvg::tiny_skia::Transform::from_translate(tx, ty).post_scale(scale, scale);
-    resvg::render(&tree, transform, &mut pixmap.as_mut());
-
-    // Convert premultiplied to straight alpha once at cache time
-    // (resvg produces premultiplied, ImageBuffer expects straight alpha)
-    let mut pixels = pixmap.take();
-    for chunk in pixels.chunks_exact_mut(4) {
-        let alpha = chunk[3];
-        if alpha > 0 && alpha < 255 {
-            let a = alpha as u16;
-            chunk[0] = ((chunk[0] as u16 * 255 / a).min(255)) as u8;
-            chunk[1] = ((chunk[1] as u16 * 255 / a).min(255)) as u8;
-            chunk[2] = ((chunk[2] as u16 * 255 / a).min(255)) as u8;
-        }
-    }
-    pixels
-}
-
-#[cfg(target_os = "macos")]
-mod sizing {
-    pub const SEGMENT_WIDTH: u32 = 180;
-    pub const SEGMENT_WIDTH_NET: u32 = 240;
-    pub const EDGE_PADDING: u32 = 16;
-    pub const SEGMENT_GAP: u32 = 48;
-    pub const ICON_HEIGHT: u32 = 64;
-    pub const FONT_SIZE: f32 = 56.0;
-}
-
-#[cfg(target_os = "linux")]
-mod sizing {
-    // Tuned for 22px GNOME tray height
-    pub const SEGMENT_WIDTH: u32 = 58;
-    pub const SEGMENT_WIDTH_NET: u32 = 75;
-    pub const EDGE_PADDING: u32 = 5;
-    pub const SEGMENT_GAP: u32 = 18;
-    pub const ICON_HEIGHT: u32 = 22;
-    pub const FONT_SIZE: f32 = 19.0;
-}
+// Rendering is centralized in tray_render.rs
 
 fn format_speed(bytes_per_sec: f64) -> String {
     const THRESHOLD_KB: f64 = 999_500.0;
@@ -367,168 +231,7 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
 #[cfg(test)]
 mod tests;
 
-/// Renders tray icon into caller-provided buffer for reuse.
-/// Returns (width, height, has_active_alert).
-/// When has_active_alert is true, the icon should NOT be used as template.
-///
-/// Buffer reuse is critical on Linux to prevent compositor resource accumulation
-/// that causes cursor slowdown on Ubuntu/GNOME.
-fn render_tray_icon_into(
-    font: &Font,
-    buffer: &mut Vec<u8>,
-    cpu_usage: f32,
-    mem_percent: f32,
-    gpu_usage: f32,
-    down_str: &str,
-    up_str: &str,
-    show_cpu: bool,
-    show_mem: bool,
-    show_gpu: bool,
-    show_net: bool,
-    show_alerts: bool,
-    use_light_icons: bool,
-) -> (u32, u32, bool) {
-    struct Segment {
-        icon: IconType,
-        value: String,
-        width: u32,
-        alert: bool,
-    }
-
-    let mut segments = Vec::with_capacity(5);
-
-    let percent_segments = [
-        // Display order: RAM, CPU, GPU (network appended afterwards)
-        (show_mem, IconType::Memory, mem_percent),
-        (show_cpu, IconType::Cpu, cpu_usage),
-        (show_gpu, IconType::Gpu, gpu_usage),
-    ];
-    for (show, icon, value) in percent_segments {
-        if show {
-            segments.push(Segment {
-                icon,
-                value: format!("{:.0}%", cap_percent(value)),
-                width: sizing::SEGMENT_WIDTH,
-                alert: value >= ALERT_THRESHOLD,
-            });
-        }
-    }
-
-    if show_net {
-        segments.push(Segment {
-            icon: IconType::ArrowDown,
-            value: down_str.to_owned(),
-            width: sizing::SEGMENT_WIDTH_NET,
-            alert: false,
-        });
-        segments.push(Segment {
-            icon: IconType::ArrowUp,
-            value: up_str.to_owned(),
-            width: sizing::SEGMENT_WIDTH_NET,
-            alert: false,
-        });
-    }
-
-    let has_active_alert = show_alerts && segments.iter().any(|s| s.alert);
-
-    let total_width = sizing::EDGE_PADDING * 2
-        + segments.iter().map(|s| s.width).sum::<u32>()
-        + sizing::SEGMENT_GAP * (segments.len() as u32).saturating_sub(1);
-
-    let required_size = (total_width * sizing::ICON_HEIGHT * 4) as usize;
-
-    buffer.clear();
-    buffer.resize(required_size, 0);
-
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> =
-        ImageBuffer::from_raw(total_width, sizing::ICON_HEIGHT, std::mem::take(buffer))
-            .expect("buffer size matches dimensions");
-
-    let scale = Scale::uniform(sizing::FONT_SIZE);
-
-    let baseline =
-        *FONT_BASELINE.get_or_init(|| calculate_font_baseline(font, sizing::ICON_HEIGHT, scale));
-
-    let draw_text = |text: &str,
-                     start_x: f32,
-                     color: (u8, u8, u8),
-                     img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-        for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
-            if let Some(bb) = glyph.pixel_bounding_box() {
-                glyph.draw(|gx, gy, v| {
-                    let x = (bb.min.x + gx as i32) as u32;
-                    let y = (bb.min.y + gy as i32) as u32;
-                    if x < total_width && y < sizing::ICON_HEIGHT {
-                        let alpha = (v * 255.0) as u8;
-                        img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
-                    }
-                });
-            }
-        }
-    };
-
-    let icon_cache = ICON_CACHE.get_or_init(|| IconCache::new(sizing::ICON_HEIGHT));
-
-    let draw_cached_icon = |icon_type: IconType,
-                            start_x: u32,
-                            color: (u8, u8, u8),
-                            img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-        let icon_pixels = icon_cache.get(icon_type, color);
-
-        for y in 0..sizing::ICON_HEIGHT {
-            for x in 0..sizing::ICON_HEIGHT {
-                let src_idx = ((y * sizing::ICON_HEIGHT + x) * 4) as usize;
-                if src_idx + 3 < icon_pixels.len() {
-                    let alpha = icon_pixels[src_idx + 3];
-                    if alpha > 0 {
-                        let dst_x = start_x + x;
-                        if dst_x < total_width && y < sizing::ICON_HEIGHT {
-                            img.put_pixel(
-                                dst_x,
-                                y,
-                                Rgba([
-                                    icon_pixels[src_idx],
-                                    icon_pixels[src_idx + 1],
-                                    icon_pixels[src_idx + 2],
-                                    alpha,
-                                ]),
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    let mut x_offset = sizing::EDGE_PADDING;
-    for (i, segment) in segments.iter().enumerate() {
-        if i > 0 {
-            x_offset += sizing::SEGMENT_GAP;
-        }
-
-        let segment_color = if has_active_alert {
-            ALERT_COLOR
-        } else if use_light_icons {
-            (255, 255, 255)
-        } else {
-            (0, 0, 0)
-        };
-
-        draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
-
-        let value_width: f32 = font
-            .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
-            .map(|g| g.unpositioned().h_metrics().advance_width)
-            .sum();
-        let value_x = x_offset as f32 + segment.width as f32 - value_width;
-        draw_text(&segment.value, value_x, segment_color, &mut img);
-
-        x_offset += segment.width;
-    }
-
-    *buffer = img.into_raw();
-    (total_width, sizing::ICON_HEIGHT, has_active_alert)
-}
+// render_tray_icon_into moved to tray_render.rs
 
 fn toggle_setting(app: &AppHandle, key: &str, flag: &AtomicBool, all_flags: [&AtomicBool; 4]) {
     let current = flag.load(Relaxed);
@@ -653,10 +356,12 @@ fn setup_tray(
     #[cfg(not(target_os = "linux"))]
     let use_light_icons = true;
 
-    let mut initial_buffer = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
-    let (width, height, _has_alert) = render_tray_icon_into(
+    let mut renderer = tray_render::TrayRenderer::new();
+    let mut initial_buffer = Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
+    let (width, height, _has_alert) = renderer.render_tray_icon_into(
         font,
         &mut initial_buffer,
+        APP_SIZING,
         0.0,
         0.0,
         0.0,
@@ -668,6 +373,7 @@ fn setup_tray(
         show_net.load(Relaxed),
         show_alerts.load(Relaxed),
         use_light_icons,
+        None,
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
 
@@ -757,7 +463,9 @@ fn start_monitoring(
 
         // Reusable buffer owned by monitoring thread - prevents compositor resource
         // accumulation on Linux that causes cursor slowdown
-        let mut render_buffer: Vec<u8> = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
+        let mut renderer = tray_render::TrayRenderer::new();
+        let mut render_buffer: Vec<u8> =
+            Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
 
         loop {
             thread::sleep(Duration::from_millis(update_interval));
@@ -839,9 +547,10 @@ fn start_monitoring(
                 }
                 prev_flags = current_flags;
 
-                let (width, height, _has_active_alert) = render_tray_icon_into(
+                let (width, height, _has_active_alert) = renderer.render_tray_icon_into(
                     &font,
                     &mut render_buffer,
+                    APP_SIZING,
                     cpu_usage,
                     mem_percent,
                     gpu_usage,
@@ -853,6 +562,7 @@ fn start_monitoring(
                     sn,
                     sa,
                     current_flags.5, // Pass the detected theme flag
+                    None,
                 );
 
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {

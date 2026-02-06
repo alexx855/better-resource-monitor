@@ -25,17 +25,17 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", default-features = false, features = ["tray-icon", "wry"] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-single-instance = "2"
 tauri-plugin-store = "2"
 serde_json = "1"
 sysinfo = { version = "0.37.2", features = ["apple-app-store"] }
-image = "0.24"
+image = { version = "0.24", default-features = false, features = ["png"] }
 rusttype = "0.9"
 tray-icon = "0.21"
 font-kit = "0.13"
-resvg = "0.44"
+resvg = { version = "0.44", default-features = false }
 
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -50,4 +50,11 @@ nvml-wrapper = "0.10"
 [features]
 default = []
 
-
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+debug = 0
+incremental = false
