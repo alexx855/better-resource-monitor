@@ -23,13 +23,20 @@ cargo clippy
 
 ## Architecture
 
-**Single-file Rust app** (`src-tauri/src/lib.rs`) - all logic in one file:
+**Rust app** (`src-tauri/src/lib.rs`) - app lifecycle + sampling + tray wiring:
 - System monitoring via `sysinfo` crate (CPU, memory, network)
-- Dynamic tray icon rendering with `rusttype` (text) + `resvg` (SVG icons)
+- Dynamic tray icon rendering via shared renderer (`src-tauri/src/tray_render.rs`) using `rusttype` (text) + `resvg` (SVG icons)
 - Menu bar only (no window) - uses `ActivationPolicy::Accessory` to hide dock icon
 - Background thread updates tray icon every ~1s
 - Toggle visibility of CPU/memory/network via right-click menu
 - Autostart support via `tauri-plugin-autostart`
+
+**Tray renderer (single source of truth)** (`src-tauri/src/tray_render.rs`)
+- Pure rendering logic (layout + SVG rasterization + text baseline + RGBA buffer output)
+- Used by both the running app and the banner generator CLI
+
+**Banner generator CLI** (`src-tauri/src/bin/render_tray_icon.rs`)
+- Renders a PNG using the exact same implementation as the app
 
 **Frontend** (`src/`) - minimal, exists only to satisfy Tauri build requirements. No actual UI.
 
@@ -44,6 +51,28 @@ cargo clippy
 
 - Always add a final verification step for changes (run a relevant command or manual check).
 - On Linux, minimize tray icon updates to avoid compositor resource accumulation (cursor lag).
+
+## Regenerate Marketing Banner
+
+The repo includes a generator for `www/public/better-resource-monitor.png` that renders using the same code path as the app tray icon renderer.
+
+Generate the banner (830x43) from the macOS sizing preset scaled to 2/3, with alert colors disabled (avoids orange when values exceed threshold):
+
+```bash
+cargo run --manifest-path src-tauri/Cargo.toml --bin render_tray_icon -- \
+  --preset macos \
+  --scale 0.6666667 \
+  --cpu 45 --mem 99 --gpu 78 \
+  --down "1.5 MB" --up "0.2 MB" \
+  --show-alerts false \
+  --out www/public/better-resource-monitor.png
+```
+
+Verify output dimensions:
+
+```bash
+sips -g pixelWidth -g pixelHeight www/public/better-resource-monitor.png
+```
 
 ## Known Issues
 

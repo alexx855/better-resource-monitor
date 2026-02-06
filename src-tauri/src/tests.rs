@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn test_cap_percent() {
-    assert_eq!(cap_percent(0.0), 0.0);
-    assert_eq!(cap_percent(50.0), 50.0);
-    assert_eq!(cap_percent(99.0), 99.0);
-    assert_eq!(cap_percent(100.0), 99.0);
-    assert_eq!(cap_percent(150.0), 99.0);
-    assert_eq!(cap_percent(-10.0), 0.0);
+    assert_eq!(tray_render::cap_percent(0.0), 0.0);
+    assert_eq!(tray_render::cap_percent(50.0), 50.0);
+    assert_eq!(tray_render::cap_percent(99.0), 99.0);
+    assert_eq!(tray_render::cap_percent(100.0), 99.0);
+    assert_eq!(tray_render::cap_percent(150.0), 99.0);
+    assert_eq!(tray_render::cap_percent(-10.0), 0.0);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn test_format_speed() {
 fn test_render_svg_icon_valid() {
     // Simple valid SVG
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>"#;
-    let result = render_svg_icon(svg, 16, (255, 255, 255));
+    let result = tray_render::render_svg_icon(svg, 16, (255, 255, 255));
 
     // Should return non-empty pixel data
     assert!(!result.is_empty());
@@ -75,21 +75,24 @@ fn test_render_svg_icon_valid() {
 #[should_panic(expected = "Failed to parse SVG")]
 fn test_render_svg_icon_invalid_panics() {
     // Invalid SVG should panic (current behavior uses .expect())
-    render_svg_icon("not valid svg", 16, (255, 255, 255));
+    tray_render::render_svg_icon("not valid svg", 16, (255, 255, 255));
 }
 
 #[test]
 fn test_icon_buffer_reuse() {
     let font = load_system_font().expect("test font required");
 
+    let mut renderer = tray_render::TrayRenderer::new();
+
     // Create buffer with known capacity
-    let mut buffer: Vec<u8> = Vec::with_capacity(4 * 800 * sizing::ICON_HEIGHT as usize);
+    let mut buffer: Vec<u8> = Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
     let initial_capacity = buffer.capacity();
 
     // First render
-    let (width1, height1, _) = render_tray_icon_into(
+    let (width1, height1, _) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
+        APP_SIZING,
         50.0,
         60.0,
         0.0,
@@ -101,9 +104,10 @@ fn test_icon_buffer_reuse() {
         true,
         false,
         true,
+        None,
     );
     assert!(width1 > 0);
-    assert_eq!(height1, sizing::ICON_HEIGHT);
+    assert_eq!(height1, APP_SIZING.icon_height);
     assert!(!buffer.is_empty());
 
     // Capacity should be preserved or grown, never shrunk
@@ -111,9 +115,10 @@ fn test_icon_buffer_reuse() {
     assert!(capacity_after_first >= initial_capacity);
 
     // Second render with different values - buffer should be reused
-    let (width2, height2, _) = render_tray_icon_into(
+    let (width2, height2, _) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
+        APP_SIZING,
         70.0,
         80.0,
         0.0,
@@ -125,9 +130,10 @@ fn test_icon_buffer_reuse() {
         true,
         false,
         true,
+        None,
     );
     assert!(width2 > 0);
-    assert_eq!(height2, sizing::ICON_HEIGHT);
+    assert_eq!(height2, APP_SIZING.icon_height);
 
     // Capacity should still be preserved (key test: no reallocation for same-size renders)
     assert!(buffer.capacity() >= capacity_after_first);
@@ -138,10 +144,13 @@ fn test_alert_colors_all_segments() {
     let font = load_system_font().expect("test font required");
     let mut buffer: Vec<u8> = Vec::new();
 
+    let mut renderer = tray_render::TrayRenderer::new();
+
     // No alerts - has_active_alert should be false
-    let (_, _, has_alert_no) = render_tray_icon_into(
+    let (_, _, has_alert_no) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
+        APP_SIZING,
         50.0,
         50.0,
         0.0,
@@ -153,13 +162,15 @@ fn test_alert_colors_all_segments() {
         false,
         true, // alerts enabled
         true,
+        None,
     );
     assert!(!has_alert_no);
 
     // CPU at 95% with alerts enabled - has_active_alert should be true
-    let (_, _, has_alert_yes) = render_tray_icon_into(
+    let (_, _, has_alert_yes) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
+        APP_SIZING,
         95.0,
         50.0,
         0.0,
@@ -171,13 +182,15 @@ fn test_alert_colors_all_segments() {
         false,
         true, // alerts enabled
         true,
+        None,
     );
     assert!(has_alert_yes);
 
     // CPU at 95% but alerts disabled - has_active_alert should be false
-    let (_, _, has_alert_disabled) = render_tray_icon_into(
+    let (_, _, has_alert_disabled) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
+        APP_SIZING,
         95.0,
         50.0,
         0.0,
@@ -189,6 +202,7 @@ fn test_alert_colors_all_segments() {
         false,
         false, // alerts disabled
         true,
+        None,
     );
     assert!(!has_alert_disabled);
 }
