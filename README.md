@@ -29,11 +29,11 @@
 
 ## Features
 
-* **Cross-Platform** - macOS (Apple Silicon) and Linux (Ubuntu with NVIDIA GPUs).
-* **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM.
-* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML.
+* **Cross-Platform** - macOS (Apple Silicon & Intel) and Linux (with optional NVIDIA GPU support).
+* **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM (measured on Apple M1).
+* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML. *(Direct download only on macOS; [see below](#macos-version-differences).)*
 * **Theme Aware** - Auto-detects light/dark mode.
-* **Configurable** - Toggle CPU, GPU, Memory, or Network stats with a click.
+* **Configurable** - Toggle CPU, GPU, Memory, or Network stats via the right-click menu (GPU shown when hardware is available).
 * **Private** - 100% local. No analytics, network requests, or telemetry.
 
 ## Why?
@@ -46,7 +46,7 @@ I wanted <a href="https://github.com/0ry0n/Resource_Monitor" target="_blank" rel
 | :--- | :--- | :--- |
 | **CPU/Memory/Network** | `sysinfo` crate | `sysinfo` crate |
 | **GPU Metrics** | IOReport FFI (private APIs) | NVML via `nvml-wrapper` |
-| **Theme Detection** | Menu bar color sampling | gsettings |
+| **Theme Detection** | Template icon (native macOS adaptation) | gsettings |
 
 On macOS, it calculates **active residency** instead of just "utilization" - giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
 
@@ -72,9 +72,11 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 | **License** | MIT | MIT | Proprietary |
 | **Memory** | ~15 MB | ~45 MB | ~60 MB |
 | **CPU** | < 0.1% | < 0.5% | < 0.5% |
-| **App Size** | < 7 MB | ~30 MB | ~40 MB |
+| **App Size** | < 7 MB (.app) | ~30 MB | ~40 MB |
 | **GPU** | IOReport / NVML | IOReport | Proprietary |
 | **Linux** | Yes | No | No |
+
+> Third-party figures are approximate and may vary by version and system configuration.
 
 ## Installation
 

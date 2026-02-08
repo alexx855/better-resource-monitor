@@ -19,6 +19,16 @@ pnpm tauri build
 cargo build
 cargo check
 cargo clippy
+
+# Tests
+cargo test --manifest-path src-tauri/Cargo.toml
+
+# Test coverage (requires cargo-llvm-cov)
+cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
+
+# Landing page (Astro on Cloudflare Pages)
+pnpm --filter www dev
+pnpm --filter www build
 ```
 
 ## Architecture
@@ -29,23 +39,67 @@ cargo clippy
 - Menu bar only (no window) - uses `ActivationPolicy::Accessory` to hide dock icon
 - Background thread updates tray icon every ~1s
 - Toggle visibility of CPU/memory/network via right-click menu
+- Settings persistence via `tauri-plugin-store`
 - Autostart support via `tauri-plugin-autostart`
 
 **Tray renderer (single source of truth)** (`src-tauri/src/tray_render.rs`)
 - Pure rendering logic (layout + SVG rasterization + text baseline + RGBA buffer output)
 - Used by both the running app and the banner generator CLI
+- Pre-caches SVG icons at init in 3 colors: white, black, alert orange (#D14715)
+- Two sizing presets: `SIZING_MACOS` and `SIZING_LINUX`, scalable via `Sizing::scaled()`
+- Buffer reuse: monitoring thread owns persistent `render_buffer`, critical for preventing Linux compositor texture leaks
+
+**GPU monitoring** (`src-tauri/src/gpu.rs`) - unified `GpuSampler` interface:
+- **macOS**: IOReport FFI for Apple Silicon active residency (private framework, rejected by App Store)
+- **Linux**: NVML via `nvml-wrapper` for NVIDIA utilization
+- GPU menu item only shown when hardware is detected; missing GPU doesn't prevent app from running
 
 **Banner generator CLI** (`src-tauri/src/bin/render_tray_icon.rs`)
-- Renders a PNG using the exact same implementation as the app
+- Renders a PNG using the exact same `TrayRenderer` as the app
+
+**Tests** (`src-tauri/src/tests.rs`)
+- Unit tests for value capping, hysteresis, speed formatting, SVG rendering, buffer reuse, alert colors
 
 **Frontend** (`src/`) - minimal, exists only to satisfy Tauri build requirements. No actual UI.
 
+**Landing page** (`www/`) - Astro 5 site deployed to Cloudflare Pages. Contains homepage, privacy policy, terms.
+
+## Platform-Specific Patterns
+
+All platform logic uses `#[cfg(target_os = "...")]` — no custom Cargo features.
+
+- **macOS**: `ActivationPolicy::Accessory`, template icon mode (OS handles light/dark), IOReport GPU
+- **Linux**: gsettings/env var theme detection, `AtomicBool` polling for light/dark, NVML GPU, hysteresis throttling
+
+## Update Throttling (Hysteresis)
+
+To mitigate Linux compositor texture leaks, tray icon only updates when:
+- CPU/MEM/GPU changes by ≥2.0%
+- Network changes by ≥50KB/s OR ≥2s since last update
+
+This logic lives in `should_update()` in `lib.rs`.
+
 ## Key Dependencies
 
-- `sysinfo` - cross-platform system info
+- `sysinfo` - cross-platform system info (uses `apple-app-store` feature)
 - `rusttype` + `image` - text rendering onto tray icon
 - `resvg` + `tiny-skia` - SVG icon rendering
+- `font-kit` - system font loading
 - `tauri-plugin-autostart` - launch at login
+- `tauri-plugin-store` - settings persistence
+- macOS: `core-foundation` (IOReport FFI)
+- Linux: `nvml-wrapper` (NVIDIA GPU)
+
+## Release Profile
+
+Binary size is optimized: `opt-level = "z"`, `lto = "thin"`, `strip = "symbols"`, `panic = "abort"`.
+
+## CI/CD
+
+`.github/workflows/release.yml` - manual dispatch with version bump (patch/minor/major):
+1. Auto-increments version across `package.json`, `tauri.conf.json`, `Cargo.toml`
+2. Builds for macOS (aarch64) and Linux (amd64) with code signing + notarization on macOS
+3. Creates GitHub release with DMG/DEB artifacts
 
 ## Verification
 
