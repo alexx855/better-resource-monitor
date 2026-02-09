@@ -29,6 +29,9 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 # Landing page (Astro on Cloudflare Pages)
 pnpm --filter www dev
 pnpm --filter www build
+
+# Regenerate download badges (WebP, saved to www/public/badges/)
+node www/generate-badges.mjs
 ```
 
 ## Architecture
@@ -127,6 +130,18 @@ Verify output dimensions:
 ```bash
 sips -g pixelWidth -g pixelHeight www/public/better-resource-monitor.png
 ```
+
+## Regenerate App Store Screenshots
+
+Builds the Astro site (which prerenders 3 headlines × 4 sizes = 12 PNGs via satori + resvg-js) and copies them to `screenshots/appstore/`:
+
+```bash
+./scripts/generate-screenshots.sh
+```
+
+Source template: `www/src/pages/screenshots/[id].png.ts`
+Shared renderer: `www/src/lib/og.ts`
+Output: `screenshots/appstore/{1280x800,1440x900,2560x1600,2880x1800}/{simplicity,performance,privacy}.png`
 
 ## Known Issues
 
