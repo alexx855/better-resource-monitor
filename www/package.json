@@ -13,10 +13,13 @@
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.12",
 		"@astrojs/sitemap": "^3.6.1",
-		"astro": "^5.16.8"
+		"@resvg/resvg-js": "^2.6.2",
+		"astro": "^5.16.8",
+		"satori": "^0.19.1"
 	},
 	"devDependencies": {
 		"@types/node": "^25.0.5",
+		"sharp": "^0.34.5",
 		"wrangler": "^4.58.0"
 	}
 }
