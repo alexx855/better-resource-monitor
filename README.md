@@ -9,20 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the Mac App Store" height="40"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-Direct_Download-D14715?logo=apple&logoColor=white&style=for-the-badge" alt="macOS Direct Download"></a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="https://img.shields.io/badge/Ubuntu-Direct_Download-D14715?logo=ubuntu&logoColor=white&style=for-the-badge" alt="Ubuntu Direct Download"></a>
+  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="/badges/appstore.webp" alt="Download on the Mac App Store" height="40"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="/badges/macos.webp" alt="Download macOS on GitHub Releases" height="40"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" height="40"></a>
 </p>
 
 <p align="center">
   <a href="#features">Features</a> <span>•</span>
   <a href="#why">Why</a> <span>•</span>
   <a href="#comparison">Comparison</a> <span>•</span>
-  <a href="#installation">Installation</a>
+  <a href="#installation">Installation</a> <span>•</span>
 </p>
 
 
@@ -52,7 +48,7 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 
 ### macOS Version Differences
 
-| Feature | App Store | Direct Download |
+| Feature | App Store | GitHub Download |
 | :--- | :---: | :---: |
 | **CPU Monitoring** | ✅ | ✅ |
 | **Memory Monitoring** | ✅ | ✅ |
@@ -60,9 +56,9 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 | **GPU Monitoring** | ❌ | ✅ |
 | **Automatic Updates** | ✅ | ❌ |
 
-> **Why no GPU in App Store?** GPU monitoring requires Apple's private `IOReport` framework. Apple rejects apps using private APIs during App Store review. The direct download version is notarized but not sandboxed, so it has full GPU access.
+> **Why no GPU in App Store?** GPU monitoring requires Apple's private `IOReport` framework. Apple rejects apps using private APIs during App Store review. The GitHub download version is notarized but not sandboxed, so it has full GPU access.
 >
-> [Download direct version with GPU support](https://github.com/alexx855/better-resource-monitor/releases)
+> [Download from GitHub Releases with GPU support](https://github.com/alexx855/better-resource-monitor/releases)
 
 ## Comparison
 
@@ -85,8 +81,8 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 **App Store (Recommended):**
 Download from the [Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306). Automatic updates, but no GPU monitoring.
 
-**Direct Download (GPU Support):**
-Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">Releases</a>. Includes GPU monitoring for Apple Silicon.
+**GitHub Download (GPU Support):**
+Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>. Includes GPU monitoring for Apple Silicon.
 
 ### Ubuntu
 
