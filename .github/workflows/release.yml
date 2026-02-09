@@ -42,7 +42,7 @@ jobs:
       - name: Get current version and bump
         id: bump
         run: |
-          CURRENT=$(jq -r '.version' package.json)
+          CURRENT=$(jq -r '.version' src-tauri/tauri.conf.json)
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           case "${{ inputs.version_type }}" in

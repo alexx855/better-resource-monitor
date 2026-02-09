@@ -9,16 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" height="40"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" height="40"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="https://better-resource-monitor.alexpedersen.dev/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" height="40"></a>
+  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" width="268" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" width="268" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases"><img src="https://better-resource-monitor.alexpedersen.dev/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" width="268" height="65"></a>
 </p>
 
 <p align="center">
   <a href="#features">Features</a> <span>•</span>
   <a href="#why">Why</a> <span>•</span>
   <a href="#comparison">Comparison</a> <span>•</span>
-  <a href="#installation">Installation</a> <span>•</span>
+  <a href="#installation">Installation</a>
 </p>
 
 
@@ -48,13 +48,22 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 
 ### macOS Version Differences
 
-| Feature | App Store | GitHub Download |
-| :--- | :---: | :---: |
-| **CPU Monitoring** | ✅ | ✅ |
-| **Memory Monitoring** | ✅ | ✅ |
-| **Network Monitoring** | ✅ | ✅ |
-| **GPU Monitoring** | ❌ | ✅ |
-| **Automatic Updates** | ✅ | ❌ |
+<table>
+  <thead>
+    <tr>
+      <th width="34%">Feature</th>
+      <th width="33%">App Store</th>
+      <th width="33%">GitHub Download</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>CPU Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><td><strong>Memory Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><td><strong>Network Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><td><strong>GPU Monitoring</strong></td><td align="center">No</td><td align="center">Yes</td></tr>
+    <tr><td><strong>Automatic Updates</strong></td><td align="center">Yes</td><td align="center">No</td></tr>
+  </tbody>
+</table>
 
 > **Why no GPU in App Store?** GPU monitoring requires Apple's private `IOReport` framework. Apple rejects apps using private APIs during App Store review. The GitHub download version is notarized but not sandboxed, so it has full GPU access.
 >
@@ -62,15 +71,25 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
 
 ## Comparison
 
-| | Better Resource Monitor | Stats | iStat Menus |
-| :--- | :---: | :---: | :---: |
-| **Price** | Free | Free | $14.99 |
-| **License** | MIT | MIT | Proprietary |
-| **Memory** | ~15 MB | ~45 MB | ~60 MB |
-| **CPU** | < 0.1% | < 0.5% | < 0.5% |
-| **App Size** | < 7 MB (.app) | ~30 MB | ~40 MB |
-| **GPU** | IOReport / NVML | IOReport | Proprietary |
-| **Linux** | Yes | No | No |
+<table>
+  <thead>
+    <tr>
+      <th width="25%"></th>
+      <th width="25%">Better Resource Monitor</th>
+      <th width="25%">Stats</th>
+      <th width="25%">iStat Menus</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Price</strong></td><td align="center">Free</td><td align="center">Free</td><td align="center">$14.99</td></tr>
+    <tr><td><strong>License</strong></td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietary</td></tr>
+    <tr><td><strong>Memory</strong></td><td align="center">~15 MB</td><td align="center">~45 MB</td><td align="center">~60 MB</td></tr>
+    <tr><td><strong>CPU</strong></td><td align="center">&lt; 0.1%</td><td align="center">&lt; 0.5%</td><td align="center">&lt; 0.5%</td></tr>
+    <tr><td><strong>App Size</strong></td><td align="center">&lt; 7 MB (.app)</td><td align="center">~30 MB</td><td align="center">~40 MB</td></tr>
+    <tr><td><strong>GPU</strong></td><td align="center">IOReport / NVML</td><td align="center">IOReport</td><td align="center">Proprietary</td></tr>
+    <tr><td><strong>Linux</strong></td><td align="center">Yes</td><td align="center">No</td><td align="center">No</td></tr>
+  </tbody>
+</table>
 
 > Third-party figures are approximate and may vary by version and system configuration.
 
