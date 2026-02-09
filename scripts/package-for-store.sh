@@ -9,9 +9,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 
-# Extract version from Cargo.tomly
-
-VERSION=$(grep '^version' "$PROJECT_ROOT/src-tauri/Cargo.toml" | head -1 | sed 's/.*"\(.*\)"/\1/')
+# Extract version from tauri.conf.json (single source of truth)
+VERSION=$(jq -r '.version' "$PROJECT_ROOT/src-tauri/tauri.conf.json")
 
 # Fail fast if .env not found
 if [ ! -f "$ENV_FILE" ]; then
