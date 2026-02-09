@@ -1,17 +1,18 @@
 ---
-import { getCollection, render } from 'astro:content';
-import Layout from '../layouts/Layout.astro';
+import { getCollection, render } from "astro:content";
+import Layout from "../layouts/Layout.astro";
 
-const docs = await getCollection('docs');
+const docs = await getCollection("docs");
 const readme = docs[0];
 const { Content } = await render(readme);
 
-const title = 'Better Resource Monitor - System Monitor for macOS & Linux';
-const description = 'A lightweight menu bar system monitor for macOS and Linux built with Rust and Tauri.';
+const title = "Better Resource Monitor - System Monitor for macOS & Linux";
+const description =
+  "A lightweight menu bar system monitor for macOS and Linux built with Rust and Tauri.";
 ---
 
-<Layout title={title} description={description}>
-  <style>
+<Layout title={title} description={description} showBackLink={false}>
+  <style is:global>
     /* Hero image - full width */
     p[align="center"] img[alt="Better Resource Monitor"] {
       width: 100%;
@@ -19,25 +20,57 @@ const description = 'A lightweight menu bar system monitor for macOS and Linux b
       height: auto;
     }
 
-    /* Center-aligned paragraphs (GitHub README style) */
-    p[align="center"] {
-      text-align: center;
-      margin-bottom: var(--space-4);
-    }
 
-    /* Badge images - inline */
-    p[align="center"] img[src^="https://img.shields.io"] {
-      display: inline-block;
-      vertical-align: middle;
-      margin: var(--space-1);
-      height: auto;
-      width: auto;
-      max-width: none;
+    p[align="center"]:has(img[src^="/badges/"]) {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+      height: 60px;
+      padding-top: var(--space-4);
+      box-sizing: content-box;
+      a{
+        line-height: 1;
+      }
     }
 
     @media (max-width: 600px) {
       .container {
         padding: 0 var(--space-4);
+      }
+      p[align="center"]:has(img[src^="/badges/"]) {
+        display: flex;
+        gap: var(--space-4);
+        height: auto;
+        flex-wrap: wrap;
+      }
+
+      /* Hero links: stack and hide dots */
+      p[align="center"]:has(a[href="#features"]) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        font-size: 0;
+      }
+
+      p[align="center"]:has(a[href="#features"]) a {
+        font-size: var(--fs-base);
+        display: block;
+        padding: var(--space-2);
+        background: var(--c-surface);
+        border: var(--border-width) solid var(--c-border);
+        text-decoration: none;
+        text-align: center;
+        color: var(--c-text-dim);
+      }
+
+      p[align="center"]:has(a[href="#features"]) a:hover {
+        border-color: var(--c-accent);
+        color: var(--c-accent);
+        background: var(--c-surface);
+      }
+
+      p[align="center"]:has(a[href="#features"]) span {
+        display: none;
       }
     }
   </style>
