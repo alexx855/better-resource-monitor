@@ -5,7 +5,7 @@ description: Terms and Conditions for Better Resource Monitor
 
 # Terms & Conditions
 
-**Last updated: January 2025**
+**Last updated: February 9, 2026**
 
 ## Acceptance of Terms
 
@@ -52,4 +52,4 @@ These terms shall be governed by and construed in accordance with applicable law
 
 ## Contact
 
-For questions about these terms, please open an issue on our [GitHub repository](https://github.com/alexx855/better-resource-monitor/issues).
+For questions about these terms, please open an issue on our [GitHub repository](https://github.com/alexx855/better-resource-monitor/issues/new).
