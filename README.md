@@ -25,9 +25,9 @@
 
 ## Features
 
-* **Cross-Platform** - macOS (Apple Silicon & Intel) and Linux (with optional NVIDIA GPU support).
+* **Cross-Platform** - macOS and Linux (with optional NVIDIA GPU support).
 * **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM (measured on Apple M1).
-* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML. *(Direct download only on macOS; [see below](#macos-version-differences).)*
+* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML.
 * **Theme Aware** - Auto-detects light/dark mode.
 * **Configurable** - Toggle CPU, GPU, Memory, or Network stats via the right-click menu (GPU shown when hardware is available).
 * **Private** - 100% local. No analytics, network requests, or telemetry.
