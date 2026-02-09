@@ -11,5 +11,10 @@ export default defineConfig({
     platformProxy: {
       enabled: true
     }
-  })
+  }),
+  vite: {
+    ssr: {
+      external: ['@resvg/resvg-js', 'node:fs', 'node:path'],
+    },
+  },
 });
