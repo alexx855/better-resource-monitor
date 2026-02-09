@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /og.png
+Disallow: /badges/
+Disallow: /screenshots/
 
 Sitemap: https://better-resource-monitor.alexpedersen.dev/sitemap-index.xml
