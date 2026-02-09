@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
 </p>
 
 <h1 align="center">Better Resource Monitor</h1>
@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="/badges/appstore.webp" alt="Download on the Mac App Store" height="40"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="/badges/macos.webp" alt="Download macOS on GitHub Releases" height="40"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" height="40"></a>
+  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" height="40"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/Better.Resource.Monitor_1.0.0_aarch64.dmg"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" height="40"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.0.0/better-resource-monitor_1.0.0_amd64.deb"><img src="https://better-resource-monitor.alexpedersen.dev/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" height="40"></a>
 </p>
 
 <p align="center">
