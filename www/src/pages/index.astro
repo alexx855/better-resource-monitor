@@ -21,7 +21,7 @@ const description =
     }
 
 
-    p[align="center"]:has(img[src^="/badges/"]) {
+    p[align="center"]:has(img[src*="/badges/"]) {
       display: flex;
       justify-content: space-between;
       gap: var(--space-4);
@@ -37,7 +37,7 @@ const description =
       .container {
         padding: 0 var(--space-4);
       }
-      p[align="center"]:has(img[src^="/badges/"]) {
+      p[align="center"]:has(img[src*="/badges/"]) {
         display: flex;
         gap: var(--space-4);
         height: auto;
