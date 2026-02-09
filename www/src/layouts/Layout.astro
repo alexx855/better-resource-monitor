@@ -1,12 +1,13 @@
 ---
-import { ClientRouter } from 'astro:transitions';
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title: string;
   description: string;
+  showBackLink?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, showBackLink = true } = Astro.props;
 ---
 
 <!doctype html>
@@ -21,20 +22,41 @@ const { title, description } = Astro.props;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.site} />
-    <meta property="og:image" content="https://opengraph.githubassets.com/1/alexx855/better-resource-monitor" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:image" content={new URL("/og.png", Astro.site).href} />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@alexx855" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content="https://opengraph.githubassets.com/1/alexx855/better-resource-monitor" />
+    <meta name="twitter:image" content={new URL("/og.png", Astro.site).href} />
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta name="robots" content="index, follow" />
     <title>{title}</title>
     <ClientRouter />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Better Resource Monitor",
+      "description": description,
+      "applicationCategory": "UtilitiesApplication",
+      "applicationSubCategory": "System Monitor",
+      "operatingSystem": "macOS, Linux",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
+      "downloadUrl": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
+      "featureList": "Cross-Platform, Lightweight, GPU Monitoring, Theme Aware, Configurable, Private",
+      "screenshot": new URL("/og.png", Astro.site).href,
+      "codeRepository": "https://github.com/alexx855/better-resource-monitor",
+      "license": "https://opensource.org/licenses/MIT"
+    })} />
 
     <style is:global>
       :root {
@@ -52,7 +74,7 @@ const { title, description } = Astro.props;
         --space-2: 8px;
         --space-3: 12px;
         --space-4: 16px;
-        --space-5: 24px;
+        --space-4: 24px;
         --space-6: 32px;
         --space-10: 64px;
 
@@ -72,16 +94,31 @@ const { title, description } = Astro.props;
         --fs-2xl: 3rem;
 
         /* Font */
-        --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", menlo, monospace;
+        --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", menlo,
+          monospace;
 
         /* Transitions */
         --transition-fast: 0.1s ease;
       }
 
       /* Base reset */
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; overflow-x: hidden; }
-      img, video, iframe { max-width: 100%; height: auto; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+      img,
+      video,
+      iframe {
+        max-width: 100%;
+        height: auto;
+      }
 
       body {
         font: 400 16px/1.6 var(--font-mono);
@@ -93,43 +130,48 @@ const { title, description } = Astro.props;
         flex-direction: column;
       }
 
-      @media (min-width: 700px) { body { font-size: 17px; } }
-      @media (min-width: 1100px) { body { font-size: 18px; } }
+      @media (min-width: 700px) {
+        body {
+          font-size: 17px;
+        }
+      }
+      @media (min-width: 1100px) {
+        body {
+          font-size: 18px;
+        }
+      }
 
       /* Typography */
-      h1, h2, h3, h4, h5, h6 {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         font: inherit;
         font-weight: 600;
         line-height: 1.2;
         color: var(--c-text);
         margin: 0 0 var(--space-4);
+        padding-top:  var(--space-4);
       }
 
       h1 {
         font-size: var(--fs-2xl);
-        text-align: center;
-        padding-top: var(--space-10);
-        margin-bottom: var(--space-5);
       }
 
       h2 {
         font-size: var(--fs-xl);
-        margin-top: var(--space-10);
-        margin-bottom: var(--space-5);
-        padding-bottom: var(--space-2);
-        border-bottom: var(--border-width) solid var(--c-border);
       }
 
       h3 {
         font-size: var(--fs-lg);
-        margin-top: var(--space-6);
-        margin-bottom: var(--space-4);
+
       }
 
       h4 {
         font-size: var(--fs-md);
-        margin-top: var(--space-5);
-        margin-bottom: var(--space-3);
+
       }
 
       p {
@@ -138,11 +180,17 @@ const { title, description } = Astro.props;
         font-size: var(--fs-base);
       }
 
-      p + p { margin-top: var(--space-4); }
+      p + p {
+        margin-top: var(--space-4);
+      }
 
       strong {
         color: var(--c-text);
         font-weight: 600;
+      }
+
+      a * {
+        color: inherit;
       }
 
       /* Links */
@@ -151,13 +199,11 @@ const { title, description } = Astro.props;
         text-decoration: underline;
         text-underline-offset: 3px;
         text-decoration-thickness: var(--border-width);
-        transition: all var(--transition-fast);
-        padding: 2px;
+        transition: color var(--transition-fast);
       }
 
       a:hover {
-        background-color: var(--c-accent);
-        color: var(--c-bg);
+        color: var(--c-accent);
         text-decoration: none;
       }
 
@@ -171,20 +217,15 @@ const { title, description } = Astro.props;
         width: 100%;
         max-width: var(--max-width);
         margin: 0 auto;
-        padding: 0 var(--space-4);
+        padding: var(--space-4);
         flex: 1;
       }
 
-      @media (min-width: 700px) {
-        .container {
-          padding: 0 var(--space-10);
-        }
-      }
-
       /* Lists */
-      ul, ol {
-        margin-bottom: var(--space-5);
-        padding-left: var(--space-5);
+      ul,
+      ol {
+        margin-bottom: var(--space-4);
+        padding-left: var(--space-4);
         color: var(--c-text-dim);
       }
 
@@ -193,12 +234,9 @@ const { title, description } = Astro.props;
         padding-left: var(--space-2);
       }
 
-      li::marker {
-        color: var(--c-text-dim);
-      }
-
       /* Code Blocks */
-      code, pre {
+      code,
+      pre {
         font-family: inherit;
         font-size: 0.95em;
       }
@@ -207,7 +245,7 @@ const { title, description } = Astro.props;
         background: var(--c-surface-alt);
         padding: var(--space-4);
         overflow-x: auto;
-        margin: 0 0 var(--space-5);
+        margin: 0 0 var(--space-4);
         border: var(--border-width) solid var(--c-border);
       }
 
@@ -218,7 +256,8 @@ const { title, description } = Astro.props;
       }
 
       /* Inline code */
-      p code, li code {
+      p code,
+      li code {
         background: var(--c-surface-alt);
         padding: 0.2em 0.4em;
         color: var(--c-text);
@@ -229,12 +268,13 @@ const { title, description } = Astro.props;
       table {
         width: 100%;
         border-collapse: collapse;
-        margin: var(--space-5) 0;
+        margin: var(--space-4) 0;
         border: var(--border-width) solid var(--c-border);
         background: var(--c-surface);
       }
 
-      th, td {
+      th,
+      td {
         padding: var(--space-3) var(--space-4);
         text-align: left;
         border-bottom: var(--border-width) solid var(--c-border);
@@ -261,50 +301,15 @@ const { title, description } = Astro.props;
         margin: var(--space-10) 0;
       }
 
-      /* Images */
-      p img[width="830"] {
-        margin: var(--space-5) 0;
-      }
-
-      /* Badge hover */
-      p[align="center"] a img {
-        transition: opacity var(--transition-fast);
-      }
-
-      p[align="center"] a:hover img {
-        opacity: 0.85;
-      }
-
-      /* Top nav links */
-      p[align="center"] a {
-        display: inline-block;
-        margin: 0 var(--space-2);
-        color: var(--c-text-dim);
-        font-weight: 500;
-      }
-
-      p[align="center"] a:hover {
-        color: var(--c-bg);
-        background-color: var(--c-accent);
-      }
-
-      p[align="center"] {
-        color: var(--c-border);
-      }
-
-      p[align="center"] span {
-        color: var(--c-text-dim);
-        font-size: 1.2em;
-      }
 
       /* Content Page Specifics */
       .content-page .container {
-        padding-top: var(--space-10);
+        padding-top: var(--space-4);
       }
 
       .content-page h1 {
         text-align: left;
-        margin-bottom: var(--space-5);
+        margin-bottom: var(--space-4);
         padding-top: 0;
       }
 
@@ -327,16 +332,14 @@ const { title, description } = Astro.props;
       /* Footer */
       .site-footer {
         border-top: var(--border-width) solid var(--c-border);
-        padding: var(--space-6) var(--space-4);
         margin-top: auto;
         text-align: center;
       }
 
       .site-footer nav {
         display: flex;
-        justify-content: center;
-        gap: var(--space-5);
-        margin-bottom: var(--space-4);
+        justify-content: space-between;
+        gap: var(--space-4);
       }
 
       .site-footer nav a {
@@ -348,13 +351,14 @@ const { title, description } = Astro.props;
       }
 
       .site-footer nav a:hover {
-        color: var(--c-bg);
-        background-color: var(--c-accent);
+        color: var(--c-accent);
       }
 
       /* Responsive */
       @media (max-width: 768px) {
-        h1 { font-size: var(--fs-xl); }
+        h1 {
+          font-size: var(--fs-xl);
+        }
 
         pre {
           margin-left: calc(-1 * var(--space-4));
@@ -374,59 +378,36 @@ const { title, description } = Astro.props;
           flex-direction: column;
           gap: var(--space-3);
         }
-
-        /* Hero links: stack and hide dots */
-        p[align="center"]:has(a[href="#features"]) {
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-3);
-          font-size: 0;
-        }
-
-        p[align="center"]:has(a[href="#features"]) a {
-          font-size: var(--fs-base);
-          display: block;
-          padding: var(--space-2);
-          background: var(--c-surface);
-          border: var(--border-width) solid var(--c-border);
-          text-decoration: none;
-          text-align: center;
-          color: var(--c-text-dim);
-        }
-
-        p[align="center"]:has(a[href="#features"]) a:hover {
-          border-color: var(--c-accent);
-          color: var(--c-accent);
-          background: var(--c-surface);
-        }
-
-        p[align="center"]:has(a[href="#features"]) span {
-          display: none;
-        }
-
-        /* Hero buttons stack */
-        p[align="center"]:has(img) {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--space-3);
-        }
       }
     </style>
   </head>
   <body>
-    <div transition:animate="slide">
+    <div>
       <slot />
     </div>
     <footer class="site-footer" transition:persist>
-      <nav>
-        <a href="/privacy-policy">Privacy Policy</a>
-        <a href="/terms">Terms & Conditions</a>
-        <a href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a>
-        <a href="https://github.com/alexx855/better-resource-monitor/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a>
-        <a href="https://github.com/alexx855/better-resource-monitor/issues/new" target="_blank" rel="noopener noreferrer">Support</a>
-        <a href="https://github.com/alexx855/better-resource-monitor" target="_blank" rel="noopener noreferrer">GitHub</a>
-      </nav>
+      <div class="container">
+        <nav>
+          <a href="/faq">FAQ</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms">Terms & Conditions</a>
+          <a
+            href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer">License</a
+          >
+          <a
+            href="https://github.com/alexx855/better-resource-monitor/issues/new"
+            target="_blank"
+            rel="noopener noreferrer">Support</a
+          >
+          <a
+            href="https://github.com/alexx855/better-resource-monitor"
+            target="_blank"
+            rel="noopener noreferrer">GitHub</a
+          >
+        </nav>
+      </div>
     </footer>
   </body>
 </html>

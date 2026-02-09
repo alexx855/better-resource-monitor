@@ -1,0 +1,123 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'FAQ - Better Resource Monitor';
+const description = 'Frequently asked questions about Better Resource Monitor.';
+---
+
+<Layout title={title} description={description}>
+  <style is:global>
+    .faq h2 {
+      scroll-margin-top: var(--space-4);
+    }
+
+    .faq-list {
+      margin: 0;
+      padding: 0;
+    }
+
+    .faq-item {
+      border: var(--border-width) solid var(--c-border);
+      background: var(--c-surface);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .faq-item dt {
+      font-weight: 600;
+      color: var(--c-text);
+      font-size: var(--fs-md);
+      margin-bottom: var(--space-3);
+    }
+
+    .faq-item dd {
+      margin: 0;
+      color: var(--c-text-dim);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 0 var(--space-4);
+      }
+    }
+  </style>
+
+  <main class="content-page">
+    <div class="container">
+      <a href="/" class="back-link">&larr; Back to Home</a>
+      <section class="faq">
+        <h1>FAQ</h1>
+        <dl class="faq-list">
+          <div class="faq-item">
+            <dt>What is Better Resource Monitor?</dt>
+            <dd>Better Resource Monitor is a free, open-source system monitor that displays CPU, memory, GPU, and network usage directly in the macOS menu bar or Linux system tray. Built with Rust and Tauri, it uses under 0.1% CPU and approximately 15 MB of RAM.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>Is Better Resource Monitor free?</dt>
+            <dd>Yes. Better Resource Monitor is completely free and open-source under the MIT license. There are no paid tiers, subscriptions, or in-app purchases. Both the Mac App Store and GitHub download versions are free.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>How much CPU and memory does it use?</dt>
+            <dd>Better Resource Monitor uses less than 0.1% CPU and approximately 15 MB of RAM on an Apple M1. By comparison, popular alternatives like Stats use ~45 MB and iStat Menus uses ~60 MB. The app binary itself is under 7 MB.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>Why doesn't GPU monitoring work from the App Store?</dt>
+            <dd>GPU monitoring on macOS requires Apple's private IOReport framework. Apple rejects apps that use private APIs during App Store review. The GitHub download version is notarized by Apple but not sandboxed, so it has full GPU access. On Linux, GPU monitoring uses NVIDIA's NVML and works in all versions.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>Does Better Resource Monitor collect any data?</dt>
+            <dd>No. Better Resource Monitor is 100% local. It makes zero network requests, contains no analytics, and sends no telemetry. All system metrics are read and displayed locally. The source code is publicly auditable on GitHub.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <script type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is Better Resource Monitor?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Better Resource Monitor is a free, open-source system monitor that displays CPU, memory, GPU, and network usage directly in the macOS menu bar or Linux system tray. Built with Rust and Tauri, it uses under 0.1% CPU and approximately 15 MB of RAM."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is Better Resource Monitor free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Better Resource Monitor is completely free and open-source under the MIT license. There are no paid tiers, subscriptions, or in-app purchases. Both the Mac App Store and GitHub download versions are free."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much CPU and memory does it use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Better Resource Monitor uses less than 0.1% CPU and approximately 15 MB of RAM on an Apple M1. By comparison, popular alternatives like Stats use ~45 MB and iStat Menus uses ~60 MB. The app binary itself is under 7 MB."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Why doesn't GPU monitoring work from the App Store?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "GPU monitoring on macOS requires Apple's private IOReport framework. Apple rejects apps that use private APIs during App Store review. The GitHub download version is notarized by Apple but not sandboxed, so it has full GPU access. On Linux, GPU monitoring uses NVIDIA's NVML and works in all versions."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Better Resource Monitor collect any data?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Better Resource Monitor is 100% local. It makes zero network requests, contains no analytics, and sends no telemetry. All system metrics are read and displayed locally. The source code is publicly auditable on GitHub."
+            }
+          }
+        ]
+      })} />
+    </div>
+  </main>
+</Layout>
