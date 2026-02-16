@@ -23,6 +23,9 @@ cargo clippy
 # Tests
 cargo test --manifest-path src-tauri/Cargo.toml
 
+# App Store build (strips IOReport private APIs for Guideline 2.5.1)
+cargo build --manifest-path src-tauri/Cargo.toml --features apple-app-store
+
 # Test coverage (requires cargo-llvm-cov)
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 
@@ -57,7 +60,7 @@ node www/generate-badges.mjs
 - **Linux**: NVML via `nvml-wrapper` for NVIDIA utilization
 - GPU menu item only shown when hardware is detected; missing GPU doesn't prevent app from running
 
-**Banner generator CLI** (`src-tauri/src/bin/render_tray_icon.rs`)
+**Banner generator CLI** (`src-tauri/examples/render_tray_icon.rs`)
 - Renders a PNG using the exact same `TrayRenderer` as the app
 
 **Tests** (`src-tauri/src/tests.rs`)
@@ -116,7 +119,7 @@ The repo includes a generator for `www/public/better-resource-monitor.png` that 
 Generate the banner (830x43) from the macOS sizing preset scaled to 2/3, with alert colors disabled (avoids orange when values exceed threshold):
 
 ```bash
-cargo run --manifest-path src-tauri/Cargo.toml --bin render_tray_icon -- \
+cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --preset macos \
   --scale 0.6666667 \
   --cpu 45 --mem 99 --gpu 78 \

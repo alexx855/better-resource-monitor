@@ -8,7 +8,7 @@
 // macOS Implementation (Apple Silicon via IOReport)
 // ============================================================================
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "apple-app-store")))]
 mod macos {
     use std::ffi::c_void;
     use std::marker::{PhantomData, PhantomPinned};
@@ -319,11 +319,33 @@ mod linux {
 }
 
 // ============================================================================
+// macOS App Store stub (no GPU monitoring — IOReport is private API)
+// ============================================================================
+
+#[cfg(all(target_os = "macos", feature = "apple-app-store"))]
+mod macos_stub {
+    pub struct GpuSampler;
+
+    impl GpuSampler {
+        pub fn new() -> Option<Self> {
+            None
+        }
+
+        pub fn sample(&mut self) -> Option<f32> {
+            None
+        }
+    }
+}
+
+// ============================================================================
 // Re-export platform-specific implementation
 // ============================================================================
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "apple-app-store")))]
 pub use macos::GpuSampler;
+
+#[cfg(all(target_os = "macos", feature = "apple-app-store"))]
+pub use macos_stub::GpuSampler;
 
 #[cfg(target_os = "linux")]
 pub use linux::GpuSampler;
