@@ -2,8 +2,6 @@ mod gpu;
 pub mod tray_render;
 
 // std
-use std::fs;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
@@ -21,7 +19,7 @@ use tauri::{
     image::Image,
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager,
+    AppHandle,
 };
 use tauri_plugin_store::StoreExt;
 
@@ -256,27 +254,12 @@ fn setup_tray(
     let autostart_manager = app.autolaunch();
 
     #[cfg(desktop)]
-    let is_autostart_enabled = {
-        let marker_path: PathBuf = app
-            .path()
-            .app_data_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join(".autostart_configured");
-
-        if !marker_path.exists() {
-            let _ = autostart_manager.enable();
-            if let Some(parent) = marker_path.parent() {
-                let _ = fs::create_dir_all(parent);
-            }
-            let _ = fs::write(&marker_path, "1");
-            true
-        } else if autostart_manager.is_enabled().unwrap_or(false) {
-            // Re-register to repair macOS Login Items desync
-            let _ = autostart_manager.enable();
-            true
-        } else {
-            false
-        }
+    let is_autostart_enabled = if autostart_manager.is_enabled().unwrap_or(false) {
+        // Re-register to repair macOS Login Items desync
+        let _ = autostart_manager.enable();
+        true
+    } else {
+        false
     };
     #[cfg(not(desktop))]
     let is_autostart_enabled = false;
