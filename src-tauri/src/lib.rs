@@ -270,8 +270,12 @@ fn setup_tray(
             }
             let _ = fs::write(&marker_path, "1");
             true
+        } else if autostart_manager.is_enabled().unwrap_or(false) {
+            // Re-register to repair macOS Login Items desync
+            let _ = autostart_manager.enable();
+            true
         } else {
-            autostart_manager.is_enabled().unwrap_or(false)
+            false
         }
     };
     #[cfg(not(desktop))]
