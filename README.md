@@ -16,25 +16,17 @@
 
 <p align="center">
   <a href="#features">Features</a> <span>•</span>
-  <a href="#why">Why</a> <span>•</span>
   <a href="#comparison">Comparison</a> <span>•</span>
   <a href="#installation">Installation</a>
 </p>
-
-
 
 ## Features
 
 * **Cross-Platform** - macOS and Linux (with optional NVIDIA GPU support).
 * **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM (measured on Apple M1).
 * **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML.
-* **Theme Aware** - Auto-detects light/dark mode.
 * **Configurable** - Toggle CPU, GPU, Memory, or Network stats via the right-click menu (GPU shown when hardware is available).
 * **Private** - 100% local. No analytics, network requests, or telemetry.
-
-## Why?
-
-I wanted <a href="https://github.com/0ry0n/Resource_Monitor" target="_blank" rel="noopener noreferrer"><strong>GNOME Resource Monitor</strong></a>'s simplicity on macOS. Paid apps charge $15+ for basic stats. Free alternatives lack GPU support. This uses platform-native GPU APIs (IOReport on macOS, NVML on Linux).
 
 ### How it works
 
@@ -42,7 +34,6 @@ I wanted <a href="https://github.com/0ry0n/Resource_Monitor" target="_blank" rel
 | :--- | :--- | :--- |
 | **CPU/Memory/Network** | `sysinfo` crate | `sysinfo` crate |
 | **GPU Metrics** | IOReport FFI (private APIs) | NVML via `nvml-wrapper` |
-| **Theme Detection** | Template icon (native macOS adaptation) | gsettings |
 
 On macOS, it calculates **active residency** instead of just "utilization" - giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
 
