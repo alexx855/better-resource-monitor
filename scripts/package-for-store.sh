@@ -61,7 +61,8 @@ fi
 
 echo "Building universal binary for App Store..."
 echo "Using --bundles app to create only .app bundle"
-pnpm tauri build --bundles app --target universal-apple-darwin
+echo "Using --features apple-app-store to strip private IOReport APIs (Guideline 2.5.1)"
+pnpm tauri build --features apple-app-store --bundles app --target universal-apple-darwin
 
 # Check if App exists
 if [ ! -d "$APP_PATH" ]; then
