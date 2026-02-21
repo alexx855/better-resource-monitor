@@ -116,7 +116,7 @@ mod menu_id {
 
 const TRAY_ID: &str = "main";
 
-fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
+fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool) {
     let store = match app.store(SETTINGS_FILE) {
         Ok(s) => Some(s),
         Err(e) => {
@@ -125,20 +125,21 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool) {
         }
     };
 
-    let get_bool = |key: &str| -> bool {
+    let get_bool = |key: &str, default: bool| -> bool {
         store
             .as_ref()
             .and_then(|s| s.get(key))
             .and_then(|v| v.as_bool())
-            .unwrap_or(true)
+            .unwrap_or(default)
     };
 
     (
-        get_bool("show_cpu"),
-        get_bool("show_mem"),
-        get_bool("show_gpu"),
-        get_bool("show_net"),
-        get_bool("show_alerts"),
+        get_bool("show_cpu", true),
+        get_bool("show_mem", true),
+        get_bool("show_gpu", true),
+        get_bool("show_net", true),
+        get_bool("show_alerts", true),
+        get_bool(menu_id::AUTOSTART, false),
     )
 }
 
@@ -249,20 +250,18 @@ fn setup_tray(
     show_net: Arc<AtomicBool>,
     show_alerts: Arc<AtomicBool>,
     gpu_available: bool,
+    is_autostart_enabled: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Sync the autostart plugin state to match the store value
     #[cfg(desktop)]
-    let autostart_manager = app.autolaunch();
-
-    #[cfg(desktop)]
-    let is_autostart_enabled = if autostart_manager.is_enabled().unwrap_or(false) {
-        // Re-register to repair macOS Login Items desync
-        let _ = autostart_manager.enable();
-        true
-    } else {
-        false
-    };
-    #[cfg(not(desktop))]
-    let is_autostart_enabled = false;
+    {
+        let manager = app.autolaunch();
+        if is_autostart_enabled {
+            let _ = manager.enable();
+        } else {
+            let _ = manager.disable();
+        }
+    }
 
     let autostart_item = CheckMenuItem::with_id(
         app,
@@ -386,11 +385,13 @@ fn setup_tray(
                     #[cfg(desktop)]
                     {
                         let manager = app.autolaunch();
-                        if manager.is_enabled().unwrap_or(false) {
+                        let enabled = manager.is_enabled().unwrap_or(false);
+                        if enabled {
                             let _ = manager.disable();
                         } else {
                             let _ = manager.enable();
                         }
+                        save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
                 }
                 menu_id::SHOW_CPU => toggle_setting(app, menu_id::SHOW_CPU, &show_cpu, flags),
@@ -620,7 +621,7 @@ pub fn run() {
             start_theme_detection_thread();
 
             // Load persisted settings
-            let (cpu, mem, gpu, net, alerts) = load_settings(app.handle());
+            let (cpu, mem, gpu, net, alerts, autostart) = load_settings(app.handle());
             show_cpu_tray.store(cpu, Relaxed);
             show_mem_tray.store(mem, Relaxed);
             show_gpu_tray.store(gpu, Relaxed);
@@ -639,6 +640,7 @@ pub fn run() {
                 show_net_tray,
                 show_alerts_tray,
                 gpu_available,
+                autostart,
             )?;
 
             start_monitoring(
