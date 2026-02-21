@@ -25,6 +25,8 @@ dist-ssr
 *.sw?
 
 .env**
+!.env.example
+scripts/.build-number
 
 # applestoreconnect
 src-tauri/embedded.provisionprofile
