@@ -123,6 +123,7 @@ jobs:
       - name: Commit and tag
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          rm -f release_notes.md
           git add -A
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "v$NEW_VERSION"
