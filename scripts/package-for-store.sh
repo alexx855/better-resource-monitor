@@ -60,7 +60,7 @@ fi
 echo "Building universal binary for App Store..."
 echo "Using --bundles app to create only .app bundle"
 echo "Using --features apple-app-store to strip private IOReport APIs (Guideline 2.5.1)"
-pnpm tauri build --features apple-app-store --bundles app --target universal-apple-darwin
+pnpm tauri build --features apple-app-store --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json
 
 if [ ! -d "$APP_PATH" ]; then
   echo "Error: App bundle not found at $APP_PATH"
@@ -71,7 +71,7 @@ echo "App bundle found at: $APP_PATH"
 
 if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
   echo "Error: Provisioning profile was not embedded by Tauri"
-  echo "Check that 'files' config in tauri.conf.json is correct"
+  echo "Check that 'files' config in tauri.appstore.conf.json is correct"
   exit 1
 fi
 echo "Provisioning profile embedded successfully"

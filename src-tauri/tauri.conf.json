@@ -27,10 +27,7 @@
     "macOS": {
       "infoPlist": "Info.plist",
       "entitlements": "Entitlements.plist",
-      "minimumSystemVersion": "11.0",
-      "files": {
-        "embedded.provisionprofile": "embedded.provisionprofile"
-      }
+      "minimumSystemVersion": "11.0"
     },
     "linux": {
       "deb": {
