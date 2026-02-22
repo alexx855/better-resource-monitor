@@ -1,4 +1,10 @@
 use super::*;
+use std::sync::{Mutex, OnceLock};
+
+fn env_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 #[test]
 fn test_cap_percent() {
@@ -205,4 +211,155 @@ fn test_alert_colors_all_segments() {
         None,
     );
     assert!(!has_alert_disabled);
+}
+
+#[test]
+fn test_sizing_scaled_up() {
+    let scaled = tray_render::SIZING_LINUX.scaled(2.0);
+
+    assert_eq!(scaled.segment_width, 116);
+    assert_eq!(scaled.segment_width_net, 150);
+    assert_eq!(scaled.edge_padding, 10);
+    assert_eq!(scaled.segment_gap, 36);
+    assert_eq!(scaled.icon_height, 44);
+    assert_eq!(scaled.font_size, 38.0);
+}
+
+#[test]
+fn test_sizing_scaled_down() {
+    let scaled = tray_render::SIZING_LINUX.scaled(0.5);
+
+    assert_eq!(scaled.segment_width, 29);
+    assert_eq!(scaled.segment_width_net, 38);
+    assert_eq!(scaled.edge_padding, 3);
+    assert_eq!(scaled.segment_gap, 9);
+    assert_eq!(scaled.icon_height, 11);
+    assert_eq!(scaled.font_size, 9.5);
+}
+
+#[test]
+fn test_sizing_scaled_rounding() {
+    let scaled = tray_render::SIZING_LINUX.scaled(0.333);
+
+    assert_eq!(scaled.segment_width, 19);
+    assert_eq!(scaled.segment_width_net, 25);
+    assert_eq!(scaled.edge_padding, 2);
+    assert_eq!(scaled.segment_gap, 6);
+    assert_eq!(scaled.icon_height, 7);
+    assert_eq!(scaled.font_size, 19.0 * 0.333);
+}
+
+#[test]
+#[should_panic(expected = "scale must be > 0")]
+fn test_sizing_scaled_panics_on_zero() {
+    let _ = tray_render::SIZING_LINUX.scaled(0.0);
+}
+
+#[test]
+fn test_get_update_interval_ms_default_when_unset() {
+    let _guard = env_lock().lock().expect("env lock poisoned");
+    let previous = std::env::var("SILICON_UPDATE_INTERVAL").ok();
+    std::env::remove_var("SILICON_UPDATE_INTERVAL");
+
+    assert_eq!(get_update_interval_ms(), UPDATE_INTERVAL_MS);
+
+    if let Some(value) = previous {
+        std::env::set_var("SILICON_UPDATE_INTERVAL", value);
+    }
+}
+
+#[test]
+fn test_get_update_interval_ms_valid_env() {
+    let _guard = env_lock().lock().expect("env lock poisoned");
+    let previous = std::env::var("SILICON_UPDATE_INTERVAL").ok();
+    std::env::set_var("SILICON_UPDATE_INTERVAL", "1234");
+
+    assert_eq!(get_update_interval_ms(), 1234);
+
+    if let Some(value) = previous {
+        std::env::set_var("SILICON_UPDATE_INTERVAL", value);
+    } else {
+        std::env::remove_var("SILICON_UPDATE_INTERVAL");
+    }
+}
+
+#[test]
+fn test_get_update_interval_ms_invalid_env_falls_back() {
+    let _guard = env_lock().lock().expect("env lock poisoned");
+    let previous = std::env::var("SILICON_UPDATE_INTERVAL").ok();
+    std::env::set_var("SILICON_UPDATE_INTERVAL", "abc");
+
+    assert_eq!(get_update_interval_ms(), UPDATE_INTERVAL_MS);
+
+    if let Some(value) = previous {
+        std::env::set_var("SILICON_UPDATE_INTERVAL", value);
+    } else {
+        std::env::remove_var("SILICON_UPDATE_INTERVAL");
+    }
+}
+
+#[test]
+fn test_render_with_all_segments_disabled() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    let (width, height, has_alert) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        APP_SIZING,
+        50.0,
+        50.0,
+        50.0,
+        "0 KB",
+        "0 KB",
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        None,
+    );
+
+    assert_eq!(width, APP_SIZING.edge_padding * 2);
+    assert_eq!(height, APP_SIZING.icon_height);
+    assert!(!has_alert);
+    assert_eq!(buffer.len(), (width * height * 4) as usize);
+}
+
+#[test]
+fn test_render_with_long_network_strings() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+    let long_down = "9".repeat(512);
+    let long_up = "8".repeat(512);
+
+    let (width, height, has_alert) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        APP_SIZING,
+        0.0,
+        0.0,
+        0.0,
+        &long_down,
+        &long_up,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        None,
+    );
+
+    let expected_width = APP_SIZING.edge_padding * 2
+        + (APP_SIZING.segment_width_net * 2)
+        + APP_SIZING.segment_gap;
+
+    assert_eq!(width, expected_width);
+    assert_eq!(height, APP_SIZING.icon_height);
+    assert!(!has_alert);
+    assert_eq!(buffer.len(), (width * height * 4) as usize);
 }
