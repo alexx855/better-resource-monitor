@@ -117,9 +117,6 @@ jobs:
           sed -i 's|releases/download/v[0-9.]*|releases/download/v'"$NEW_VERSION"'|g' README.md
           sed -i 's|Better\.Resource\.Monitor_[0-9.]*_aarch64\.dmg|Better.Resource.Monitor_'"$NEW_VERSION"'_aarch64.dmg|g' README.md
 
-          # Update Ubuntu download link (productName -> lowercase with hyphens)
-          sed -i 's|better-resource-monitor_[0-9.]*_amd64\.deb|better-resource-monitor_'"$NEW_VERSION"'_amd64.deb|g' README.md
-
       - name: Commit and tag
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
@@ -140,8 +137,6 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
-          - platform: 'ubuntu-22.04'
-            args: ''
 
     runs-on: ${{ matrix.platform }}
     env:
@@ -164,17 +159,6 @@ jobs:
         with:
           node-version: lts/*
           cache: 'pnpm'
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libxdo-dev \
-            patchelf
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
