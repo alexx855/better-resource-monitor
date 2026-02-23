@@ -5,6 +5,11 @@ import cloudflare from '@astrojs/cloudflare';
 
 // https://astro.build/config
 export default defineConfig({
+  markdown: {
+    shikiConfig: {
+      theme: 'github-light',
+    },
+  },
   site: 'https://better-resource-monitor.alexpedersen.dev',
   integrations: [sitemap()],
   adapter: cloudflare({
