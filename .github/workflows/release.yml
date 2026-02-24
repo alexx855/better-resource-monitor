@@ -79,17 +79,25 @@ jobs:
 
       - name: Generate release notes
         id: notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          # Use GitHub API to find previous release tag (works across branches)
+          LAST_TAG=$(gh release view --json tagName -q '.tagName' 2>/dev/null || echo "")
 
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          if [ -n "$LAST_TAG" ]; then
+            # merge-base handles tags on different branches correctly:
+            # - tag IS ancestor of HEAD: merge-base = tag itself (normal case)
+            # - tag on side branch: merge-base = divergence point
+            BASE=$(git merge-base "$LAST_TAG" HEAD 2>/dev/null || echo "")
+            if [ -n "$BASE" ]; then
+              COMMITS=$(git log ${BASE}..HEAD --pretty=format:"- %s" --no-merges)
+            else
+              COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+            fi
           else
-            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
           fi
-
-          # Escape for GitHub Actions output
-          NOTES=$(echo "$COMMITS" | sed 's/"/\\"/g')
 
           # Write to file for multiline output
           echo "## What's Changed" > release_notes.md
@@ -117,9 +125,6 @@ jobs:
           sed -i 's|releases/download/v[0-9.]*|releases/download/v'"$NEW_VERSION"'|g' README.md
           sed -i 's|Better\.Resource\.Monitor_[0-9.]*_aarch64\.dmg|Better.Resource.Monitor_'"$NEW_VERSION"'_aarch64.dmg|g' README.md
 
-          # Update Ubuntu download link (productName -> lowercase with hyphens)
-          sed -i 's|better-resource-monitor_[0-9.]*_amd64\.deb|better-resource-monitor_'"$NEW_VERSION"'_amd64.deb|g' README.md
-
       - name: Commit and tag
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
@@ -140,8 +145,6 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
-          - platform: 'ubuntu-22.04'
-            args: ''
 
     runs-on: ${{ matrix.platform }}
     env:
@@ -164,17 +167,6 @@ jobs:
         with:
           node-version: lts/*
           cache: 'pnpm'
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libxdo-dev \
-            patchelf
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
