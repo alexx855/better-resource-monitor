@@ -7,7 +7,7 @@ import cloudflare from '@astrojs/cloudflare';
 export default defineConfig({
   markdown: {
     shikiConfig: {
-      theme: 'github-light',
+      theme: 'github-dark',
     },
   },
   site: 'https://better-resource-monitor.alexpedersen.dev',
