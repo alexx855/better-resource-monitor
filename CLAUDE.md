@@ -116,12 +116,12 @@ Binary size is optimized: `opt-level = "z"`, `lto = "thin"`, `strip = "symbols"`
 
 The repo includes a generator for `www/public/better-resource-monitor.png` that renders using the same code path as the app tray icon renderer.
 
-Generate the banner (830x43) from the macOS sizing preset scaled to 2/3, with alert colors disabled (avoids orange when values exceed threshold):
+Generate the banner (2488x128) from the macOS sizing preset at 2x scale, with alert colors disabled (avoids orange when values exceed threshold). Higher resolution needed for crisp App Store screenshots:
 
 ```bash
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --preset macos \
-  --scale 0.6666667 \
+  --scale 2.0 \
   --cpu 45 --mem 99 --gpu 78 \
   --down "1.5 MB" --up "0.2 MB" \
   --show-alerts false \
@@ -136,15 +136,16 @@ sips -g pixelWidth -g pixelHeight www/public/better-resource-monitor.png
 
 ## Regenerate App Store Screenshots
 
-Builds the Astro site (which prerenders 3 headlines × 4 sizes = 12 PNGs via satori + resvg-js) and copies them to `screenshots/appstore/`:
+Builds the Astro site (which prerenders 3 headlines at 2880×1800 via satori + resvg-js) and copies them to `screenshots/appstore/`:
 
 ```bash
-./scripts/generate-screenshots.sh
+pnpm --filter www build
+cp www/dist/screenshots/*.png screenshots/appstore/
 ```
 
 Source template: `www/src/pages/screenshots/[id].png.ts`
 Shared renderer: `www/src/lib/og.ts`
-Output: `screenshots/appstore/{1280x800,1440x900,2560x1600,2880x1800}/{simplicity,performance,privacy}.png`
+Output: `screenshots/appstore/{simplicity,performance,privacy}.png` (2880×1800)
 
 ## Known Issues
 
