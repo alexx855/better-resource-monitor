@@ -5,13 +5,12 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>A menu bar/tray system monitor for macOS and Linux.</strong>
+  <strong>A menu bar/tray system monitor for macOS.</strong>
 </p>
 
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" width="268" height="65"></a>
   <a href="https://github.com/alexx855/better-resource-monitor/releases"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" width="268" height="65"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases"><img src="https://better-resource-monitor.alexpedersen.dev/badges/ubuntu.webp" alt="Download Ubuntu on GitHub Releases" width="268" height="65"></a>
 </p>
 
 <p align="center">
@@ -22,20 +21,19 @@
 
 ## Features
 
-* **Cross-Platform** - macOS and Linux (with optional NVIDIA GPU support).
-* **Lightweight** - Written in Rust. < 0.1% CPU, ~15MB RAM (measured on Apple M1).
-* **GPU Monitoring** - Apple Silicon residency via IOReport. NVIDIA utilization via NVML.
-* **Configurable** - Toggle CPU, GPU, Memory, or Network stats via the right-click menu (GPU shown when hardware is available).
-* **Private** - 100% local. No analytics, network requests, or telemetry.
+* Written in Rust. Uses < 0.1% CPU and ~15 MB RAM (measured on Apple M1).
+* GPU monitoring for Apple Silicon (active residency via IOReport).
+* Right-click the menu bar icon to toggle CPU, GPU, memory, or network stats. GPU only appears when hardware is detected.
+* Runs entirely offline. No analytics, no network requests, no telemetry.
 
 ### How it works
 
-| Component | macOS | Linux |
-| :--- | :--- | :--- |
-| **CPU/Memory/Network** | `sysinfo` crate | `sysinfo` crate |
-| **GPU Metrics** | IOReport FFI (private APIs) | NVML via `nvml-wrapper` |
+| Component | macOS |
+| :--- | :--- |
+| **CPU/Memory/Network** | `sysinfo` crate |
+| **GPU Metrics** | IOReport FFI (private APIs) |
 
-On macOS, it calculates **active residency** instead of just "utilization" - giving true insight into GPU workload. Runs without `sudo` and looks like a system component.
+On macOS, GPU metrics report active residency instead of utilization — residency counts time the GPU is actually doing work, not just allocated. No `sudo` required, no dock icon.
 
 ### macOS Version Differences
 
@@ -48,11 +46,11 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
     </tr>
   </thead>
   <tbody>
-    <tr><td><strong>CPU Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><td><strong>Memory Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><td><strong>Network Monitoring</strong></td><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><td><strong>GPU Monitoring</strong></td><td align="center">No</td><td align="center">Yes</td></tr>
-    <tr><td><strong>Automatic Updates</strong></td><td align="center">Yes</td><td align="center">No</td></tr>
+    <tr><th scope="row">CPU Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><th scope="row">Memory Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><th scope="row">Network Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
+    <tr><th scope="row">GPU Monitoring</th><td align="center">No</td><td align="center">Yes</td></tr>
+    <tr><th scope="row">Automatic Updates</th><td align="center">Yes</td><td align="center">No</td></tr>
   </tbody>
 </table>
 
@@ -72,13 +70,12 @@ On macOS, it calculates **active residency** instead of just "utilization" - giv
     </tr>
   </thead>
   <tbody>
-    <tr><td><strong>Price</strong></td><td align="center">Free</td><td align="center">Free</td><td align="center">$14.99</td></tr>
-    <tr><td><strong>License</strong></td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietary</td></tr>
-    <tr><td><strong>Memory</strong></td><td align="center">~15 MB</td><td align="center">~45 MB</td><td align="center">~60 MB</td></tr>
-    <tr><td><strong>CPU</strong></td><td align="center">&lt; 0.1%</td><td align="center">&lt; 0.5%</td><td align="center">&lt; 0.5%</td></tr>
-    <tr><td><strong>App Size</strong></td><td align="center">&lt; 7 MB (.app)</td><td align="center">~30 MB</td><td align="center">~40 MB</td></tr>
-    <tr><td><strong>GPU</strong></td><td align="center">IOReport / NVML</td><td align="center">IOReport</td><td align="center">Proprietary</td></tr>
-    <tr><td><strong>Linux</strong></td><td align="center">Yes</td><td align="center">No</td><td align="center">No</td></tr>
+    <tr><th scope="row">Price</th><td align="center">Free</td><td align="center">Free</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">License</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietary</td></tr>
+    <tr><th scope="row">Memory</th><td align="center">~15 MB</td><td align="center">~45 MB</td><td align="center">~60 MB</td></tr>
+    <tr><th scope="row">CPU</th><td align="center">&lt; 0.1%</td><td align="center">&lt; 0.5%</td><td align="center">&lt; 0.5%</td></tr>
+    <tr><th scope="row">App Size</th><td align="center">&lt; 7 MB (.app)</td><td align="center">~30 MB</td><td align="center">~40 MB</td></tr>
+    <tr><th scope="row">GPU</th><td align="center">IOReport</td><td align="center">IOReport</td><td align="center">Proprietary</td></tr>
   </tbody>
 </table>
 
@@ -93,16 +90,6 @@ Download from the [Mac App Store](https://apps.apple.com/app/better-resource-mon
 
 **GitHub Download (GPU Support):**
 Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>. Includes GPU monitoring for Apple Silicon.
-
-### Ubuntu
-
-**Download** the latest `.deb` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">Releases</a> and install:
-
-```bash
-sudo dpkg -i better-resource-monitor_*.deb
-```
-
-**GPU Monitoring (Optional):** Requires proprietary NVIDIA drivers. Without them, GPU monitoring is hidden.
 
 ### Build from Source
 
