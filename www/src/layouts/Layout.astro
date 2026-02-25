@@ -5,9 +5,10 @@ interface Props {
   title: string;
   description: string;
   showBackLink?: boolean;
+  ogImage?: string;
 }
 
-const { title, description, showBackLink = true } = Astro.props;
+const { title, description, showBackLink = true, ogImage = "/images/og-index.png" } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,14 +24,14 @@ const { title, description, showBackLink = true } = Astro.props;
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
-    <meta property="og:image" content={new URL("/og.png", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@alexx855" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL("/og.png", Astro.site).href} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site).href} />
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -53,7 +54,7 @@ const { title, description, showBackLink = true } = Astro.props;
       "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
       "downloadUrl": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
       "featureList": "Cross-Platform, Lightweight, GPU Monitoring, Theme Aware, Configurable, Private",
-      "screenshot": new URL("/og.png", Astro.site).href,
+      "screenshot": new URL(ogImage, Astro.site).href,
       "codeRepository": "https://github.com/alexx855/better-resource-monitor",
       "license": "https://opensource.org/licenses/MIT"
     })} />

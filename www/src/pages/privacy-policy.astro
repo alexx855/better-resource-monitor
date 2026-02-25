@@ -8,7 +8,7 @@ if (!privacyPolicy) throw new Error('Privacy policy not found');
 const { Content } = await render(privacyPolicy);
 ---
 
-<Layout title={privacyPolicy.data.title} description={privacyPolicy.data.description}>
+<Layout title={privacyPolicy.data.title} description={privacyPolicy.data.description} ogImage="/images/og-privacy.png">
   <main class="content-page">
     <div class="container">
       <a href="/" class="back-link">&larr; Back to Home</a>
