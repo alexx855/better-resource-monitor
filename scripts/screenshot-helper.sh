@@ -9,7 +9,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-OUTPUT_DIR="$PROJECT_DIR/screenshots/appstore"
+OUTPUT_DIR="$PROJECT_DIR/images/appstore"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # Detect current terminal app for restoration
@@ -50,7 +50,7 @@ show_help() {
     echo "  2. ./screenshot-helper.sh zoom    # Clean menu bar shot"
     echo "  3. ./screenshot-helper.sh menu    # With context menu open"
     echo ""
-    echo "Screenshots are saved to: screenshots/appstore/"
+    echo "Screenshots are saved to: images/appstore/"
     echo ""
 }
 

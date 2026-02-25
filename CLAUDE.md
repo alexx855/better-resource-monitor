@@ -134,18 +134,20 @@ Verify output dimensions:
 sips -g pixelWidth -g pixelHeight www/public/better-resource-monitor.png
 ```
 
-## Regenerate App Store Screenshots
+## Regenerate Marketing Images
 
-Builds the Astro site (which prerenders 3 headlines at 2880×1800 via satori + resvg-js) and copies them to `screenshots/appstore/`:
+Builds the Astro site (which prerenders App Store images at 2778×1284 and OG images at 1200×630 via satori + resvg-js) and copies them:
 
 ```bash
 pnpm --filter www build
-cp www/dist/screenshots/*.png screenshots/appstore/
+cp www/dist/images/{simplicity,performance,privacy}.png images/appstore/
+mkdir -p images/og
+cp www/dist/images/og-*.png images/og/
 ```
 
-Source template: `www/src/pages/screenshots/[id].png.ts`
-Shared renderer: `www/src/lib/og.ts`
-Output: `screenshots/appstore/{simplicity,performance,privacy}.png` (2880×1800)
+Source template: `www/src/pages/images/[id].png.ts`
+Shared renderer: `www/src/lib/renderer.ts`
+Output: `images/appstore/{simplicity,performance,privacy}.png` (2778×1284), `images/og/og-{index,faq,privacy,terms}.png` (1200×630)
 
 ## Known Issues
 

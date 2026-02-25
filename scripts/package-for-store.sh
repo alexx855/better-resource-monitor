@@ -59,7 +59,7 @@ fi
 
 echo "Building universal binary for App Store..."
 echo "Using --bundles app to create only .app bundle"
-echo "Using --features apple-app-store to strip private IOReport APIs (Guideline 2.5.1)"
+echo "Using --features apple-app-store to use IOAccelerator GPU instead of private IOReport APIs (Guideline 2.5.1)"
 pnpm tauri build --features apple-app-store --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json
 
 if [ ! -d "$APP_PATH" ]; then

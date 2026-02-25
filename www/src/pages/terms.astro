@@ -8,7 +8,7 @@ if (!terms) throw new Error('Terms not found');
 const { Content } = await render(terms);
 ---
 
-<Layout title={terms.data.title} description={terms.data.description}>
+<Layout title={terms.data.title} description={terms.data.description} ogImage="/images/og-terms.png">
   <main class="content-page">
     <div class="container">
       <a href="/" class="back-link">&larr; Back to Home</a>
