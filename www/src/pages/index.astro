@@ -28,13 +28,15 @@ const description =
       height: 60px;
       padding-top: var(--space-4);
       box-sizing: content-box;
-      a{
-        line-height: 1;
-      }
-      img {
-        width: auto;
-        height: 100%;
-      }
+    }
+
+    p[align="center"]:has(img[src*="/badges/"]) a {
+      line-height: 1;
+    }
+
+    p[align="center"]:has(img[src*="/badges/"]) img {
+      width: auto;
+      height: 100%;
     }
 
     @media (max-width: 600px) {

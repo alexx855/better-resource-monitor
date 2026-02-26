@@ -152,7 +152,7 @@ fn save_setting(app: &AppHandle, key: &str, value: bool) {
     }
 }
 
-const UPDATE_INTERVAL_MS: u64 = 800;
+const UPDATE_INTERVAL_MS: u64 = 2000;
 const CPU_STABILIZE_MS: u64 = 200;
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
@@ -162,16 +162,13 @@ const HYSTERESIS_THRESHOLD: f32 = 2.0;
 /// Reduces tray icon churn that can accumulate compositor resources on Linux.
 const NET_HYSTERESIS_BPS: f64 = 50_000.0;
 
-/// Minimum interval between network-driven updates.
-const NET_MIN_UPDATE_INTERVAL_SECS: u64 = 2;
-
 /// Returns true if the new value differs from previous by at least the threshold
 fn should_update(prev: f32, new: f32, threshold: f32) -> bool {
     (new - prev).abs() >= threshold
 }
 
 /// Get update interval from environment variable or use default.
-/// Set SILICON_UPDATE_INTERVAL=2000 to reduce icon updates (helps debug compositor leaks).
+/// Set SILICON_UPDATE_INTERVAL to override the default cadence.
 fn get_update_interval_ms() -> u64 {
     std::env::var("SILICON_UPDATE_INTERVAL")
         .ok()
@@ -232,12 +229,20 @@ mod tests;
 
 // render_tray_icon_into moved to tray_render.rs
 
-fn toggle_setting(app: &AppHandle, key: &str, flag: &AtomicBool, all_flags: [&AtomicBool; 4]) {
+fn toggle_setting(
+    app: &AppHandle,
+    key: &str,
+    flag: &AtomicBool,
+    all_flags: [&AtomicBool; 4],
+    item: &CheckMenuItem<tauri::Wry>,
+) {
     let current = flag.load(Relaxed);
     let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
     if !current || enabled_count > 1 {
         flag.store(!current, Relaxed);
         save_setting(app, key, !current);
+    } else {
+        let _ = item.set_checked(true);
     }
 }
 
@@ -315,20 +320,21 @@ fn setup_tray(
     let separator3 = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, menu_id::QUIT, "Quit", true, None::<&str>)?;
 
+    let show_gpu_item = CheckMenuItem::with_id(
+        app,
+        menu_id::SHOW_GPU,
+        "Show GPU",
+        true,
+        show_gpu.load(Relaxed),
+        None::<&str>,
+    )?;
+
     let menu = Menu::new(app)?;
     menu.append(&autostart_item)?;
     menu.append(&separator1)?;
     menu.append(&show_mem_item)?;
     menu.append(&show_cpu_item)?;
     if gpu_available {
-        let show_gpu_item = CheckMenuItem::with_id(
-            app,
-            menu_id::SHOW_GPU,
-            "Show GPU",
-            true,
-            show_gpu.load(Relaxed),
-            None::<&str>,
-        )?;
         menu.append(&show_gpu_item)?;
     }
     menu.append(&show_net_item)?;
@@ -369,6 +375,11 @@ fn setup_tray(
     #[cfg(target_os = "macos")]
     let tray_builder = tray_builder.icon_as_template(true);
 
+    let cpu_item = show_cpu_item.clone();
+    let mem_item = show_mem_item.clone();
+    let gpu_item = show_gpu_item.clone();
+    let net_item = show_net_item.clone();
+
     let _tray = tray_builder
         .menu(&menu)
         .show_menu_on_left_click(true)
@@ -394,10 +405,18 @@ fn setup_tray(
                         save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
                 }
-                menu_id::SHOW_CPU => toggle_setting(app, menu_id::SHOW_CPU, &show_cpu, flags),
-                menu_id::SHOW_MEM => toggle_setting(app, menu_id::SHOW_MEM, &show_mem, flags),
-                menu_id::SHOW_GPU => toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags),
-                menu_id::SHOW_NET => toggle_setting(app, menu_id::SHOW_NET, &show_net, flags),
+                menu_id::SHOW_CPU => {
+                    toggle_setting(app, menu_id::SHOW_CPU, &show_cpu, flags, &cpu_item)
+                }
+                menu_id::SHOW_MEM => {
+                    toggle_setting(app, menu_id::SHOW_MEM, &show_mem, flags, &mem_item)
+                }
+                menu_id::SHOW_GPU => {
+                    toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags, &gpu_item)
+                }
+                menu_id::SHOW_NET => {
+                    toggle_setting(app, menu_id::SHOW_NET, &show_net, flags, &net_item)
+                }
                 menu_id::SHOW_ALERTS => {
                     let new_value = !show_alerts.load(Relaxed);
                     show_alerts.store(new_value, Relaxed);
@@ -439,15 +458,12 @@ fn start_monitoring(
         let mut prev_cpu: f32 = -100.0; // Force initial update
         let mut prev_mem: f32 = -100.0;
         let mut prev_gpu: f32 = -100.0;
-        let mut prev_down = String::new();
-        let mut prev_up = String::new();
         let mut prev_down_speed: f64 = -1.0;
         let mut prev_up_speed: f64 = -1.0;
-        let mut last_net_update =
-            std::time::Instant::now() - Duration::from_secs(NET_MIN_UPDATE_INTERVAL_SECS);
         let mut prev_flags: (bool, bool, bool, bool, bool, bool) =
             (false, false, false, false, false, false);
         let update_interval = get_update_interval_ms();
+        let mut tick_count: u32 = 0;
 
         // Reusable buffer owned by monitoring thread - prevents compositor resource
         // accumulation on Linux that causes cursor slowdown
@@ -461,25 +477,8 @@ fn start_monitoring(
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
             last_update = now;
-            sys.refresh_cpu_usage();
-            sys.refresh_memory();
-            // Only refresh counters, not the interface list
-            networks.refresh(false);
-
-            let cpu_usage = sys.global_cpu_usage();
-
-            let used_mem = sys.used_memory() as f64;
-            let total_mem = sys.total_memory() as f64;
-            let mem_percent = if total_mem > 0.0 {
-                (used_mem / total_mem * 100.0) as f32
-            } else {
-                0.0
-            };
-
-            let (total_rx, total_tx) = sum_network_totals(&networks);
-            let down_speed = total_rx.saturating_sub(prev_rx) as f64 / dt;
-            let up_speed = total_tx.saturating_sub(prev_tx) as f64 / dt;
-            (prev_rx, prev_tx) = (total_rx, total_tx);
+            let full_tick = tick_count % 2 == 0;
+            tick_count = tick_count.wrapping_add(1);
 
             let sc = show_cpu.load(Relaxed);
             let sm = show_mem.load(Relaxed);
@@ -488,16 +487,61 @@ fn start_monitoring(
             let sn = show_net.load(Relaxed);
             let sa = show_alerts.load(Relaxed);
 
-            if sg {
+            #[cfg(target_os = "linux")]
+            let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
+            #[cfg(not(target_os = "linux"))]
+            let current_flags = (sc, sm, sg, sn, sa, false);
+
+            let flags_changed = prev_flags != current_flags;
+            let net_was_enabled = prev_flags.3;
+
+            // Refresh only metrics currently visible in the tray
+            if sc {
+                sys.refresh_cpu_usage();
+            }
+            if full_tick && sm {
+                sys.refresh_memory();
+            }
+            if sn {
+                networks.refresh(false);
+            }
+
+            let cpu_usage = if sc { sys.global_cpu_usage() } else { 0.0 };
+
+            let mem_percent = if sm {
+                let used_mem = sys.used_memory() as f64;
+                let total_mem = sys.total_memory() as f64;
+                if total_mem > 0.0 {
+                    (used_mem / total_mem * 100.0) as f32
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            };
+
+            let (down_speed, up_speed) = if sn {
+                let (total_rx, total_tx) = sum_network_totals(&networks);
+                if net_was_enabled {
+                    let down_speed = total_rx.saturating_sub(prev_rx) as f64 / dt;
+                    let up_speed = total_tx.saturating_sub(prev_tx) as f64 / dt;
+                    (prev_rx, prev_tx) = (total_rx, total_tx);
+                    (down_speed, up_speed)
+                } else {
+                    (prev_rx, prev_tx) = (total_rx, total_tx);
+                    (0.0, 0.0)
+                }
+            } else {
+                (0.0, 0.0)
+            };
+
+            if sg && full_tick {
                 if let Some(ref mut sampler) = gpu_sampler {
                     gpu_usage = sampler.sample().unwrap_or(0.0);
                 }
-            } else {
+            } else if !sg {
                 gpu_usage = 0.0;
             }
-
-            let down_str = format_speed(down_speed);
-            let up_str = format_speed(up_speed);
 
             // Hysteresis: only update if values change by meaningful threshold
             // This dramatically reduces icon updates, preventing compositor resource
@@ -505,33 +549,29 @@ fn start_monitoring(
             let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
             let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
             let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
-            let net_display_changed = prev_down != down_str || prev_up != up_str;
             let down_diff = (down_speed - prev_down_speed).abs();
             let up_diff = (up_speed - prev_up_speed).abs();
             let net_value_changed =
                 down_diff >= NET_HYSTERESIS_BPS || up_diff >= NET_HYSTERESIS_BPS;
-            let net_interval_elapsed = now.duration_since(last_net_update)
-                >= Duration::from_secs(NET_MIN_UPDATE_INTERVAL_SECS);
-            let net_changed =
-                sn && (net_value_changed || (net_display_changed && net_interval_elapsed));
-
-            #[cfg(target_os = "linux")]
-            let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
-            #[cfg(not(target_os = "linux"))]
-            let current_flags = (sc, sm, sg, sn, sa, false);
-
-            let flags_changed = prev_flags != current_flags;
+            let net_changed = sn && net_value_changed;
 
             if cpu_changed || mem_changed || gpu_changed || net_changed || flags_changed {
-                prev_cpu = cpu_usage;
-                prev_mem = mem_percent;
-                prev_gpu = gpu_usage;
-                prev_down = down_str.clone();
-                prev_up = up_str.clone();
-                prev_down_speed = down_speed;
-                prev_up_speed = up_speed;
-                if sn && (net_value_changed || net_display_changed) {
-                    last_net_update = now;
+                // Defer string formatting to render time only
+                let down_str = format_speed(down_speed);
+                let up_str = format_speed(up_speed);
+
+                if sc {
+                    prev_cpu = cpu_usage;
+                }
+                if sm {
+                    prev_mem = mem_percent;
+                }
+                if sg {
+                    prev_gpu = gpu_usage;
+                }
+                if sn {
+                    prev_down_speed = down_speed;
+                    prev_up_speed = up_speed;
                 }
                 prev_flags = current_flags;
 

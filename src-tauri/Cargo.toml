@@ -46,10 +46,6 @@ nvml-wrapper = "0.10"
 
 [dev-dependencies]
 
-[features]
-default = []
-apple-app-store = []
-
 [profile.release]
 opt-level = "z"
 lto = "thin"

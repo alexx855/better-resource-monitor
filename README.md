@@ -22,7 +22,7 @@
 ## Features
 
 * Written in Rust. Uses < 0.1% CPU and ~15 MB RAM (measured on Apple M1).
-* GPU monitoring for Apple Silicon (active residency via IOReport).
+* GPU monitoring for Apple Silicon via IOAccelerator (public IOKit API).
 * Right-click the menu bar icon to toggle CPU, GPU, memory, or network stats. GPU only appears when hardware is detected.
 * Runs entirely offline. No analytics, no network requests, no telemetry.
 
@@ -31,32 +31,9 @@
 | Component | macOS |
 | :--- | :--- |
 | **CPU/Memory/Network** | `sysinfo` crate |
-| **GPU Metrics** | IOReport FFI (private APIs) |
+| **GPU Metrics** | IOAccelerator (public IOKit API) |
 
-On macOS, GPU metrics report active residency instead of utilization — residency counts time the GPU is actually doing work, not just allocated. No `sudo` required, no dock icon.
-
-### macOS Version Differences
-
-<table>
-  <thead>
-    <tr>
-      <th width="34%">Feature</th>
-      <th width="33%">App Store</th>
-      <th width="33%">GitHub Download</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><th scope="row">CPU Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><th scope="row">Memory Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><th scope="row">Network Monitoring</th><td align="center">Yes</td><td align="center">Yes</td></tr>
-    <tr><th scope="row">GPU Monitoring</th><td align="center">No</td><td align="center">Yes</td></tr>
-    <tr><th scope="row">Automatic Updates</th><td align="center">Yes</td><td align="center">No</td></tr>
-  </tbody>
-</table>
-
-> **Why no GPU in App Store?** GPU monitoring requires Apple's private `IOReport` framework. Apple rejects apps using private APIs during App Store review. The GitHub download version is notarized but not sandboxed, so it has full GPU access.
->
-> [Download from GitHub Releases with GPU support](https://github.com/alexx855/better-resource-monitor/releases)
+On macOS, GPU metrics report device utilization via IOAccelerator. No `sudo` required, no dock icon.
 
 ## Comparison
 
@@ -75,7 +52,7 @@ On macOS, GPU metrics report active residency instead of utilization — residen
     <tr><th scope="row">Memory</th><td align="center">~15 MB</td><td align="center">~45 MB</td><td align="center">~60 MB</td></tr>
     <tr><th scope="row">CPU</th><td align="center">&lt; 0.1%</td><td align="center">&lt; 0.5%</td><td align="center">&lt; 0.5%</td></tr>
     <tr><th scope="row">App Size</th><td align="center">&lt; 7 MB (.app)</td><td align="center">~30 MB</td><td align="center">~40 MB</td></tr>
-    <tr><th scope="row">GPU</th><td align="center">IOReport</td><td align="center">IOReport</td><td align="center">Proprietary</td></tr>
+    <tr><th scope="row">GPU</th><td align="center">IOAccelerator</td><td align="center">IOAccelerator</td><td align="center">Proprietary</td></tr>
   </tbody>
 </table>
 
@@ -86,10 +63,10 @@ On macOS, GPU metrics report active residency instead of utilization — residen
 ### macOS
 
 **App Store (Recommended):**
-Download from the [Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306). Automatic updates, but no GPU monitoring.
+Download from the [Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306). Includes automatic updates.
 
-**GitHub Download (GPU Support):**
-Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>. Includes GPU monitoring for Apple Silicon.
+**GitHub Download:**
+Download the latest `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>.
 
 ### Build from Source
 

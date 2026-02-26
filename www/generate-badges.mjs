@@ -24,11 +24,11 @@ const badges = {
   ubuntu: { icon: ubuntuIcon, topText: "DOWNLOAD FROM", bottomText: "GitHub Releases" },
 };
 
-const WIDTH = 540;
-const HEIGHT = 130;
-const ICON_SIZE = 64;
-const BORDER = 3;
-const RADIUS = 13;
+const WIDTH = 1080;
+const HEIGHT = 260;
+const ICON_SIZE = 128;
+const BORDER = 6;
+const RADIUS = 26;
 
 async function loadFonts() {
   const [regular, bold] = await Promise.all([
@@ -54,8 +54,8 @@ function buildElement(badge) {
         backgroundColor: "#000",
         border: `${BORDER}px solid #fff`,
         borderRadius: RADIUS,
-        padding: "0 28px",
-        gap: 20,
+        padding: "0 56px",
+        gap: 40,
       },
       children: [
         { type: "img", props: { src: badge.icon, width: ICON_SIZE, height: ICON_SIZE } },
@@ -66,11 +66,11 @@ function buildElement(badge) {
             children: [
               {
                 type: "div",
-                props: { style: { fontSize: 24, fontWeight: 400, color: "#fff", lineHeight: 1.3 }, children: badge.topText },
+                props: { style: { fontSize: 48, fontWeight: 400, color: "#fff", lineHeight: 1.3 }, children: badge.topText },
               },
               {
                 type: "div",
-                props: { style: { fontSize: 40, fontWeight: 700, color: "#fff", lineHeight: 1.3 }, children: badge.bottomText },
+                props: { style: { fontSize: 80, fontWeight: 700, color: "#fff", lineHeight: 1.3 }, children: badge.bottomText },
               },
             ],
           },
@@ -87,7 +87,7 @@ async function main() {
   for (const [name, badge] of Object.entries(badges)) {
     const svg = await satori(buildElement(badge), { width: WIDTH, height: HEIGHT, fonts });
     const png = new Resvg(svg, { fitTo: { mode: "width", value: WIDTH } }).render().asPng();
-    const webp = await sharp(png).webp({ quality: 90 }).toBuffer();
+    const webp = await sharp(png).webp({ lossless: true }).toBuffer();
     const outPath = join(OUT_DIR, `${name}.webp`);
     writeFileSync(outPath, webp);
     console.log(`${name}.webp (${webp.length} bytes)`);

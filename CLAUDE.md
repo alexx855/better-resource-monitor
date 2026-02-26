@@ -23,9 +23,6 @@ cargo clippy
 # Tests
 cargo test --manifest-path src-tauri/Cargo.toml
 
-# App Store build (strips IOReport private APIs for Guideline 2.5.1)
-cargo build --manifest-path src-tauri/Cargo.toml --features apple-app-store
-
 # Test coverage (requires cargo-llvm-cov)
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 
@@ -56,7 +53,7 @@ node www/generate-badges.mjs
 - Buffer reuse: monitoring thread owns persistent `render_buffer`, critical for preventing Linux compositor texture leaks
 
 **GPU monitoring** (`src-tauri/src/gpu.rs`) - unified `GpuSampler` interface:
-- **macOS**: IOReport FFI for Apple Silicon active residency (private framework, rejected by App Store)
+- **macOS**: IOAccelerator via public IOKit APIs for Apple Silicon device utilization
 - **Linux**: NVML via `nvml-wrapper` for NVIDIA utilization
 - GPU menu item only shown when hardware is detected; missing GPU doesn't prevent app from running
 
@@ -74,7 +71,7 @@ node www/generate-badges.mjs
 
 All platform logic uses `#[cfg(target_os = "...")]` — no custom Cargo features.
 
-- **macOS**: `ActivationPolicy::Accessory`, template icon mode (OS handles light/dark), IOReport GPU
+- **macOS**: `ActivationPolicy::Accessory`, template icon mode (OS handles light/dark), IOAccelerator GPU
 - **Linux**: gsettings/env var theme detection, `AtomicBool` polling for light/dark, NVML GPU, hysteresis throttling
 
 ## Update Throttling (Hysteresis)
@@ -87,13 +84,13 @@ This logic lives in `should_update()` in `lib.rs`.
 
 ## Key Dependencies
 
-- `sysinfo` - cross-platform system info (uses `apple-app-store` feature)
+- `sysinfo` - cross-platform system info
 - `rusttype` + `image` - text rendering onto tray icon
 - `resvg` + `tiny-skia` - SVG icon rendering
 - `font-kit` - system font loading
 - `tauri-plugin-autostart` - launch at login
 - `tauri-plugin-store` - settings persistence
-- macOS: `core-foundation` (IOReport FFI)
+- macOS: `core-foundation` (IOAccelerator FFI)
 - Linux: `nvml-wrapper` (NVIDIA GPU)
 
 ## Release Profile
