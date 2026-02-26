@@ -62,8 +62,8 @@ const description = 'Frequently asked questions about Better Resource Monitor.';
             <dd>Better Resource Monitor uses less than 0.1% CPU and approximately 15 MB of RAM on an Apple M1. By comparison, popular alternatives like Stats use ~45 MB and iStat Menus uses ~60 MB. The app binary itself is under 7 MB.</dd>
           </div>
           <div class="faq-item">
-            <dt>Why doesn't GPU monitoring work from the App Store?</dt>
-            <dd>GPU monitoring on macOS requires Apple's private IOReport framework. Apple rejects apps that use private APIs during App Store review. The GitHub download version is notarized by Apple but not sandboxed, so it has full GPU access. On Linux, GPU monitoring uses NVIDIA's NVML and works in all versions.</dd>
+            <dt>How does GPU monitoring work?</dt>
+            <dd>On macOS, GPU monitoring uses Apple's public IOAccelerator API to read device utilization from Apple Silicon GPUs. No private APIs, no sudo required. Both the App Store and GitHub versions include GPU monitoring. On Linux, GPU monitoring uses NVIDIA's NVML.</dd>
           </div>
           <div class="faq-item">
             <dt>Does Better Resource Monitor collect any data?</dt>
@@ -102,10 +102,10 @@ const description = 'Frequently asked questions about Better Resource Monitor.';
           },
           {
             "@type": "Question",
-            "name": "Why doesn't GPU monitoring work from the App Store?",
+            "name": "How does GPU monitoring work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "GPU monitoring on macOS requires Apple's private IOReport framework. Apple rejects apps that use private APIs during App Store review. The GitHub download version is notarized by Apple but not sandboxed, so it has full GPU access. On Linux, GPU monitoring uses NVIDIA's NVML and works in all versions."
+              "text": "On macOS, GPU monitoring uses Apple's public IOAccelerator API to read device utilization from Apple Silicon GPUs. No private APIs, no sudo required. Both the App Store and GitHub versions include GPU monitoring. On Linux, GPU monitoring uses NVIDIA's NVML."
             }
           },
           {
