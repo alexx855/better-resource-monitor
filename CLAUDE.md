@@ -2,175 +2,56 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Project
 
-Better Resource Monitor - A lightweight menu bar/tray system monitor for macOS and Linux. Built with Tauri 2 + Rust, renders CPU/memory/GPU/network stats directly in the menu bar tray icon.
+Better Resource Monitor — a lightweight macOS/Linux menu bar system monitor built with Rust + Tauri v2. Companion marketing website in `www/` built with Astro + Cloudflare Pages.
 
 ## Commands
 
 ```bash
-# Development (runs frontend + Rust backend with hot reload)
-pnpm tauri dev
+# Tauri app
+pnpm install                    # install all deps (root + www workspace)
+pnpm tauri dev                  # run app with hot-reload
+pnpm tauri build                # production build
 
-# Production build
-pnpm tauri build
+# Rust (run from src-tauri/)
+cargo fmt                       # format before committing
+cargo test                      # unit tests
+cargo clippy                    # lint
 
-# Rust-only commands (from src-tauri/)
-cargo build
-cargo check
-cargo clippy
-
-# Tests
-cargo test --manifest-path src-tauri/Cargo.toml
-
-# Test coverage (requires cargo-llvm-cov)
-cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
-
-# Landing page (Astro on Cloudflare Pages)
-pnpm --filter www dev
-pnpm --filter www build
-
-# Regenerate download badges (WebP, saved to www/public/badges/)
-node www/generate-badges.mjs
+# Website (from root)
+pnpm dev:www                    # astro dev server
+pnpm build:www                  # build for Cloudflare Pages
+pnpm preview:www                # build + wrangler local preview
 ```
 
 ## Architecture
 
-**Rust app** (`src-tauri/src/lib.rs`) - app lifecycle + sampling + tray wiring:
-- System monitoring via `sysinfo` crate (CPU, memory, network)
-- Dynamic tray icon rendering via shared renderer (`src-tauri/src/tray_render.rs`) using `rusttype` (text) + `resvg` (SVG icons)
-- Menu bar only (no window) - uses `ActivationPolicy::Accessory` to hide dock icon
-- Background thread updates tray icon every ~1s
-- Toggle visibility of CPU/memory/network via right-click menu
-- Settings persistence via `tauri-plugin-store`
-- Autostart support via `tauri-plugin-autostart`
+### Tauri App (`src-tauri/src/`)
 
-**Tray renderer (single source of truth)** (`src-tauri/src/tray_render.rs`)
-- Pure rendering logic (layout + SVG rasterization + text baseline + RGBA buffer output)
-- Used by both the running app and the banner generator CLI
-- Pre-caches SVG icons at init in 3 colors: white, black, alert orange (#D14715)
-- Two sizing presets: `SIZING_MACOS` and `SIZING_LINUX`, scalable via `Sizing::scaled()`
-- Buffer reuse: monitoring thread owns persistent `render_buffer`, critical for preventing Linux compositor texture leaks
+- **`lib.rs`** — App entry: Tauri setup, menu construction, settings persistence (tauri-plugin-store), and the main monitoring loop (1s interval thread reading CPU/Memory/GPU/Network via `sysinfo`)
+- **`gpu.rs`** — Platform-specific GPU monitoring. macOS: IOAccelerator public IOKit API (`IOServiceMatching("IOAccelerator")` → `PerformanceStatistics` → `Device Utilization %`). Linux: NVML for NVIDIA GPUs
+- **`tray_render.rs`** — Renders the menu bar icon: composites SVG icons (Phosphor fill variants in `assets/icons/`) + percentage text onto an `ImageBuffer`. Alert color (#D14715) at >90%. Platform-specific `Sizing` constants (macOS vs Linux)
+- **`tests.rs`** — Unit tests for tray rendering
 
-**GPU monitoring** (`src-tauri/src/gpu.rs`) - unified `GpuSampler` interface:
-- **macOS**: IOAccelerator via public IOKit APIs for Apple Silicon device utilization
-- **Linux**: NVML via `nvml-wrapper` for NVIDIA utilization
-- GPU menu item only shown when hardware is detected; missing GPU doesn't prevent app from running
+Key patterns:
+- `#[cfg(target_os = "macos")]` / `#[cfg(target_os = "linux")]` for platform splits
+- Settings stored via `tauri-plugin-store` as JSON (visibility toggles per metric, autostart)
+- macOS runs as accessory app (no dock icon): `ActivationPolicy::Accessory`
+- Hysteresis thresholds on metric changes to avoid excessive tray redraws
 
-**Banner generator CLI** (`src-tauri/examples/render_tray_icon.rs`)
-- Renders a PNG using the exact same `TrayRenderer` as the app
+### Website (`www/`)
 
-**Tests** (`src-tauri/src/tests.rs`)
-- Unit tests for value capping, hysteresis, speed formatting, SVG rendering, buffer reuse, alert colors
+- **`src/pages/images/[id].png.ts`** — Dynamic image generation endpoint (`prerender = true`, runs at build time in Node.js). Generates App Store screenshots (2778×1284) and OG images (1200×630)
+- **`src/lib/renderer.ts`** — Shared satori + @resvg/resvg-js renderer. Design tokens: `#181818` bg, `#edbc63` accent, `#c5c5c5` dim text. Fetches JetBrains Mono from Google Fonts at build time
+- **`src/lib/competitors.ts`** — Data for comparison pages
+- **`src/pages/*.astro`** — Landing, FAQ, comparison pages (vs-stats, vs-istat-menus, vs-eul), privacy/terms
+- **`src/layouts/Layout.astro`** — Base layout with `ogImage` prop for per-page OG images
 
-**Frontend** (`src/`) - minimal, exists only to satisfy Tauri build requirements. No actual UI.
+`@resvg/resvg-js` uses a native `.node` addon — it's in `vite.ssr.external` in astro config so it doesn't get bundled. Image endpoints use `prerender = true` to run in Node.js at build time, not on Cloudflare Workers.
 
-**Landing page** (`www/`) - Astro 5 site deployed to Cloudflare Pages. Contains homepage, privacy policy, terms.
+## Code Style
 
-## Platform-Specific Patterns
-
-All platform logic uses `#[cfg(target_os = "...")]` — no custom Cargo features.
-
-- **macOS**: `ActivationPolicy::Accessory`, template icon mode (OS handles light/dark), IOAccelerator GPU
-- **Linux**: gsettings/env var theme detection, `AtomicBool` polling for light/dark, NVML GPU, hysteresis throttling
-
-## Update Throttling (Hysteresis)
-
-To mitigate Linux compositor texture leaks, tray icon only updates when:
-- CPU/MEM/GPU changes by ≥2.0%
-- Network changes by ≥50KB/s OR ≥2s since last update
-
-This logic lives in `should_update()` in `lib.rs`.
-
-## Key Dependencies
-
-- `sysinfo` - cross-platform system info
-- `rusttype` + `image` - text rendering onto tray icon
-- `resvg` + `tiny-skia` - SVG icon rendering
-- `font-kit` - system font loading
-- `tauri-plugin-autostart` - launch at login
-- `tauri-plugin-store` - settings persistence
-- macOS: `core-foundation` (IOAccelerator FFI)
-- Linux: `nvml-wrapper` (NVIDIA GPU)
-
-## Release Profile
-
-Binary size is optimized: `opt-level = "z"`, `lto = "thin"`, `strip = "symbols"`, `panic = "abort"`.
-
-## CI/CD
-
-`.github/workflows/release.yml` - manual dispatch with version bump (patch/minor/major):
-1. Auto-increments version across `package.json`, `tauri.conf.json`, `Cargo.toml`
-2. Builds for macOS (aarch64) and Linux (amd64) with code signing + notarization on macOS
-3. Creates GitHub release with DMG/DEB artifacts
-
-## Verification
-
-- Always add a final verification step for changes (run a relevant command or manual check).
-- On Linux, minimize tray icon updates to avoid compositor resource accumulation (cursor lag).
-
-## Regenerate Marketing Banner
-
-The repo includes a generator for `www/public/better-resource-monitor.png` that renders using the same code path as the app tray icon renderer.
-
-Generate the banner (2488x128) from the macOS sizing preset at 2x scale, with alert colors disabled (avoids orange when values exceed threshold). Higher resolution needed for crisp App Store screenshots:
-
-```bash
-cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
-  --preset macos \
-  --scale 2.0 \
-  --cpu 45 --mem 99 --gpu 78 \
-  --down "1.5 MB" --up "0.2 MB" \
-  --show-alerts false \
-  --out www/public/better-resource-monitor.png
-```
-
-Verify output dimensions:
-
-```bash
-sips -g pixelWidth -g pixelHeight www/public/better-resource-monitor.png
-```
-
-## Regenerate Marketing Images
-
-Builds the Astro site (which prerenders App Store images at 2778×1284 and OG images at 1200×630 via satori + resvg-js) and copies them:
-
-```bash
-pnpm --filter www build
-cp www/dist/images/{simplicity,performance,privacy}.png images/appstore/
-mkdir -p images/og
-cp www/dist/images/og-*.png images/og/
-```
-
-Source template: `www/src/pages/images/[id].png.ts`
-Shared renderer: `www/src/lib/renderer.ts`
-Output: `images/appstore/{simplicity,performance,privacy}.png` (2778×1284), `images/og/og-{index,faq,privacy,terms}.png` (1200×630)
-
-## Known Issues
-
-### Linux: Cursor Lag After Extended Use (Ubuntu/GNOME Wayland)
-
-**Symptom**: Cursor lag and system slowdown after 2-4 hours of app running. Lag persists even after app exits. Can freeze video playback overnight.
-
-**Root Cause**: Bug in Ubuntu's `gnome-shell-extension-appindicator` (Ubuntu Bug #2130726). The extension leaks GPU textures when tray icons update frequently. The leak occurs in GNOME Shell's compositor memory, not our application process.
-
-**Status**: Waiting for Tauri upstream fix via KSNI migration
-
-**Track These PRs** (click to view progress):
-- [Tauri PR #12319 - Add linux-ksni feature](https://github.com/tauri-apps/tauri/pull/12319)
-- [tray-icon PR #201 - Replace libappindicator with ksni](https://github.com/tauri-apps/tray-icon/pull/201)
-- [Tauri Issue #11293 - Use ksni for tray icons](https://github.com/tauri-apps/tauri/issues/11293)
-
-**Technical Details**:
-- Current stack: Tauri → libappindicator → D-Bus StatusNotifierItem → ubuntu-appindicators extension → Mutter (Wayland compositor)
-- libappindicator is abandoned (last meaningful commit ~15 years ago) and doesn't properly manage icon lifecycle
-- The extension creates GPU textures for each icon update but never releases old ones
-
-**Workarounds**:
-- Disable ubuntu-appindicators extension (loses all tray icon functionality)
-- Use KDE Plasma instead of GNOME (handles StatusNotifierItem natively without leak)
-- Wait for Tauri 2.x with KSNI support
-
-**References**:
-- https://bugs.launchpad.net/ubuntu/+source/gnome-shell-extension-appindicator/+bug/2130726
-- https://github.com/tauri-apps/tauri/issues/11293
+- Rust: `cargo fmt` required. Standard Rust conventions
+- TypeScript/Astro: 2-space indentation
+- Release profile: `opt-level = "z"`, `lto = "thin"`, `strip = "symbols"` for minimal binary size
