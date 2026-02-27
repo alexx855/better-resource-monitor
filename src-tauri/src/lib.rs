@@ -262,9 +262,13 @@ fn setup_tray(
     {
         let manager = app.autolaunch();
         if is_autostart_enabled {
-            let _ = manager.enable();
+            if let Err(e) = manager.enable() {
+                eprintln!("Failed to enable autostart: {e}");
+            }
         } else {
-            let _ = manager.disable();
+            if let Err(e) = manager.disable() {
+                eprintln!("Failed to disable autostart: {e}");
+            }
         }
     }
 
@@ -398,9 +402,13 @@ fn setup_tray(
                         let manager = app.autolaunch();
                         let enabled = manager.is_enabled().unwrap_or(false);
                         if enabled {
-                            let _ = manager.disable();
+                            if let Err(e) = manager.disable() {
+                                eprintln!("Failed to disable autostart: {e}");
+                            }
                         } else {
-                            let _ = manager.enable();
+                            if let Err(e) = manager.enable() {
+                                eprintln!("Failed to enable autostart: {e}");
+                            }
                         }
                         save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
@@ -652,7 +660,7 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 app.handle().plugin(tauri_plugin_autostart::init(
-                    MacosLauncher::LaunchAgent,
+                    MacosLauncher::AppleScript,
                     None,
                 ))?;
             }
