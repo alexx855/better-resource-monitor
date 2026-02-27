@@ -4,21 +4,26 @@ import { renderImage, colors, trayIconBase64 } from "../../lib/renderer";
 export const prerender = true;
 
 const BASE_WIDTH = 2880;
+const OG_TEXT_BASE = 2100;
 
 const entries = [
   // App Store (2880x1800, 16:10 required by App Store Connect)
   { slug: "simplicity", title: "System Stats\nin Your Menu Bar", width: 2880, height: 1800 },
   { slug: "performance", title: "Under 0.1% CPU\n15 MB RAM", width: 2880, height: 1800 },
   { slug: "privacy", title: "Runs Locally\nNo Telemetry", width: 2880, height: 1800 },
-  // OG images (1200x630)
-  { slug: "og-index", title: "System Stats\nin Your Menu Bar", width: 1200, height: 630, showAppName: true },
-  { slug: "og-faq", title: "Frequently Asked\nQuestions", width: 1200, height: 630, showAppName: true },
-  { slug: "og-privacy", title: "Privacy Policy", width: 1200, height: 630, showAppName: true },
-  { slug: "og-terms", title: "Terms & Conditions", width: 1200, height: 630, showAppName: true },
+  // OG images (1200x630) — textBase scales text ~36% larger for mobile readability
+  { slug: "og-index", title: "System Stats\nin Your Menu Bar", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  { slug: "og-faq", title: "Frequently Asked\nQuestions", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  { slug: "og-privacy", title: "Privacy Policy", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  { slug: "og-terms", title: "Terms & Conditions", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  // Comparison page OG images
+  { slug: "og-vs-stats", title: "Better Resource Monitor\nvs Stats", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  { slug: "og-vs-istat-menus", title: "Better Resource Monitor\nvs iStat Menus", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+  { slug: "og-vs-eul", title: "Better Resource Monitor\nvs Eul", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
 ];
 
-function scaled(base: number, width: number) {
-  return Math.round(base * (width / BASE_WIDTH));
+function scaled(base: number, width: number, baseWidth = BASE_WIDTH) {
+  return Math.round(base * (width / baseWidth));
 }
 
 export const getStaticPaths: GetStaticPaths = () =>
@@ -28,9 +33,10 @@ export const getStaticPaths: GetStaticPaths = () =>
   }));
 
 export const GET: APIRoute = async ({ props }) => {
-  const { title, width, height, showAppName } = props as (typeof entries)[number];
+  const { title, width, height, showAppName, textBase } = props as (typeof entries)[number];
   const trayIcon = trayIconBase64();
   const s = (base: number) => scaled(base, width);
+  const st = (base: number) => scaled(base, width, textBase);
 
   const children: Record<string, unknown>[] = [];
 
@@ -39,12 +45,12 @@ export const GET: APIRoute = async ({ props }) => {
       type: "div",
       props: {
         style: {
-          fontSize: s(64),
-          fontWeight: 400,
+          fontSize: st(96),
+          fontWeight: 700,
           color: colors.accent,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
-          marginBottom: s(48),
+          marginBottom: st(48),
         },
         children: "Better Resource Monitor",
       },
@@ -55,13 +61,13 @@ export const GET: APIRoute = async ({ props }) => {
     type: "div",
     props: {
       style: {
-        fontSize: s(160),
+        fontSize: st(160),
         fontWeight: 700,
         color: colors.text,
         textAlign: "center",
         whiteSpace: "pre-line",
         lineHeight: 1.1,
-        marginBottom: s(100),
+        marginBottom: st(100),
       },
       children: title,
     },
@@ -103,7 +109,7 @@ export const GET: APIRoute = async ({ props }) => {
         justifyContent: "center",
         backgroundColor: colors.bg,
         fontFamily: "JetBrains Mono",
-        padding: `${s(80)}px ${s(140)}px`,
+        padding: `0 ${s(140)}px`,
       },
       children,
     },
