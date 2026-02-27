@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ComparisonTable from '../components/ComparisonTable.astro';
+import ComparisonSchema from '../components/ComparisonSchema.astro';
+
+const title = 'Better Resource Monitor vs Stats';
+const description = 'Stats and Better Resource Monitor are both free and open-source. The difference is root access, private APIs, and what that costs your battery.';
+---
+
+<Layout title={title} description={description} ogImage="/images/og-vs-stats.png">
+  <main class="content-page">
+    <div class="container">
+      <a href="/" class="back-link">&larr; Back to Home</a>
+
+      <h1>Better Resource Monitor vs Stats</h1>
+      <p>Stats and Better Resource Monitor both live in your menu bar and both are free, MIT-licensed, open-source. The difference is how they get hardware data. Stats installs a privileged helper that needs your admin password to read fans and thermals via SMC. I didn't want that on my machine, so Better Resource Monitor runs entirely in user space with no elevated privileges.</p>
+
+      <ComparisonTable name="Stats" values={[
+        "No",
+        "Requires Root Helper",
+        "Private API",
+        "~50 MB",
+        "~1%",
+        "~25 MB",
+        "Offline",
+        "Active",
+        "Swift / C++",
+        "Free",
+        "MIT",
+      ]} />
+
+      <h2>How they differ</h2>
+
+      <h3>No root helper, no admin password</h3>
+      <p>Stats needs a privileged helper tool running at root level to read fan speeds and thermal sensors through SMC. Better Resource Monitor skips all of that. It never asks for your admin password and nothing runs as root in the background. One less process with system-level access on your machine.</p>
+
+      <h3>GPU monitoring through public APIs</h3>
+      <p>Stats reads GPU metrics through private, undocumented Apple APIs. Those can break with any macOS update, and they're the reason Stats can't pass Mac App Store review. I read GPU utilization through IOAccelerator, a public IOKit interface. The numbers are the same, but the API won't vanish when Apple ships a point release.</p>
+
+      <h3>Battery impact</h3>
+      <p>Better Resource Monitor sits under 0.1% CPU on Apple Silicon. Stats polls additional sensors (fans, thermals) that prevent the CPU from entering deep sleep. In Activity Monitor I consistently see its energy impact at about 10x what Better Resource Monitor reports. On a laptop running on battery, that adds up over a workday.</p>
+
+      <p>Stats is a good app. If you want fan speeds and thermals and don't mind the root helper, it covers more ground. If you'd rather keep things unprivileged, <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Better Resource Monitor is on the Mac App Store</a> and the source is on <a href="https://github.com/alexx855/better-resource-monitor" target="_blank">GitHub</a>.</p>
+
+      <ComparisonSchema title={title} description={description} slug="vs-stats" competitorName="Stats" competitorPrice="0" />
+    </div>
+  </main>
+</Layout>

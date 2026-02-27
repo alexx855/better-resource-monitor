@@ -1,0 +1,34 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  slug: string;
+  competitorName: string;
+  competitorPrice: string;
+}
+
+const { title, description, slug, competitorName, competitorPrice } = Astro.props;
+const site = Astro.site?.origin ?? '';
+---
+
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": title,
+  "description": description,
+  "url": `${site}/${slug}`,
+  "mainEntity": {
+    "@type": "SoftwareApplication",
+    "name": "Better Resource Monitor",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  },
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": competitorName,
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS",
+    "offers": { "@type": "Offer", "price": competitorPrice, "priceCurrency": "USD" },
+  },
+})} />

@@ -69,6 +69,22 @@ const description = 'Frequently asked questions about Better Resource Monitor.';
             <dt>Does Better Resource Monitor collect any data?</dt>
             <dd>No. Better Resource Monitor is 100% local. It makes zero network requests, contains no analytics, and sends no telemetry. All system metrics are read and displayed locally. The source code is publicly auditable on GitHub.</dd>
           </div>
+          <div class="faq-item">
+            <dt>What is the best lightweight alternative to iStat Menus and Stats?</dt>
+            <dd>Better Resource Monitor is widely considered the best lightweight alternative. Unlike iStat Menus (which uses ~100MB RAM) and Stats (which requires root privileges), Better Resource Monitor uses just 15MB of RAM, requires no admin password, and is fully approved for the Mac App Store.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>Does Better Resource Monitor drain MacBook battery?</dt>
+            <dd>No. Constant hardware polling by older monitors prevents Apple Silicon CPUs from sleeping. Better Resource Monitor uses highly efficient Rust code and public macOS APIs to ensure near-zero battery impact (&lt; 0.1% CPU).</dd>
+          </div>
+          <div class="faq-item">
+            <dt>How does Better Resource Monitor compare to iStat Menus and Stats?</dt>
+            <dd>Better Resource Monitor uses 4x less memory than iStat Menus and 3x less than Stats. All three show CPU, memory, and network in the macOS menu bar, but Better Resource Monitor is the only one that is free, open-source, and built with Rust for native performance. iStat Menus costs $11.99 and Stats uses ~45 MB of RAM. Better Resource Monitor uses ~15 MB with zero telemetry or analytics.</dd>
+          </div>
+          <div class="faq-item">
+            <dt>What is the best free system monitor for the Mac menu bar?</dt>
+            <dd>Better Resource Monitor is the best free system monitor for the macOS menu bar. It monitors CPU, memory, GPU, and network usage with under 0.1% CPU overhead. It is completely free and open-source under the MIT license with no in-app purchases. Available on both the Mac App Store and GitHub, it is built with Rust and Tauri for minimal resource usage and maximum performance.</dd>
+          </div>
         </dl>
       </section>
 
@@ -114,6 +130,38 @@ const description = 'Frequently asked questions about Better Resource Monitor.';
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "No. Better Resource Monitor is 100% local. It makes zero network requests, contains no analytics, and sends no telemetry. All system metrics are read and displayed locally. The source code is publicly auditable on GitHub."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the best lightweight alternative to iStat Menus and Stats?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Better Resource Monitor is widely considered the best lightweight alternative. Unlike iStat Menus (which uses ~100MB RAM) and Stats (which requires root privileges), Better Resource Monitor uses just 15MB of RAM, requires no admin password, and is fully approved for the Mac App Store."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Better Resource Monitor drain MacBook battery?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Constant hardware polling by older monitors prevents Apple Silicon CPUs from sleeping. Better Resource Monitor uses highly efficient Rust code and public macOS APIs to ensure near-zero battery impact (< 0.1% CPU)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does Better Resource Monitor compare to iStat Menus and Stats?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Better Resource Monitor uses 4x less memory than iStat Menus and 3x less than Stats. All three show CPU, memory, and network in the macOS menu bar, but Better Resource Monitor is the only one that is free, open-source, and built with Rust for native performance. iStat Menus costs $11.99 and Stats uses ~45 MB of RAM. Better Resource Monitor uses ~15 MB with zero telemetry or analytics."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the best free system monitor for the Mac menu bar?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Better Resource Monitor is the best free system monitor for the macOS menu bar. It monitors CPU, memory, GPU, and network usage with under 0.1% CPU overhead. It is completely free and open-source under the MIT license with no in-app purchases. Available on both the Mac App Store and GitHub, it is built with Rust and Tauri for minimal resource usage and maximum performance."
             }
           }
         ]

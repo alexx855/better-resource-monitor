@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ComparisonTable from '../components/ComparisonTable.astro';
+import ComparisonSchema from '../components/ComparisonSchema.astro';
+
+const title = 'Better Resource Monitor vs Eul';
+const description = 'Eul stopped getting updates and burns CPU on Apple Silicon. Here is what I switched to and why.';
+---
+
+<Layout title={title} description={description} ogImage="/images/og-vs-eul.png">
+  <main class="content-page">
+    <div class="container">
+      <a href="/" class="back-link">&larr; Back to Home</a>
+
+      <h1>Better Resource Monitor vs Eul</h1>
+      <p>Eul stopped getting updates years ago. On M-series Macs it has known high CPU usage, no fixes coming, and GPU monitoring that depends on private APIs which break between macOS releases. After dealing with that for a while I wrote Better Resource Monitor. GPU data comes from the IOAccelerator API, the whole thing stays inside the App Sandbox, and it measures under 0.1% CPU on Apple Silicon.</p>
+
+      <ComparisonTable name="Eul" values={[
+        "Limited",
+        "None",
+        "Private API",
+        "~40 MB",
+        "High (M-Series)",
+        "~5 MB",
+        "Offline",
+        "Unmaintained",
+        "Swift",
+        "Free",
+        "MIT",
+      ]} />
+
+      <h2>Where they differ</h2>
+
+      <h3>Maintenance matters for system tools</h3>
+      <p>A menu bar monitor touches IOKit, SMC, and whatever Apple rearranges each fall. Eul's last meaningful commit was years ago. No macOS Sequoia compatibility, no Apple Silicon tuning, no security patches. I test Better Resource Monitor against every macOS beta and push fixes before the public release ships.</p>
+
+      <h3>CPU usage on Apple Silicon</h3>
+      <p>On M-series Macs, Eul's CPU usage climbs noticeably. Nobody is maintaining it, so that will never get fixed. The Rust core in Better Resource Monitor keeps the whole app under 0.1% CPU by skipping the work that causes the overhead (SMC helpers, constant sensor polling).</p>
+
+      <h3>GPU data without private APIs</h3>
+      <p>The Mac App Store version of Eul ships with limited features because it relies on private, undocumented APIs for GPU data. Those APIs can silently break on any macOS point release. Better Resource Monitor reads GPU utilization through IOAccelerator, the public IOKit interface. Same data, stable across updates, and full GPU monitoring on the App Store.</p>
+
+      <p>If Eul was working for you before it stopped getting updates, <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Better Resource Monitor</a> covers the same ground. Source is on <a href="https://github.com/alexpedersen/better-resource-monitor" target="_blank">GitHub</a> if you want to look before you install.</p>
+
+      <ComparisonSchema title={title} description={description} slug="vs-eul" competitorName="Eul" competitorPrice="0" />
+    </div>
+  </main>
+</Layout>
