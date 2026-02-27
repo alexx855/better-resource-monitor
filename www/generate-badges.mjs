@@ -31,12 +31,14 @@ const BORDER = 6;
 const RADIUS = 26;
 
 async function loadFonts() {
-  const [regular, bold] = await Promise.all([
+  const [regular, semibold, bold] = await Promise.all([
     fetch("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPQ.ttf").then((r) => r.arrayBuffer()),
+    fetch("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8FqtjPQ.ttf").then((r) => r.arrayBuffer()),
     fetch("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.ttf").then((r) => r.arrayBuffer()),
   ]);
   return [
     { name: "JetBrains Mono", data: regular, weight: 400, style: "normal" },
+    { name: "JetBrains Mono", data: semibold, weight: 600, style: "normal" },
     { name: "JetBrains Mono", data: bold, weight: 700, style: "normal" },
   ];
 }
@@ -66,7 +68,7 @@ function buildElement(badge) {
             children: [
               {
                 type: "div",
-                props: { style: { fontSize: 48, fontWeight: 400, color: "#fff", lineHeight: 1.3 }, children: badge.topText },
+                props: { style: { fontSize: 48, fontWeight: 600, color: "#fff", lineHeight: 1.3 }, children: badge.topText },
               },
               {
                 type: "div",
