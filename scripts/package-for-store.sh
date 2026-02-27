@@ -105,6 +105,17 @@ echo "=== Package Created ==="
 echo "Location: $PKG_PATH"
 echo ""
 
+echo "Validating package..."
+VALIDATE_OUTPUT=$(xcrun altool --validate-app -f "$PKG_PATH" --type macos \
+  --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER" 2>&1)
+echo "$VALIDATE_OUTPUT"
+if echo "$VALIDATE_OUTPUT" | grep -q "FAILED"; then
+  echo "Error: Validation failed. Fix the issues above before uploading."
+  exit 1
+fi
+echo "Validation passed."
+
 echo "Uploading to App Store Connect..."
 xcrun altool --upload-app -f "$PKG_PATH" --type macos \
-  --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER"
+  --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER" \
+  --transport DAV
