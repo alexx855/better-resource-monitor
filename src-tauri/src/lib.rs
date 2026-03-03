@@ -660,8 +660,8 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 app.handle().plugin(tauri_plugin_autostart::init(
-                    MacosLauncher::AppleScript,
-                    None,
+                    MacosLauncher::LaunchAgent,
+                    Some(vec![]),
                 ))?;
             }
 
