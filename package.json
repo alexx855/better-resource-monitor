@@ -37,7 +37,8 @@
     "build": "tauri build",
     "dev:www": "pnpm --filter www dev",
     "build:www": "pnpm --filter www build",
-    "preview:www": "pnpm --filter www preview"
+    "preview:www": "pnpm --filter www preview",
+    "build:screenshots": "bash scripts/images-helper.sh"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
