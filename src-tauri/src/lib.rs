@@ -1,13 +1,12 @@
 mod gpu;
+pub mod i18n;
 pub mod tray_render;
 
-// std
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-// external crates
 use font_kit::family_name::FamilyName;
 use font_kit::handle::Handle;
 use font_kit::properties::{Properties, Weight};
@@ -29,7 +28,6 @@ use tauri::ActivationPolicy;
 #[cfg(desktop)]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-// internal
 use gpu::GpuSampler;
 
 #[cfg(target_os = "linux")]
@@ -197,8 +195,6 @@ pub fn load_system_font() -> Result<Font<'static>, String> {
     Font::try_from_vec(font_data).ok_or_else(|| "Error constructing font".to_string())
 }
 
-// Rendering is centralized in tray_render.rs
-
 fn format_speed(bytes_per_sec: f64) -> String {
     const THRESHOLD_KB: f64 = 999_500.0;
     const THRESHOLD_MB: f64 = 999_500_000.0;
@@ -227,8 +223,6 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
 #[cfg(test)]
 mod tests;
 
-// render_tray_icon_into moved to tray_render.rs
-
 fn toggle_setting(
     app: &AppHandle,
     key: &str,
@@ -256,8 +250,8 @@ fn setup_tray(
     show_alerts: Arc<AtomicBool>,
     gpu_available: bool,
     is_autostart_enabled: bool,
+    translations: &i18n::Translations,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Sync the autostart plugin state to match the store value
     #[cfg(desktop)]
     {
         let manager = app.autolaunch();
@@ -275,7 +269,7 @@ fn setup_tray(
     let autostart_item = CheckMenuItem::with_id(
         app,
         menu_id::AUTOSTART,
-        "Start at Login",
+        translations.start_at_login,
         true,
         is_autostart_enabled,
         None::<&str>,
@@ -286,7 +280,7 @@ fn setup_tray(
     let show_mem_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_MEM,
-        "Show Memory",
+        translations.show_memory,
         true,
         show_mem.load(Relaxed),
         None::<&str>,
@@ -295,7 +289,7 @@ fn setup_tray(
     let show_cpu_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_CPU,
-        "Show CPU",
+        translations.show_cpu,
         true,
         show_cpu.load(Relaxed),
         None::<&str>,
@@ -304,7 +298,7 @@ fn setup_tray(
     let show_net_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_NET,
-        "Show Network",
+        translations.show_network,
         true,
         show_net.load(Relaxed),
         None::<&str>,
@@ -315,19 +309,19 @@ fn setup_tray(
     let show_alerts_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_ALERTS,
-        "Show Alert Colors",
+        translations.show_alert_colors,
         true,
         show_alerts.load(Relaxed),
         None::<&str>,
     )?;
 
     let separator3 = PredefinedMenuItem::separator(app)?;
-    let quit_item = MenuItem::with_id(app, menu_id::QUIT, "Quit", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, menu_id::QUIT, translations.quit, true, None::<&str>)?;
 
     let show_gpu_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_GPU,
-        "Show GPU",
+        translations.show_gpu,
         true,
         show_gpu.load(Relaxed),
         None::<&str>,
@@ -375,7 +369,6 @@ fn setup_tray(
 
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
-    // Use template mode by default - macOS will handle light/dark adaptation
     #[cfg(target_os = "macos")]
     let tray_builder = tray_builder.icon_as_template(true);
 
@@ -387,7 +380,7 @@ fn setup_tray(
     let _tray = tray_builder
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .tooltip("System Monitor")
+        .tooltip(translations.system_monitor)
         .on_menu_event(move |app, event| {
             let flags = [
                 show_cpu.as_ref(),
@@ -647,9 +640,7 @@ pub fn run() {
     let gpu_available = gpu_sampler.is_some();
 
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
-            // No-op: tray-only app, nothing to focus
-        }))
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_store::Builder::new().build());
 
     builder
@@ -668,7 +659,6 @@ pub fn run() {
             #[cfg(target_os = "linux")]
             start_theme_detection_thread();
 
-            // Load persisted settings
             let (cpu, mem, gpu, net, alerts, autostart) = load_settings(app.handle());
             show_cpu_tray.store(cpu, Relaxed);
             show_mem_tray.store(mem, Relaxed);
@@ -678,6 +668,8 @@ pub fn run() {
 
             let font =
                 load_system_font().map_err(|e| format!("Font required for tray icon: {e}"))?;
+
+            let translations = i18n::detect_language().translations();
 
             setup_tray(
                 app.handle(),
@@ -689,6 +681,7 @@ pub fn run() {
                 show_alerts_tray,
                 gpu_available,
                 autostart,
+                translations,
             )?;
 
             start_monitoring(
