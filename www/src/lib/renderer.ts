@@ -37,21 +37,54 @@ async function loadFontBold(): Promise<ArrayBuffer> {
   return fontBoldData;
 }
 
+// CJK fonts — lazy loaded only for Japanese/Chinese screenshots
+let notoJPData: ArrayBuffer | null = null;
+
+async function loadNotoJP(): Promise<ArrayBuffer> {
+  if (notoJPData) return notoJPData;
+  const res = await fetch(
+    "https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
+  );
+  notoJPData = await res.arrayBuffer();
+  return notoJPData;
+}
+
+let notoSCData: ArrayBuffer | null = null;
+
+async function loadNotoSC(): Promise<ArrayBuffer> {
+  if (notoSCData) return notoSCData;
+  const res = await fetch(
+    "https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf"
+  );
+  notoSCData = await res.arrayBuffer();
+  return notoSCData;
+}
+
 export async function renderImage(
   element: Record<string, unknown>,
   width: number,
-  height: number
+  height: number,
+  lang?: string
 ): Promise<Uint8Array> {
-  const [font, fontBold] = await Promise.all([loadFont(), loadFontBold()]);
+  const fontLoads: Promise<ArrayBuffer>[] = [loadFont(), loadFontBold()];
+  if (lang === "ja") fontLoads.push(loadNotoJP());
+  if (lang === "zh-Hans") fontLoads.push(loadNotoSC());
 
-  const svg = await satori(element as React.ReactNode, {
-    width,
-    height,
-    fonts: [
-      { name: "JetBrains Mono", data: font, weight: 400, style: "normal" },
-      { name: "JetBrains Mono", data: fontBold, weight: 700, style: "normal" },
-    ],
-  });
+  const loaded = await Promise.all(fontLoads);
+
+  const fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal"; lang?: string }[] = [
+    { name: "JetBrains Mono", data: loaded[0], weight: 400, style: "normal" },
+    { name: "JetBrains Mono", data: loaded[1], weight: 700, style: "normal" },
+  ];
+
+  if (lang === "ja") {
+    fonts.push({ name: "Noto Sans JP", data: loaded[2], weight: 700, style: "normal", lang: "ja-JP" });
+  }
+  if (lang === "zh-Hans") {
+    fonts.push({ name: "Noto Sans SC", data: loaded[2], weight: 700, style: "normal", lang: "zh-CN" });
+  }
+
+  const svg = await satori(element as React.ReactNode, { width, height, fonts });
 
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: width },
