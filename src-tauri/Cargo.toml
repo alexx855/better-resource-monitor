@@ -35,6 +35,7 @@ rusttype = "0.9"
 tray-icon = "0.21"
 font-kit = "0.13"
 resvg = { version = "0.44", default-features = false }
+sys-locale = "0.3"
 
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]

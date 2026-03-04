@@ -1,4 +1,5 @@
 use super::*;
+use crate::i18n;
 use std::sync::{Mutex, OnceLock};
 
 fn env_lock() -> &'static Mutex<()> {
@@ -354,12 +355,49 @@ fn test_render_with_long_network_strings() {
         None,
     );
 
-    let expected_width = APP_SIZING.edge_padding * 2
-        + (APP_SIZING.segment_width_net * 2)
-        + APP_SIZING.segment_gap;
+    let expected_width =
+        APP_SIZING.edge_padding * 2 + (APP_SIZING.segment_width_net * 2) + APP_SIZING.segment_gap;
 
     assert_eq!(width, expected_width);
     assert_eq!(height, APP_SIZING.icon_height);
     assert!(!has_alert);
     assert_eq!(buffer.len(), (width * height * 4) as usize);
+}
+
+#[test]
+fn test_detect_language_does_not_panic() {
+    let lang = i18n::detect_language();
+    let t = lang.translations();
+    assert!(!t.quit.is_empty());
+}
+
+#[test]
+fn test_all_languages_have_translations() {
+    let languages = [
+        i18n::Language::English,
+        i18n::Language::Spanish,
+        i18n::Language::French,
+        i18n::Language::German,
+        i18n::Language::Japanese,
+        i18n::Language::Portuguese,
+        i18n::Language::Chinese,
+    ];
+    for lang in languages {
+        let t = lang.translations();
+        assert!(!t.start_at_login.is_empty());
+        assert!(!t.show_memory.is_empty());
+        assert!(!t.show_cpu.is_empty());
+        assert!(!t.show_gpu.is_empty());
+        assert!(!t.show_network.is_empty());
+        assert!(!t.show_alert_colors.is_empty());
+        assert!(!t.quit.is_empty());
+        assert!(!t.system_monitor.is_empty());
+    }
+}
+
+#[test]
+fn test_english_defaults() {
+    let t = i18n::Language::English.translations();
+    assert_eq!(t.quit, "Quit");
+    assert_eq!(t.system_monitor, "System Monitor");
 }
