@@ -13,7 +13,7 @@ const description = 'iStat Menus is $14.99 and needs root access for fan data mo
       <a href="/" class="back-link">&larr; Back to Home</a>
 
       <h1>Better Resource Monitor vs iStat Menus</h1>
-      <p>iStat Menus costs $14.99 and installs a privileged helper that asks for your admin password. A menu bar monitor shouldn't need any of that. Better Resource Monitor is free, MIT-licensed, open-source, and never touches root. GPU data comes from Apple's public IOAccelerator API. Under 0.1% CPU, about 15 MB of RAM, zero network requests. The source is on GitHub.</p>
+      <p>iStat Menus costs $14.99 and installs a privileged helper that asks for your admin password. A menu bar monitor shouldn't need any of that. Better Resource Monitor is free, MIT-licensed, and never touches root. GPU data comes from Apple's public IOAccelerator API. Under 0.1% CPU, about 15 MB of RAM, zero network requests.</p>
 
       <ComparisonTable name="iStat Menus 7" values={[
         "Limited",
@@ -35,10 +35,10 @@ const description = 'iStat Menus is $14.99 and needs root access for fan data mo
       <p>iStat Menus is $14.99 and closed-source. Better Resource Monitor is free under the MIT license. No paid tiers, no subscriptions, no in-app purchases. The full source is on GitHub.</p>
 
       <h3>No root privileges</h3>
-      <p>iStat Menus installs a privileged helper tool that runs as root to read fan speeds and thermal sensors via SMC. Better Resource Monitor stays in your user account, sandboxed like any normal app. No password dialog on first launch, no daemon sitting in the background with system-level access. That is also why it passes Mac App Store review without restrictions.</p>
+      <p>iStat Menus installs a privileged helper that runs as root to read fan speeds and thermal sensors via SMC. Better Resource Monitor stays in your user account, sandboxed like any normal app. No password dialog on first launch, no daemon in the background with system-level access. That's also why it passes Mac App Store review without restrictions.</p>
 
       <h3>Battery and resource usage</h3>
-      <p>Most of iStat Menus' overhead comes from constantly polling fan speeds and thermal sensors. That keeps Apple Silicon out of deep sleep and pushes memory past 100 MB. I skipped those readings because I never looked at them, and the numbers back that up. Better Resource Monitor uses less than 0.1% CPU and about 15 MB of RAM. Four metrics (CPU, memory, network, GPU) are what I actually want in a menu bar monitor.</p>
+      <p>Most of iStat Menus' overhead comes from constantly polling fans and thermal sensors. That keeps Apple Silicon out of deep sleep and pushes memory past 100 MB. I skipped those readings because I never looked at them, and the numbers back that up: under 0.1% CPU and about 15 MB of RAM. Four metrics (CPU, memory, network, GPU) are what I actually want in a menu bar monitor.</p>
 
       <h3>Privacy</h3>
       <p>iStat Menus includes analytics. Better Resource Monitor makes zero network requests. No analytics, no telemetry. Everything stays on your machine.</p>
