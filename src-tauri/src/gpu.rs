@@ -132,11 +132,8 @@ mod macos {
                 }
 
                 let mut iterator: io_iterator_t = IO_OBJECT_NULL;
-                let kr = IOServiceGetMatchingServices(
-                    0,
-                    matching as CFDictionaryRef,
-                    &mut iterator,
-                );
+                let kr =
+                    IOServiceGetMatchingServices(0, matching as CFDictionaryRef, &mut iterator);
                 if kr != KERN_SUCCESS || iterator == IO_OBJECT_NULL {
                     return None;
                 }

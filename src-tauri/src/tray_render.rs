@@ -9,8 +9,11 @@ const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.
 const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
 
+type Color = (u8, u8, u8);
+
 const ALERT_THRESHOLD: f32 = 90.0;
-const ALERT_COLOR: (u8, u8, u8) = (209, 71, 21); // #D14715
+const ALERT_COLOR: Color = (209, 71, 21); // #D14715
+const ALERT_FOREGROUND: Color = (255, 255, 255);
 
 #[derive(Clone, Copy)]
 pub struct Sizing {
@@ -24,9 +27,7 @@ pub struct Sizing {
 
 impl Sizing {
     pub fn scaled(self, scale: f32) -> Self {
-        if !(scale > 0.0) {
-            panic!("scale must be > 0");
-        }
+        assert!(scale > 0.0, "scale must be > 0");
 
         let scale_u32 = |v: u32| -> u32 { ((v as f32) * scale).round().max(1.0) as u32 };
         Self {
@@ -78,12 +79,8 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
 
     for glyph in font.layout(reference_text, scale, rusttype::point(0.0, 0.0)) {
         if let Some(bb) = glyph.pixel_bounding_box() {
-            if bb.min.y < min_y {
-                min_y = bb.min.y;
-            }
-            if bb.max.y > max_y {
-                max_y = bb.max.y;
-            }
+            min_y = min_y.min(bb.min.y);
+            max_y = max_y.max(bb.max.y);
         }
     }
 
@@ -94,8 +91,9 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     }
 }
 
-pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) -> Vec<u8> {
-    let color_hex = format!("#{:02x}{:02x}{:02x}", color.0, color.1, color.2);
+pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8> {
+    let (r, g, b) = color;
+    let color_hex = format!("#{r:02x}{g:02x}{b:02x}");
 
     let svg_with_color = svg_data
         .replace("currentColor", &color_hex)
@@ -118,25 +116,25 @@ pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: (u8, u8, u8)) ->
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
     let mut pixels = pixmap.take();
+    // Un-premultiply alpha so image crate gets straight-alpha pixels
     for chunk in pixels.chunks_exact_mut(4) {
-        let alpha = chunk[3];
-        if alpha > 0 && alpha < 255 {
-            let a = alpha as u16;
-            chunk[0] = ((chunk[0] as u16 * 255 / a).min(255)) as u8;
-            chunk[1] = ((chunk[1] as u16 * 255 / a).min(255)) as u8;
-            chunk[2] = ((chunk[2] as u16 * 255 / a).min(255)) as u8;
+        let a = chunk[3] as u16;
+        if a > 0 && a < 255 {
+            for c in &mut chunk[..3] {
+                *c = ((*c as u16 * 255 / a).min(255)) as u8;
+            }
         }
     }
     pixels
 }
 
 struct IconCache {
-    icons: HashMap<(IconType, (u8, u8, u8)), Vec<u8>>,
+    icons: HashMap<(IconType, Color), Vec<u8>>,
 }
 
 impl IconCache {
     fn new(size: u32) -> Self {
-        let colors = [(255, 255, 255), (0, 0, 0), ALERT_COLOR];
+        let colors = [(255, 255, 255), (0, 0, 0)];
         let icon_svgs = [
             (IconType::Cpu, SVG_CPU),
             (IconType::Memory, SVG_MEMORY),
@@ -155,7 +153,7 @@ impl IconCache {
         Self { icons }
     }
 
-    fn get(&self, icon_type: IconType, color: (u8, u8, u8)) -> &[u8] {
+    fn get(&self, icon_type: IconType, color: Color) -> &[u8] {
         self.icons.get(&(icon_type, color)).expect("icon cached")
     }
 }
@@ -165,6 +163,23 @@ pub struct Background {
     pub rgba: (u8, u8, u8, u8),
 }
 
+pub struct RenderConfig<'a> {
+    pub sizing: Sizing,
+    pub cpu_usage: f32,
+    pub mem_percent: f32,
+    pub gpu_usage: f32,
+    pub down_str: &'a str,
+    pub up_str: &'a str,
+    pub show_cpu: bool,
+    pub show_mem: bool,
+    pub show_gpu: bool,
+    pub show_net: bool,
+    pub show_alerts: bool,
+    pub use_light_icons: bool,
+    pub background: Option<Background>,
+}
+
+#[derive(Default)]
 pub struct TrayRenderer {
     icon_caches: HashMap<u32, IconCache>,
     baseline_cache: Option<(u32, u32, f32)>,
@@ -172,17 +187,13 @@ pub struct TrayRenderer {
 
 impl TrayRenderer {
     pub fn new() -> Self {
-        Self {
-            icon_caches: HashMap::new(),
-            baseline_cache: None,
-        }
+        Self::default()
     }
 
-    fn icon_cache_mut(&mut self, size: u32) -> &IconCache {
-        if !self.icon_caches.contains_key(&size) {
-            self.icon_caches.insert(size, IconCache::new(size));
-        }
-        self.icon_caches.get(&size).expect("icon cache exists")
+    fn icon_cache(&mut self, size: u32) -> &IconCache {
+        self.icon_caches
+            .entry(size)
+            .or_insert_with(|| IconCache::new(size))
     }
 
     fn baseline(&mut self, font: &Font, sizing: Sizing) -> f32 {
@@ -203,19 +214,7 @@ impl TrayRenderer {
         &mut self,
         font: &Font,
         buffer: &mut Vec<u8>,
-        sizing: Sizing,
-        cpu_usage: f32,
-        mem_percent: f32,
-        gpu_usage: f32,
-        down_str: &str,
-        up_str: &str,
-        show_cpu: bool,
-        show_mem: bool,
-        show_gpu: bool,
-        show_net: bool,
-        show_alerts: bool,
-        use_light_icons: bool,
-        background: Option<Background>,
+        config: &RenderConfig,
     ) -> (u32, u32, bool) {
         struct Segment {
             icon: IconType,
@@ -224,11 +223,13 @@ impl TrayRenderer {
             alert: bool,
         }
 
+        let sizing = config.sizing;
+
         let mut segments = Vec::with_capacity(5);
         let percent_segments = [
-            (show_mem, IconType::Memory, mem_percent),
-            (show_cpu, IconType::Cpu, cpu_usage),
-            (show_gpu, IconType::Gpu, gpu_usage),
+            (config.show_mem, IconType::Memory, config.mem_percent),
+            (config.show_cpu, IconType::Cpu, config.cpu_usage),
+            (config.show_gpu, IconType::Gpu, config.gpu_usage),
         ];
         for (show, icon, value) in percent_segments {
             if show {
@@ -241,22 +242,22 @@ impl TrayRenderer {
             }
         }
 
-        if show_net {
+        if config.show_net {
             segments.push(Segment {
                 icon: IconType::ArrowDown,
-                value: down_str.to_owned(),
+                value: config.down_str.to_owned(),
                 width: sizing.segment_width_net,
                 alert: false,
             });
             segments.push(Segment {
                 icon: IconType::ArrowUp,
-                value: up_str.to_owned(),
+                value: config.up_str.to_owned(),
                 width: sizing.segment_width_net,
                 alert: false,
             });
         }
 
-        let has_active_alert = show_alerts && segments.iter().any(|s| s.alert);
+        let has_active_alert = config.show_alerts && segments.iter().any(|s| s.alert);
 
         let total_width = sizing.edge_padding * 2
             + segments.iter().map(|s| s.width).sum::<u32>()
@@ -270,92 +271,100 @@ impl TrayRenderer {
             ImageBuffer::from_raw(total_width, sizing.icon_height, std::mem::take(buffer))
                 .expect("buffer size matches dimensions");
 
-        if let Some(bg) = background {
+        let alert_bg = Background {
+            rgba: (ALERT_COLOR.0, ALERT_COLOR.1, ALERT_COLOR.2, 255),
+        };
+        let effective_bg = if has_active_alert {
+            Some(alert_bg)
+        } else {
+            config.background
+        };
+
+        if let Some(bg) = effective_bg {
             let (r, g, b, a) = bg.rgba;
-            for pixel in img.pixels_mut() {
-                *pixel = Rgba([r, g, b, a]);
+            let pixel = Rgba([r, g, b, a]);
+            for p in img.pixels_mut() {
+                *p = pixel;
             }
         }
 
         let scale = Scale::uniform(sizing.font_size);
         let baseline = self.baseline(font, sizing);
 
-        let icon_cache = self.icon_cache_mut(sizing.icon_height);
+        let icon_cache = self.icon_cache(sizing.icon_height);
 
-        let draw_text = |text: &str,
-                         start_x: f32,
-                         color: (u8, u8, u8),
-                         background: Option<Background>,
-                         img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-            for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
-                if let Some(bb) = glyph.pixel_bounding_box() {
-                    glyph.draw(|gx, gy, v| {
-                        let x = (bb.min.x + gx as i32) as u32;
-                        let y = (bb.min.y + gy as i32) as u32;
-                        if x < total_width && y < sizing.icon_height {
-                            let alpha = (v * 255.0) as u8;
-                            if alpha == 0 {
-                                return;
-                            }
+        let has_bg = effective_bg.is_some();
+        let min_alpha: u8 = if has_bg { 4 } else { 1 };
 
-                            if background.is_some() {
-                                let dst = img.get_pixel_mut(x, y);
-                                blend_over(dst, color, alpha);
-                            } else {
-                                img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
+        let draw_text =
+            |text: &str, start_x: f32, color: Color, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+                for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
+                    if let Some(bb) = glyph.pixel_bounding_box() {
+                        glyph.draw(|gx, gy, v| {
+                            let x = (bb.min.x + gx as i32) as u32;
+                            let y = (bb.min.y + gy as i32) as u32;
+                            if x < total_width && y < sizing.icon_height {
+                                let alpha = (v * 255.0) as u8;
+                                if alpha < min_alpha {
+                                    return;
+                                }
+
+                                if has_bg {
+                                    blend_over(img.get_pixel_mut(x, y), color, alpha);
+                                } else {
+                                    img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
-            }
-        };
+            };
 
         let draw_cached_icon =
             |icon_type: IconType,
              start_x: u32,
-             color: (u8, u8, u8),
-             background: Option<Background>,
+             color: Color,
              img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
                 let icon_pixels = icon_cache.get(icon_type, color);
                 let size = sizing.icon_height;
+                let stride = (size * 4) as usize;
 
                 for y in 0..size {
+                    let row_start = y as usize * stride;
                     for x in 0..size {
-                        let src_idx = ((y * size + x) * 4) as usize;
-                        if src_idx + 3 < icon_pixels.len() {
-                            let alpha = icon_pixels[src_idx + 3];
-                            if alpha > 0 {
-                                let dst_x = start_x + x;
-                                if dst_x < total_width && y < size {
-                                    if background.is_some() {
-                                        let dst = img.get_pixel_mut(dst_x, y);
-                                        blend_over(
-                                            dst,
-                                            (
-                                                icon_pixels[src_idx],
-                                                icon_pixels[src_idx + 1],
-                                                icon_pixels[src_idx + 2],
-                                            ),
-                                            alpha,
-                                        );
-                                    } else {
-                                        img.put_pixel(
-                                            dst_x,
-                                            y,
-                                            Rgba([
-                                                icon_pixels[src_idx],
-                                                icon_pixels[src_idx + 1],
-                                                icon_pixels[src_idx + 2],
-                                                alpha,
-                                            ]),
-                                        );
-                                    }
-                                }
-                            }
+                        let src_idx = row_start + (x as usize * 4);
+                        if src_idx + 3 >= icon_pixels.len() {
+                            continue;
+                        }
+                        let alpha = icon_pixels[src_idx + 3];
+                        if alpha < min_alpha {
+                            continue;
+                        }
+                        let dst_x = start_x + x;
+                        if dst_x >= total_width {
+                            continue;
+                        }
+                        let rgb = (
+                            icon_pixels[src_idx],
+                            icon_pixels[src_idx + 1],
+                            icon_pixels[src_idx + 2],
+                        );
+                        if has_bg {
+                            blend_over(img.get_pixel_mut(dst_x, y), rgb, alpha);
+                        } else {
+                            img.put_pixel(dst_x, y, Rgba([rgb.0, rgb.1, rgb.2, alpha]));
                         }
                     }
                 }
             };
+
+        let segment_color = if has_active_alert {
+            ALERT_FOREGROUND
+        } else if config.use_light_icons {
+            (255, 255, 255)
+        } else {
+            (0, 0, 0)
+        };
 
         let mut x_offset = sizing.edge_padding;
         for (i, segment) in segments.iter().enumerate() {
@@ -363,22 +372,14 @@ impl TrayRenderer {
                 x_offset += sizing.segment_gap;
             }
 
-            let segment_color = if has_active_alert {
-                ALERT_COLOR
-            } else if use_light_icons {
-                (255, 255, 255)
-            } else {
-                (0, 0, 0)
-            };
-
-            draw_cached_icon(segment.icon, x_offset, segment_color, background, &mut img);
+            draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
             let value_width: f32 = font
                 .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
                 .map(|g| g.unpositioned().h_metrics().advance_width)
                 .sum();
             let value_x = x_offset as f32 + segment.width as f32 - value_width;
-            draw_text(&segment.value, value_x, segment_color, background, &mut img);
+            draw_text(&segment.value, value_x, segment_color, &mut img);
 
             x_offset += segment.width;
         }
@@ -388,7 +389,7 @@ impl TrayRenderer {
     }
 }
 
-fn blend_over(dst: &mut Rgba<u8>, src_rgb: (u8, u8, u8), src_alpha: u8) {
+fn blend_over(dst: &mut Rgba<u8>, src_rgb: Color, src_alpha: u8) {
     let (sr, sg, sb) = src_rgb;
     let sa = src_alpha as u32;
 
