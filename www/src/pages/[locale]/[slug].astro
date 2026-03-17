@@ -1,0 +1,25 @@
+---
+import ComparisonPage from "../../components/pages/ComparisonPage.astro";
+import FaqPage from "../../components/pages/FaqPage.astro";
+import MarkdownPage from "../../components/pages/MarkdownPage.astro";
+import { getLocalizedPageDescriptor, internalSlugs, isInternalSlug, isSupportedLocale, localizedLocales } from "../../lib/site";
+
+export function getStaticPaths() {
+  return localizedLocales.flatMap((locale) => internalSlugs.map((slug) => ({ params: { locale, slug } })));
+}
+
+const { locale, slug } = Astro.params;
+if (!locale || !isSupportedLocale(locale)) {
+  throw new Error(`Unsupported locale: ${locale}`);
+}
+
+if (!slug || !isInternalSlug(slug)) {
+  throw new Error("Missing localized slug");
+}
+
+const page = getLocalizedPageDescriptor(slug);
+---
+
+{page.kind === "faq" && <FaqPage locale={locale} />}
+{page.kind === "comparison" && <ComparisonPage locale={locale} pageKey={page.pageKey} />}
+{page.kind === "legal" && <MarkdownPage locale={locale} slug={page.slug} />}

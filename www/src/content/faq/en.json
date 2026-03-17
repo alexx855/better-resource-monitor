@@ -1,0 +1,40 @@
+{
+  "title": "FAQ - Better Resource Monitor",
+  "description": "How GPU monitoring works, resource usage, privacy, and how it compares to Stats and iStat Menus.",
+  "ogImage": "/images/og-faq-en.png",
+  "heading": "FAQ",
+  "items": [
+    {
+      "question": "What is Better Resource Monitor?",
+      "answer": "A free, open-source menu bar app that shows CPU, memory, GPU, and network usage on macOS. Written in Rust. Under 0.1% CPU and about 15 MB of RAM."
+    },
+    {
+      "question": "Is it free?",
+      "answer": "Yes. MIT-licensed, no paid tiers, no in-app purchases. The Mac App Store and GitHub versions are the same app."
+    },
+    {
+      "question": "How much CPU and memory does it use?",
+      "answer": "Under 0.1% CPU and about 15 MB of RAM on an Apple M1. For comparison, Stats uses ~50 MB and iStat Menus uses 100+ MB. The app binary is under 7 MB."
+    },
+    {
+      "question": "How does GPU monitoring work?",
+      "answer": "On macOS, it reads device utilization from Apple Silicon GPUs through Apple's public IOAccelerator API. No private APIs, no sudo. Both the App Store and GitHub versions include GPU monitoring."
+    },
+    {
+      "question": "Does it collect any data?",
+      "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. The source code is on GitHub if you want to verify that yourself."
+    },
+    {
+      "question": "How does it compare to iStat Menus and Stats?",
+      "answer": "All three show system metrics in the menu bar. The differences: Stats needs a root helper for fan and thermal data. iStat Menus costs $14.99 and also needs root. Better Resource Monitor runs entirely in user space, uses about 15 MB of RAM, and is free. See the [Stats comparison page]({{vsStatsUrl}}) and [iStat Menus comparison page]({{vsIstatMenusUrl}}) for details."
+    },
+    {
+      "question": "Does it drain MacBook battery?",
+      "answer": "No. Monitors that poll fans and thermal sensors keep Apple Silicon from entering deep sleep. This app skips those readings entirely, which is why it sits under 0.1% CPU."
+    },
+    {
+      "question": "Why not just use Activity Monitor?",
+      "answer": "Activity Monitor is a full window you have to open. This lives in your menu bar and updates every second. You see the numbers without switching apps."
+    }
+  ]
+}

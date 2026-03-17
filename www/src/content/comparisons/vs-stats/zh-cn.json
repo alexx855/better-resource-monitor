@@ -1,0 +1,68 @@
+{
+  "title": "Better Resource Monitor vs Stats",
+  "description": "Stats 和 Better Resource Monitor 都是免费开源的。区别在于 root 访问权限、私有 API 以及对电池续航的影响。",
+  "ogImage": "/images/og-vs-stats-zh-cn.png",
+  "competitorName": "Stats",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Stats",
+  "intro": "Stats 和 Better Resource Monitor 都驻留在菜单栏，且都是免费、MIT 许可证的开源软件。区别在于它们获取硬件数据的方式。Stats 安装了一个需要管理员密码的特权辅助工具，通过 SMC 读取风扇和温度数据。我不希望我的机器上运行这种程序，因此 Better Resource Monitor 完全在用户空间运行，无需提升权限。",
+  "table": {
+    "featureLabel": "功能",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Stats",
+    "features": [
+      "Mac App Store",
+      "管理员密码 / 权限",
+      "GPU API 稳定性",
+      "内存占用",
+      "CPU / 能源影响",
+      "应用大小",
+      "隐私 / 遥测",
+      "状态",
+      "语言",
+      "价格",
+      "许可证"
+    ],
+    "productValues": [
+      "功能完整",
+      "无需 (沙盒)",
+      "公开 API",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% 离线",
+      "活跃",
+      "Rust",
+      "免费",
+      "MIT"
+    ],
+    "competitorValues": [
+      "否",
+      "需要 root 辅助工具",
+      "私有 API",
+      "~50 MB",
+      "~1%",
+      "~25 MB",
+      "离线",
+      "活跃",
+      "Swift / C++",
+      "免费",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "无需 root 辅助工具，无需管理员密码",
+      "body": "Stats 安装了一个以 root 权限运行的特权辅助工具，通过 SMC 读取风扇转速和温度传感器。Better Resource Monitor 跳过了所有这些。无需管理员密码，后台没有以 root 身份运行的进程。减少了一个在你机器上拥有系统级访问权限的进程。"
+    },
+    {
+      "heading": "通过公开 API 进行 GPU 监控",
+      "body": "Stats 通过私有的、未记录的 Apple API 读取 GPU 指标，这些 API 可能会在任何 macOS 更新中失效。这也是 Stats 无法通过 Mac App Store 审核的原因。我通过 IOAccelerator（一个公开的 IOKit 接口）读取 GPU 使用率。数据相同，但当 Apple 发布小版本更新时，API 不会消失。"
+    },
+    {
+      "heading": "电池影响",
+      "body": "在 Apple Silicon 上，Better Resource Monitor 的 CPU 占用低于 0.1%。Stats 轮询额外的传感器（风扇、温度），这会阻止 CPU 进入深度睡眠。在活动监视器中，我观察到它的能源影响始终是 Better Resource Monitor 的 10 倍左右。对于使用电池的笔记本电脑来说，这在一天的工作中会产生显著差异。"
+    }
+  ],
+  "cta": "Stats 是一款不错的应用。如果你需要风扇转速和温度数据，且不介意 root 辅助工具，它涵盖的范围更广。如果你更倾向于保持无特权运行，[Better Resource Monitor 已上架 Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306)，源码位于 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
+}

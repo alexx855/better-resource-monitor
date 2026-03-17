@@ -1,0 +1,40 @@
+{
+  "title": "FAQ - Better Resource Monitor",
+  "description": "Como funciona o monitoramento de GPU, uso de recursos, privacidade e como se compara ao Stats e iStat Menus.",
+  "ogImage": "/images/og-faq-en.png",
+  "heading": "Perguntas Frequentes",
+  "items": [
+    {
+      "question": "O que é o Better Resource Monitor?",
+      "answer": "Um aplicativo de barra de menus gratuito e de código aberto que mostra o uso de CPU, memória, GPU e rede no macOS. Escrito em Rust. Consome menos de 0,1% de CPU e cerca de 15 MB de RAM."
+    },
+    {
+      "question": "É gratuito?",
+      "answer": "Sim. Licenciado sob MIT, sem níveis pagos, sem compras no aplicativo. As versões da Mac App Store e do GitHub são o mesmo aplicativo."
+    },
+    {
+      "question": "Quanto de CPU e memória ele consome?",
+      "answer": "Menos de 0,1% de CPU e cerca de 15 MB de RAM em um Apple M1. Para comparação, o Stats usa ~50 MB e o iStat Menus usa mais de 100 MB. O binário do aplicativo tem menos de 7 MB."
+    },
+    {
+      "question": "Como funciona o monitoramento de GPU?",
+      "answer": "No macOS, ele lê a utilização do dispositivo de GPUs Apple Silicon através da API pública IOAccelerator da Apple. Sem APIs privadas, sem sudo. Tanto a versão da App Store quanto a do GitHub incluem monitoramento de GPU."
+    },
+    {
+      "question": "Ele coleta algum dado?",
+      "answer": "Não. Zero solicitações de rede, sem analytics, sem telemetria. Tudo permanece na sua máquina. O código-fonte está no GitHub se você quiser verificar isso pessoalmente."
+    },
+    {
+      "question": "Como ele se compara ao iStat Menus e ao Stats?",
+      "answer": "Todos os três mostram métricas do sistema na barra de menus. As diferenças: o Stats precisa de um helper root para dados de ventoinhas e térmicos. O iStat Menus custa $14.99 e também precisa de root. O Better Resource Monitor roda inteiramente no espaço do usuário, usa cerca de 15 MB de RAM e é gratuito. Veja a [página de comparação do Stats]({{vsStatsUrl}}) e a [página de comparação do iStat Menus]({{vsIstatMenusUrl}}) para detalhes."
+    },
+    {
+      "question": "Ele drena a bateria do MacBook?",
+      "answer": "Não. Monitores que consultam ventoinhas e sensores térmicos impedem que o Apple Silicon entre em repouso profundo. Este aplicativo ignora essas leituras completamente, por isso ele fica abaixo de 0,1% de CPU."
+    },
+    {
+      "question": "Por que não usar apenas o Monitor de Atividade?",
+      "answer": "O Monitor de Atividade é uma janela completa que você precisa abrir. Este aplicativo fica na sua barra de menus e atualiza a cada segundo. Você vê os números sem precisar alternar entre aplicativos."
+    }
+  ]
+}

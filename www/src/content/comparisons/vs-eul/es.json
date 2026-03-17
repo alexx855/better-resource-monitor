@@ -1,0 +1,68 @@
+{
+  "title": "Better Resource Monitor vs Eul",
+  "description": "Eul dejó de recibir actualizaciones y consume mucha CPU en Apple Silicon. Aquí te cuento a qué me cambié y por qué.",
+  "ogImage": "/images/og-vs-eul-es.png",
+  "competitorName": "Eul",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Eul",
+  "intro": "Eul dejó de recibir actualizaciones hace años. En Macs con chip serie M, tiene un alto uso de CPU conocido, no hay correcciones en camino y un monitoreo de GPU que depende de APIs privadas que se rompen entre versiones de macOS. Después de lidiar con eso por un tiempo, escribí Better Resource Monitor. Los datos de GPU provienen de la API IOAccelerator, todo permanece dentro del App Sandbox y mide menos del 0.1% de CPU en Apple Silicon.",
+  "table": {
+    "featureLabel": "Característica",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Eul",
+    "features": [
+      "Mac App Store",
+      "Contraseña de admin / Privilegios",
+      "Estabilidad de API de GPU",
+      "Uso de memoria",
+      "Impacto en CPU / Energía",
+      "Tamaño de la app",
+      "Privacidad / Telemetría",
+      "Estado",
+      "Lenguaje",
+      "Precio",
+      "Licencia"
+    ],
+    "productValues": [
+      "Funciones completas",
+      "Ninguno (Sandboxed)",
+      "API pública",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% Offline",
+      "Activo",
+      "Rust",
+      "Gratis",
+      "MIT"
+    ],
+    "competitorValues": [
+      "Limitado",
+      "Ninguno",
+      "API privada",
+      "~40 MB",
+      "Alto (Serie M)",
+      "~5 MB",
+      "Offline",
+      "Sin mantenimiento",
+      "Swift",
+      "Gratis",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "El mantenimiento importa para las herramientas del sistema",
+      "body": "Un monitor de barra de menús interactúa con IOKit, SMC y todo lo que Apple reorganiza cada otoño. El último commit significativo de Eul fue hace años. Sin correcciones para macOS Sequoia, sin ajustes para Apple Silicon, sin parches de seguridad. Pruebo contra cada beta de macOS y envío correcciones antes de que se lance la versión pública."
+    },
+    {
+      "heading": "Uso de CPU en Apple Silicon",
+      "body": "En Macs con chip serie M, el uso de CPU de Eul aumenta notablemente. Nadie lo mantiene, así que eso nunca se solucionará. El núcleo en Rust de Better Resource Monitor mantiene toda la aplicación por debajo del 0.1% de CPU al omitir el trabajo que causa la sobrecarga (helpers SMC, sondeo constante de sensores)."
+    },
+    {
+      "heading": "Datos de GPU sin APIs privadas",
+      "body": "La versión de Eul en la App Store se envía con funciones limitadas porque utiliza APIs privadas y no documentadas para los datos de GPU. Esas pueden romperse silenciosamente en cualquier actualización menor de macOS. Yo leo la utilización de la GPU a través de IOAccelerator, la interfaz pública de IOKit. Los mismos datos, estables ante actualizaciones, monitoreo completo de GPU en la App Store."
+    }
+  ],
+  "cta": "Si Eul te funcionaba antes de que dejara de recibir actualizaciones, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) cubre el mismo terreno. El código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor) si quieres echar un vistazo antes de instalar."
+}

@@ -1,0 +1,97 @@
+<p align="center">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+</p>
+
+
+<h1 align="center">Better Resource Monitor</h1>
+
+<p align="center">
+  <strong>Un monitor de sistema para la barra de menús/bandeja de macOS.</strong>
+</p>
+
+<!-- README-LANG-START -->
+
+<p align="center">
+  <a href="README.md">English</a> •
+  Español •
+  <a href="README.pt-br.md">Português (Brasil)</a> •
+  <a href="README.zh-cn.md">简体中文</a>
+</p>
+
+<!-- README-LANG-END -->
+
+
+<p align="center">
+  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore-es.webp" alt="Descargar en la Mac App Store" width="270" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.0/Better.Resource.Monitor_1.1.0_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-es.webp" alt="Descargar macOS en GitHub Releases" width="270" height="65"></a>
+</p>
+
+## Por qué
+
+Sin contraseña de administrador. Sin helpers con privilegios. Sin APIs privadas. Sin icono en el Dock.
+
+CPU, memoria, GPU y red en tu barra de menús. Corre en sandbox. En la Mac App Store con todas sus funciones.
+
+## Comparación
+
+<table>
+  <thead>
+    <tr>
+      <th width="20%">Característica</th>
+      <th width="20%">Better Resource Monitor</th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-stats">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-eul">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-istat-menus">iStat Menus</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Mac App Store</th><td align="center">Sí (funciones completas)</td><td align="center">No</td><td align="center">Limitado</td><td align="center">Limitado</td></tr>
+    <tr><th scope="row">Contraseña de admin / Privilegios</th><td align="center">Ninguno (sandboxed)</td><td align="center">Requiere helper root</td><td align="center">Ninguno</td><td align="center">Requiere helper root</td></tr>
+    <tr><th scope="row">Estabilidad de API de GPU</th><td align="center">API pública</td><td align="center">API privada</td><td align="center">API privada</td><td align="center">Propietario</td></tr>
+    <tr><th scope="row">Uso de memoria</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
+    <tr><th scope="row">Impacto en CPU / Energía</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">Alto (serie M)</td><td align="center">~1%</td></tr>
+    <tr><th scope="row">Tamaño de la app</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
+    <tr><th scope="row">Privacidad/Telemetría</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analíticas</td></tr>
+    <tr><th scope="row">Estado</th><td align="center">Activo</td><td align="center">Activo</td><td align="center">Sin mantenimiento</td><td align="center">Activo</td></tr>
+    <tr><th scope="row">Lenguaje</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
+    <tr><th scope="row">Precio</th><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">Licencia</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Propietario</td></tr>
+  </tbody>
+</table>
+
+> Los números de terceros son estimaciones aproximadas. Tu experiencia puede variar.
+
+## Instalación
+
+Consíguelo en la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+
+### Compilar desde el código fuente
+
+Necesitarás los <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">requisitos previos de Tauri v2</a> y <a href="https://pnpm.io/" target="_blank">pnpm</a>.
+
+```bash
+git clone https://github.com/alexx855/better-resource-monitor.git
+cd better-resource-monitor
+pnpm install
+pnpm tauri build
+```
+
+### Desarrollo
+
+```bash
+# Ejecutar en modo desarrollo con recarga en caliente
+pnpm tauri dev
+
+# Ejecutar pruebas
+cd src-tauri && cargo test
+
+# Ejecutar pruebas con cobertura (requiere cargo-llvm-cov)
+cargo install cargo-llvm-cov
+cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
+```
+
+## Créditos
+
+
+- <a href="https://github.com/phosphor-icons" target="_blank">Phosphor Icons</a> - Conjunto de iconos utilizado en la bandeja
+- <a href="https://alexpedersen.dev/" target="_blank">Alex Pedersen</a> - Mantenedor

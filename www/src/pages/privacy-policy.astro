@@ -1,20 +1,5 @@
 ---
-import { getCollection, render } from 'astro:content';
-import Layout from '../layouts/Layout.astro';
-
-const legal = await getCollection('legal');
-const privacyPolicy = legal.find(entry => entry.id === 'privacy-policy');
-if (!privacyPolicy) throw new Error('Privacy policy not found');
-const { Content } = await render(privacyPolicy);
+import MarkdownPage from "../components/pages/MarkdownPage.astro";
 ---
 
-<Layout title={privacyPolicy.data.title} description={privacyPolicy.data.description} ogImage="/images/og-privacy.png">
-  <main class="content-page">
-    <div class="container">
-      <a href="/" class="back-link">&larr; Back to Home</a>
-      <article>
-        <Content />
-      </article>
-    </div>
-  </main>
-</Layout>
+<MarkdownPage locale="en" slug="privacy-policy" />

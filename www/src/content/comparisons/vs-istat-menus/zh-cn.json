@@ -1,0 +1,72 @@
+{
+  "title": "Better Resource Monitor vs iStat Menus",
+  "description": "iStat Menus 售价 $14.99，且需要 root 权限来获取大多数人忽略的风扇数据。Better Resource Monitor 免费、MIT 许可证、内存占用 15 MB，且在用户空间运行。",
+  "ogImage": "/images/og-vs-istat-menus-zh-cn.png",
+  "competitorName": "iStat Menus",
+  "competitorPrice": "14.99",
+  "heading": "Better Resource Monitor vs iStat Menus",
+  "intro": "iStat Menus 售价 $14.99，并安装了一个需要管理员密码的特权辅助工具。菜单栏监视器不应该需要这些。Better Resource Monitor 免费、MIT 许可证，且从不触及 root 权限。GPU 数据来自 Apple 的公开 IOAccelerator API。CPU 占用低于 0.1%，内存占用约 15 MB，零网络请求。",
+  "table": {
+    "featureLabel": "功能",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "iStat Menus 7",
+    "features": [
+      "Mac App Store",
+      "管理员密码 / 权限",
+      "GPU API 稳定性",
+      "内存占用",
+      "CPU / 能源影响",
+      "应用大小",
+      "隐私 / 遥测",
+      "状态",
+      "语言",
+      "价格",
+      "许可证"
+    ],
+    "productValues": [
+      "功能完整",
+      "无需 (沙盒)",
+      "公开 API",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% 离线",
+      "活跃",
+      "Rust",
+      "免费",
+      "MIT"
+    ],
+    "competitorValues": [
+      "受限",
+      "需要 root 辅助工具",
+      "专有",
+      "~100+ MB",
+      "~1%",
+      "~65 MB",
+      "包含分析",
+      "活跃",
+      "Obj-C / Swift",
+      "$14.99",
+      "专有"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "价格与许可",
+      "body": "iStat Menus 售价 $14.99 且闭源。Better Resource Monitor 在 MIT 许可证下免费。无付费层级，无订阅，无应用内购买。完整源码位于 GitHub。"
+    },
+    {
+      "heading": "无需 root 权限",
+      "body": "iStat Menus 安装了一个以 root 权限运行的特权辅助工具，通过 SMC 读取风扇转速和温度传感器。Better Resource Monitor 保留在你的用户账户中，像普通应用一样在沙盒中运行。首次启动时无需密码对话框，后台没有拥有系统级访问权限的守护进程。这也是它能无限制通过 Mac App Store 审核的原因。"
+    },
+    {
+      "heading": "电池与资源占用",
+      "body": "iStat Menus 的大部分开销来自持续轮询风扇和温度传感器。这会阻止 Apple Silicon 进入深度睡眠，并将内存占用推高至 100 MB 以上。我跳过了这些读取操作，因为我从不查看它们，数据也证明了这一点：CPU 占用低于 0.1%，内存占用约 15 MB。四项指标（CPU、内存、网络、GPU）正是我在菜单栏监视器中真正想要的。"
+    },
+    {
+      "heading": "隐私",
+      "body": "iStat Menus 包含分析功能。Better Resource Monitor 发起零网络请求。无分析，无遥测。所有数据都保留在你的机器上。"
+    }
+  ],
+  "cta": "你可以省下 $14.99，[在 Mac App Store 免费获取它](https://apps.apple.com/app/better-resource-monitor/id6758237306)。源码位于 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
+}

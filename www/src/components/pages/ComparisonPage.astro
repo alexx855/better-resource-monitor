@@ -1,0 +1,63 @@
+---
+import { getEntry } from "astro:content";
+import ComparisonSchema from "../ComparisonSchema.astro";
+import ComparisonTable from "../ComparisonTable.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getLocalizedPath, renderInlineLinks, replaceContentTokens, type ComparisonPageKey, type SupportedLocale } from "../../lib/site";
+
+interface Props {
+  locale: SupportedLocale;
+  pageKey: ComparisonPageKey;
+}
+
+const { locale, pageKey } = Astro.props;
+const uiEntry = await getEntry("ui", locale);
+const compEntry = await getEntry("comparisons", `${pageKey}/${locale}`);
+if (!uiEntry || !compEntry) throw new Error(`Missing content for ${pageKey}/${locale}`);
+const ui = uiEntry.data;
+const page = compEntry.data;
+const introHtml = renderInlineLinks(replaceContentTokens(page.intro, locale));
+const sections = page.sections.map((section) => ({
+  ...section,
+  html: renderInlineLinks(replaceContentTokens(section.body, locale)),
+}));
+const ctaHtml = renderInlineLinks(replaceContentTokens(page.cta, locale));
+---
+
+<Layout title={page.title} description={page.description} locale={locale} slug={pageKey} ogImage={page.ogImage}>
+  <main class="content-page">
+    <div class="container">
+      <a href={getLocalizedPath(locale)} class="back-link">&larr; {ui.backToHome}</a>
+
+      <h1>{page.heading}</h1>
+      <Fragment set:html={introHtml} />
+
+      <ComparisonTable
+        featureLabel={page.table.featureLabel}
+        productLabel={page.table.productLabel}
+        competitorLabel={page.table.competitorLabel}
+        features={page.table.features}
+        productValues={page.table.productValues}
+        competitorValues={page.table.competitorValues}
+      />
+
+      {sections.map((section) => (
+        <>
+          <h2>{section.heading}</h2>
+          <Fragment set:html={section.html} />
+        </>
+      ))}
+
+      <Fragment set:html={ctaHtml} />
+
+      <ComparisonSchema
+        title={page.title}
+        description={page.description}
+        locale={locale}
+        slug={pageKey}
+        competitorName={page.competitorName}
+        competitorPrice={page.competitorPrice}
+      />
+    </div>
+  </main>
+</Layout>

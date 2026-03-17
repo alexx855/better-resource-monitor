@@ -1,0 +1,68 @@
+{
+  "title": "Better Resource Monitor vs Stats",
+  "description": "Stats y Better Resource Monitor son gratuitos y de código abierto. La diferencia radica en el acceso root, las APIs privadas y el costo para tu batería.",
+  "ogImage": "/images/og-vs-stats-es.png",
+  "competitorName": "Stats",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Stats",
+  "intro": "Stats y Better Resource Monitor viven en tu barra de menús y ambos son gratuitos, con licencia MIT y de código abierto. La diferencia es cómo obtienen los datos del hardware. Stats instala un helper con privilegios que necesita tu contraseña de administrador para leer ventiladores y temperatura a través de SMC. No quería eso en mi máquina, así que Better Resource Monitor se ejecuta completamente en el espacio de usuario sin privilegios elevados.",
+  "table": {
+    "featureLabel": "Característica",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Stats",
+    "features": [
+      "Mac App Store",
+      "Contraseña de admin / Privilegios",
+      "Estabilidad de API de GPU",
+      "Uso de memoria",
+      "Impacto en CPU / Energía",
+      "Tamaño de la app",
+      "Privacidad / Telemetría",
+      "Estado",
+      "Lenguaje",
+      "Precio",
+      "Licencia"
+    ],
+    "productValues": [
+      "Funciones completas",
+      "Ninguno (Sandboxed)",
+      "API pública",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% Offline",
+      "Activo",
+      "Rust",
+      "Gratis",
+      "MIT"
+    ],
+    "competitorValues": [
+      "No",
+      "Requiere helper root",
+      "API privada",
+      "~50 MB",
+      "~1%",
+      "~25 MB",
+      "Offline",
+      "Activo",
+      "Swift / C++",
+      "Gratis",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Sin helper root, sin contraseña de administrador",
+      "body": "Stats instala un helper con privilegios que se ejecuta como root para leer las velocidades de los ventiladores y los sensores térmicos a través de SMC. Better Resource Monitor omite todo eso. Sin contraseña de administrador, nada ejecutándose como root en segundo plano. Un proceso menos con acceso a nivel de sistema en tu máquina."
+    },
+    {
+      "heading": "Monitoreo de GPU a través de APIs públicas",
+      "body": "Stats lee las métricas de GPU a través de APIs privadas y no documentadas de Apple que pueden romperse con cualquier actualización de macOS. Es también por eso que Stats no puede pasar la revisión de la Mac App Store. Yo leo la utilización de la GPU a través de IOAccelerator, una interfaz pública de IOKit. Los mismos números, pero la API no desaparecerá cuando Apple lance una actualización menor."
+    },
+    {
+      "heading": "Impacto en la batería",
+      "body": "Better Resource Monitor se mantiene por debajo del 0.1% de CPU en Apple Silicon. Stats consulta sensores adicionales (ventiladores, temperatura) que evitan que la CPU entre en reposo profundo. En el Monitor de Actividad, veo constantemente que su impacto energético es aproximadamente 10 veces mayor de lo que reporta Better Resource Monitor. En una laptop funcionando con batería, eso se nota durante una jornada laboral."
+    }
+  ],
+  "cta": "Stats es una buena aplicación. Si quieres velocidades de ventiladores y temperatura y no te importa el helper root, cubre más terreno. Si prefieres mantener las cosas sin privilegios, [Better Resource Monitor está en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) y el código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."
+}

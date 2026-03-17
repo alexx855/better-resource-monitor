@@ -1,0 +1,96 @@
+---
+import { getEntry, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import type { SupportedLocale } from "../../lib/site";
+
+interface Props {
+  locale: SupportedLocale;
+}
+
+const { locale } = Astro.props;
+const metaEntry = await getEntry("home", locale);
+const bodyEntry = await getEntry("homeBody", locale);
+if (!metaEntry || !bodyEntry) throw new Error(`Missing home content for ${locale}`);
+const home = metaEntry.data;
+const { Content } = await render(bodyEntry);
+---
+
+<Layout title={home.title} description={home.description} locale={locale} slug="" showBackLink={false} ogImage={home.ogImage}>
+  <style is:global>
+    p[align="center"] img[alt="Better Resource Monitor"] {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      aspect-ratio: 830 / 86;
+    }
+
+    p[align="center"] img[src*="/badges/"] {
+      width: 270px;
+      max-width: 100%;
+      height: auto;
+      aspect-ratio: 270 / 65;
+    }
+
+    p[align="center"]:has(img[src*="/badges/"]) {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-5);
+      padding-top: var(--space-5);
+    }
+
+    p[align="center"]:has(img[src*="/badges/"]) a {
+      line-height: 1;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 0 var(--space-5);
+      }
+
+      p[align="center"]:has(img[src*="/badges/"]) {
+        gap: var(--space-5);
+        flex-wrap: wrap;
+      }
+
+      p[align="center"]:has(a[href^="#"]) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        font-size: 0;
+      }
+
+      p[align="center"]:has(a[href^="#"]) a {
+        font-size: var(--fs-base);
+        display: block;
+        padding: var(--space-2);
+        background: var(--c-surface);
+        border: var(--border-width) solid var(--c-border);
+        text-align: center;
+      }
+
+      p[align="center"]:has(a[href^="#"]) span {
+        display: none;
+      }
+
+      p[align="center"]:not(:has(img)):has(a) {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-2);
+        font-size: 0;
+      }
+
+      p[align="center"]:not(:has(img)):has(a) a {
+        font-size: var(--fs-sm);
+        white-space: nowrap;
+      }
+    }
+  </style>
+
+  <link rel="preload" as="image" href="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" />
+  <main class="container">
+    <article>
+      <Content />
+    </article>
+  </main>
+</Layout>

@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="43">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
 </p>
+
 
 <h1 align="center">Better Resource Monitor</h1>
 
@@ -8,35 +9,33 @@
   <strong>A menu bar/tray system monitor for macOS.</strong>
 </p>
 
+<!-- README-LANG-START -->
+
+<p align="center">
+  English •
+  <a href="README.es.md">Español</a> •
+  <a href="README.pt-br.md">Português (Brasil)</a> •
+  <a href="README.zh-cn.md">简体中文</a>
+</p>
+
+<!-- README-LANG-END -->
+
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" width="270" height="65"></a>
   <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.0/Better.Resource.Monitor_1.1.0_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" width="270" height="65"></a>
 </p>
 
 <p align="center">
-  <a href="#why-i-built-this">Why</a> <span>•</span>
+  <a href="#why">Why</a> <span>•</span>
   <a href="#comparison">Comparison</a> <span>•</span>
   <a href="#installation">Installation</a>
 </p>
 
-## Why I built this
+## Why
 
-Most system monitors (Stats, iStat Menus) need a privileged helper tool to read fan speeds and thermal sensors. That means entering your admin password and running code at root level. I didn't want that on my machine.
+No admin password. No root helpers. No private APIs. No dock icon.
 
-Better Resource Monitor uses only public macOS APIs. No root privileges, no private APIs, no dock icon. Runs sandboxed.
-
-Because it avoids private Apple APIs (which can break between macOS updates), it's on the Mac App Store with full features. Not a stripped-down "lite" version like other monitors are forced to ship there.
-
-Other monitors poll every sensor they can find, which prevents Apple Silicon from entering deep sleep states. I only track four metrics (CPU, memory, network, GPU), it's all Rust, and the numbers reflect that. Under 0.1% CPU, roughly 15 MB of RAM. No clock replacement, no weather widget, no fan control.
-
-### How it works
-
-| Component | macOS |
-| :--- | :--- |
-| **CPU/Memory/Network** | `sysinfo` crate |
-| **GPU Metrics** | IOAccelerator (public IOKit API) |
-
-None of this needs `sudo`.
+CPU, memory, GPU, and network in your menu bar. Runs sandboxed. On the Mac App Store with full features.
 
 ## Comparison
 
@@ -100,4 +99,4 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 
 
 - <a href="https://github.com/phosphor-icons" target="_blank">Phosphor Icons</a> - Icon set used in the tray
-- <a href="https://alexpedersen.dev/" target="_blank">Alex Pedersen</a> - Creator and maintainer
+- <a href="https://alexpedersen.dev/" target="_blank">Alex Pedersen</a> - Maintainer

@@ -1,14 +1,14 @@
 import type { APIRoute, GetStaticPaths } from "astro";
 import { renderImage, colors, trayIconBase64 } from "../../lib/renderer";
-import { appStoreScreenshots, supportedLangs, screenshotKeys } from "../../lib/translations";
-import type { Lang } from "../../lib/translations";
+import { appStoreScreenshots, supportedLangs, screenshotKeys, siteMarketingLocales, ogTitles, screenshotLangByLocale } from "../../lib/translations";
+import type { SiteMarketingLocale } from "../../lib/translations";
 
 export const prerender = true;
 
 const BASE_WIDTH = 2880;
 const OG_TEXT_BASE = 2100;
 
-// App Store screenshots: 7 languages x 3 screenshots = 21 entries (2880x1800, 16:10)
+// App Store screenshots: 4 languages x 3 screenshots = 12 entries (2880x1800, 16:10)
 const appStoreEntries = supportedLangs.flatMap((lang) =>
   screenshotKeys.map((key) => ({
     slug: `${key}-${lang}`,
@@ -19,16 +19,28 @@ const appStoreEntries = supportedLangs.flatMap((lang) =>
   }))
 );
 
-// OG images stay English-only (1200x630)
-const ogEntries = [
-  { slug: "og-index", title: "System Stats\nin Your Menu Bar", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-faq", title: "Frequently Asked\nQuestions", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-privacy", title: "Privacy Policy", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-terms", title: "Terms & Conditions", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-vs-stats", title: "Better Resource Monitor\nvs Stats", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-vs-istat-menus", title: "Better Resource Monitor\nvs iStat Menus", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
-  { slug: "og-vs-eul", title: "Better Resource Monitor\nvs Eul", width: 1200, height: 630, showAppName: true, textBase: OG_TEXT_BASE },
+// OG images: 7 pages x 4 locales = 28 entries (1200x630)
+const ogPages = [
+  { key: "index", title: (l: SiteMarketingLocale) => appStoreScreenshots[screenshotLangByLocale[l]].simplicity },
+  { key: "faq", title: (l: SiteMarketingLocale) => ogTitles[l].faq },
+  { key: "privacy", title: (l: SiteMarketingLocale) => ogTitles[l].privacy },
+  { key: "terms", title: (l: SiteMarketingLocale) => ogTitles[l].terms },
+  { key: "vs-stats", title: (l: SiteMarketingLocale) => ogTitles[l]["vs-stats"] },
+  { key: "vs-istat-menus", title: (l: SiteMarketingLocale) => ogTitles[l]["vs-istat-menus"] },
+  { key: "vs-eul", title: (l: SiteMarketingLocale) => ogTitles[l]["vs-eul"] },
 ];
+
+const ogEntries = siteMarketingLocales.flatMap((locale) =>
+  ogPages.map((page) => ({
+    slug: `og-${page.key}-${locale}`,
+    title: page.title(locale),
+    width: 1200,
+    height: 630,
+    showAppName: true,
+    textBase: OG_TEXT_BASE,
+    lang: screenshotLangByLocale[locale],
+  }))
+);
 
 const entries = [...appStoreEntries, ...ogEntries];
 
@@ -43,8 +55,8 @@ export const getStaticPaths: GetStaticPaths = () =>
   }));
 
 export const GET: APIRoute = async ({ props }) => {
-  const { title, width, height, showAppName, textBase, lang } = props as (typeof entries)[number];
-  const trayIcon = trayIconBase64();
+  const { title, width, height, showAppName, textBase, lang } = props;
+  const trayIcon = trayIconBase64(showAppName ? "alert" : "full");
   const s = (base: number) => scaled(base, width);
   const st = (base: number) => scaled(base, width, textBase);
 
@@ -57,10 +69,12 @@ export const GET: APIRoute = async ({ props }) => {
         style: {
           fontSize: st(96),
           fontWeight: 700,
-          color: colors.accent,
+          color: colors.text,
+          backgroundColor: colors.accent,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
           marginBottom: st(48),
+          padding: `${st(12)}px ${st(24)}px`,
         },
         children: "Better Resource Monitor",
       },
@@ -100,7 +114,7 @@ export const GET: APIRoute = async ({ props }) => {
         props: {
           src: trayIcon,
           width: s(2400),
-          height: s(124),
+          height: s(showAppName ? 62 : 124),
           style: { objectFit: "contain" },
         },
       },
@@ -126,5 +140,5 @@ export const GET: APIRoute = async ({ props }) => {
   };
 
   const png = await renderImage(element, width, height, lang);
-  return new Response(png, { headers: { "Content-Type": "image/png" } });
+  return new Response(Buffer.from(png), { headers: { "Content-Type": "image/png" } });
 };

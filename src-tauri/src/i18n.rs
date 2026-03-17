@@ -13,9 +13,6 @@ pub struct Translations {
 pub enum Language {
     English,
     Spanish,
-    French,
-    German,
-    Japanese,
     Portuguese,
     Chinese,
 }
@@ -40,39 +37,6 @@ const SPANISH: Translations = Translations {
     show_alert_colors: "Mostrar alertas de color",
     quit: "Salir",
     system_monitor: "Monitor del sistema",
-};
-
-const FRENCH: Translations = Translations {
-    start_at_login: "Lancer au démarrage",
-    show_memory: "Afficher la mémoire",
-    show_cpu: "Afficher le CPU",
-    show_gpu: "Afficher le GPU",
-    show_network: "Afficher le réseau",
-    show_alert_colors: "Afficher les alertes couleur",
-    quit: "Quitter",
-    system_monitor: "Moniteur système",
-};
-
-const GERMAN: Translations = Translations {
-    start_at_login: "Beim Anmelden starten",
-    show_memory: "Speicher anzeigen",
-    show_cpu: "CPU anzeigen",
-    show_gpu: "GPU anzeigen",
-    show_network: "Netzwerk anzeigen",
-    show_alert_colors: "Farbwarnungen anzeigen",
-    quit: "Beenden",
-    system_monitor: "Systemmonitor",
-};
-
-const JAPANESE: Translations = Translations {
-    start_at_login: "ログイン時に開始",
-    show_memory: "メモリを表示",
-    show_cpu: "CPUを表示",
-    show_gpu: "GPUを表示",
-    show_network: "ネットワークを表示",
-    show_alert_colors: "アラート色を表示",
-    quit: "終了",
-    system_monitor: "システムモニター",
 };
 
 const PORTUGUESE: Translations = Translations {
@@ -102,9 +66,6 @@ impl Language {
         match self {
             Language::English => &ENGLISH,
             Language::Spanish => &SPANISH,
-            Language::French => &FRENCH,
-            Language::German => &GERMAN,
-            Language::Japanese => &JAPANESE,
             Language::Portuguese => &PORTUGUESE,
             Language::Chinese => &CHINESE,
         }
@@ -117,9 +78,6 @@ pub fn detect_language() -> Language {
 
     match prefix {
         "es" => Language::Spanish,
-        "fr" => Language::French,
-        "de" => Language::German,
-        "ja" => Language::Japanese,
         "pt" => Language::Portuguese,
         "zh" => Language::Chinese,
         _ => Language::English,

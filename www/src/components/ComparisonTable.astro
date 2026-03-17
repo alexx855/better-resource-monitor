@@ -1,54 +1,30 @@
 ---
 interface Props {
-  name: string;
-  values: string[];
+  featureLabel: string;
+  productLabel: string;
+  competitorLabel: string;
+  features: string[];
+  productValues: string[];
+  competitorValues: string[];
 }
 
-const { name, values } = Astro.props;
-
-const features = [
-  "Mac App Store",
-  "Admin Password / Privileges",
-  "GPU API Stability",
-  "Memory Footprint",
-  "CPU / Energy Impact",
-  "App Size",
-  "Privacy / Telemetry",
-  "Status",
-  "Language",
-  "Price",
-  "License",
-];
-
-const brm = [
-  "<strong>Full Features</strong>",
-  "<strong>None (Sandboxed)</strong>",
-  "<strong>Public API</strong>",
-  "<strong>~15 MB</strong>",
-  "<strong>&lt; 0.1%</strong>",
-  "<strong>&lt; 7 MB</strong>",
-  "<strong>100% Offline</strong>",
-  "<strong>Active</strong>",
-  "Rust",
-  "Free",
-  "MIT",
-];
+const { featureLabel, productLabel, competitorLabel, features, productValues, competitorValues } = Astro.props;
 ---
 
 <table>
   <thead>
     <tr>
-      <th>Feature</th>
-      <th>Better Resource Monitor</th>
-      <th>{name}</th>
+      <th>{featureLabel}</th>
+      <th>{productLabel}</th>
+      <th>{competitorLabel}</th>
     </tr>
   </thead>
   <tbody>
     {features.map((feature, i) => (
       <tr>
         <td><strong>{feature}</strong></td>
-        <td set:html={brm[i]} />
-        <td set:html={values[i]} />
+        <td><strong>{productValues[i]}</strong></td>
+        <td>{competitorValues[i]}</td>
       </tr>
     ))}
   </tbody>
