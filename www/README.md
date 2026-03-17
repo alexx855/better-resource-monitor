@@ -1,6 +1,6 @@
 # Better Resource Monitor Website
 
-Marketing and documentation website for [Better Resource Monitor](https://github.com/alexx855/better-resource-monitor), a lightweight menu bar system monitor for macOS and Linux.
+Marketing and documentation website for [Better Resource Monitor](https://github.com/alexx855/better-resource-monitor), a lightweight menu bar system monitor for macOS.
 
 ## Tech Stack
 

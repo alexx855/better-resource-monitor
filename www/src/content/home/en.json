@@ -1,0 +1,5 @@
+{
+  "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
+  "description": "A menu bar system monitor for macOS. CPU, memory, network, and GPU in the tray. No root privileges, no private APIs.",
+  "ogImage": "/images/og-index-en.png"
+}

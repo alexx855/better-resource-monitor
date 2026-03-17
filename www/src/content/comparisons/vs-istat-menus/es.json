@@ -1,0 +1,72 @@
+{
+  "title": "Better Resource Monitor vs iStat Menus",
+  "description": "iStat Menus cuesta $14.99 y necesita acceso root para datos de ventiladores que la mayoría ignora. Better Resource Monitor es gratis, con licencia MIT, 15 MB de RAM y se mantiene en el espacio de usuario.",
+  "ogImage": "/images/og-vs-istat-menus-es.png",
+  "competitorName": "iStat Menus",
+  "competitorPrice": "14.99",
+  "heading": "Better Resource Monitor vs iStat Menus",
+  "intro": "iStat Menus cuesta $14.99 e instala un helper con privilegios que pide tu contraseña de administrador. Un monitor de barra de menús no debería necesitar nada de eso. Better Resource Monitor es gratis, tiene licencia MIT y nunca toca el root. Los datos de GPU provienen de la API pública IOAccelerator de Apple. Menos del 0.1% de CPU, unos 15 MB de RAM, cero solicitudes de red.",
+  "table": {
+    "featureLabel": "Característica",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "iStat Menus 7",
+    "features": [
+      "Mac App Store",
+      "Contraseña de admin / Privilegios",
+      "Estabilidad de API de GPU",
+      "Uso de memoria",
+      "Impacto en CPU / Energía",
+      "Tamaño de la app",
+      "Privacidad / Telemetría",
+      "Estado",
+      "Lenguaje",
+      "Precio",
+      "Licencia"
+    ],
+    "productValues": [
+      "Funciones completas",
+      "Ninguno (Sandboxed)",
+      "API pública",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% Offline",
+      "Activo",
+      "Rust",
+      "Gratis",
+      "MIT"
+    ],
+    "competitorValues": [
+      "Limitado",
+      "Requiere helper root",
+      "Propietario",
+      "~100+ MB",
+      "~1%",
+      "~65 MB",
+      "Analíticas",
+      "Activo",
+      "Obj-C / Swift",
+      "$14.99",
+      "Propietario"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Precio y licencias",
+      "body": "iStat Menus cuesta $14.99 y es de código cerrado. Better Resource Monitor es gratis bajo la licencia MIT. Sin niveles de pago, sin suscripciones, sin compras dentro de la aplicación. El código fuente completo está en GitHub."
+    },
+    {
+      "heading": "Sin privilegios de root",
+      "body": "iStat Menus instala un helper con privilegios que se ejecuta como root para leer las velocidades de los ventiladores y los sensores térmicos a través de SMC. Better Resource Monitor permanece en tu cuenta de usuario, aislado como cualquier aplicación normal. Sin diálogo de contraseña en el primer inicio, sin demonios en segundo plano con acceso a nivel de sistema. Es también por eso que pasa la revisión de la Mac App Store sin restricciones."
+    },
+    {
+      "heading": "Uso de batería y recursos",
+      "body": "La mayor parte de la sobrecarga de iStat Menus proviene de consultar constantemente los ventiladores y sensores térmicos. Eso evita que Apple Silicon entre en reposo profundo y empuja la memoria por encima de los 100 MB. Omití esas lecturas porque nunca las miraba, y los números lo respaldan: menos del 0.1% de CPU y unos 15 MB de RAM. Cuatro métricas (CPU, memoria, red, GPU) son lo que realmente quiero en un monitor de barra de menús."
+    },
+    {
+      "heading": "Privacidad",
+      "body": "iStat Menus incluye analíticas. Better Resource Monitor realiza cero solicitudes de red. Sin analíticas, sin telemetría. Todo permanece en tu máquina."
+    }
+  ],
+  "cta": "Puedes ahorrarte los $14.99 y [obtenerlo en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) gratis. El código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."
+}

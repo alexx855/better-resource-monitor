@@ -1,0 +1,40 @@
+{
+  "title": "常见问题 - Better Resource Monitor",
+  "description": "GPU 监控的工作原理、资源占用、隐私说明，以及与 Stats 和 iStat Menus 的对比。",
+  "ogImage": "/images/og-faq-en.png",
+  "heading": "常见问题",
+  "items": [
+    {
+      "question": "什么是 Better Resource Monitor？",
+      "answer": "一款免费、开源的 macOS 菜单栏应用，用于显示 CPU、内存、GPU 和网络使用情况。使用 Rust 编写。CPU 占用低于 0.1%，内存占用约 15 MB。"
+    },
+    {
+      "question": "它是免费的吗？",
+      "answer": "是的。采用 MIT 许可证，无付费层级，无应用内购买。Mac App Store 版本和 GitHub 版本是完全相同的应用。"
+    },
+    {
+      "question": "它的 CPU 和内存占用如何？",
+      "answer": "在 Apple M1 上 CPU 占用低于 0.1%，内存占用约 15 MB。作为对比，Stats 占用约 50 MB，iStat Menus 占用 100+ MB。应用二进制文件小于 7 MB。"
+    },
+    {
+      "question": "GPU 监控是如何工作的？",
+      "answer": "在 macOS 上，它通过 Apple 的公开 IOAccelerator API 读取 Apple Silicon GPU 的使用率。无需私有 API，无需 sudo。App Store 和 GitHub 版本均包含 GPU 监控功能。"
+    },
+    {
+      "question": "它会收集任何数据吗？",
+      "answer": "不会。零网络请求，无分析，无遥测。所有数据都保留在你的机器上。如果你想验证，源码就在 GitHub 上。"
+    },
+    {
+      "question": "它与 iStat Menus 和 Stats 相比如何？",
+      "answer": "这三者都在菜单栏显示系统指标。区别在于：Stats 需要 root 辅助工具来获取风扇和温度数据。iStat Menus 售价 $14.99 且同样需要 root 权限。Better Resource Monitor 完全在用户空间运行，内存占用约 15 MB，且完全免费。详情请参阅 [Stats 对比页面]({{vsStatsUrl}}) 和 [iStat Menus 对比页面]({{vsIstatMenusUrl}})。"
+    },
+    {
+      "question": "它会消耗 MacBook 电量吗？",
+      "answer": "不会。那些轮询风扇和温度传感器的监视器会阻止 Apple Silicon 进入深度睡眠。本应用完全跳过了这些读取操作，这就是为什么它的 CPU 占用率低于 0.1%。"
+    },
+    {
+      "question": "为什么不直接使用活动监视器？",
+      "answer": "活动监视器是一个需要手动打开的完整窗口。本应用驻留在菜单栏中，每秒更新一次。你无需切换应用即可查看数据。"
+    }
+  ]
+}

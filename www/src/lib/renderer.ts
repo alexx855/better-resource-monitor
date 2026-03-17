@@ -8,7 +8,7 @@ export const colors = {
   bg: "#181818",
   surface: "#202020",
   surfaceAlt: "#242424",
-  accent: "#edbc63",
+  accent: "#D14715",
   text: "#ffffff",
   textDim: "#c5c5c5",
   border: "#3a3a3a",
@@ -84,7 +84,7 @@ export async function renderImage(
     fonts.push({ name: "Noto Sans SC", data: loaded[2], weight: 700, style: "normal", lang: "zh-CN" });
   }
 
-  const svg = await satori(element as React.ReactNode, { width, height, fonts });
+  const svg = await satori(element, { width, height, fonts });
 
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: width },
@@ -92,8 +92,9 @@ export async function renderImage(
   return resvg.render().asPng();
 }
 
-export function trayIconBase64(): string {
-  const imgPath = join(process.cwd(), "public", "better-resource-monitor.png");
+export function trayIconBase64(variant: "full" | "alert" = "full"): string {
+  const filename = variant === "alert" ? "better-resource-monitor-alert.png" : "better-resource-monitor.png";
+  const imgPath = join(process.cwd(), "public", filename);
   const buf = readFileSync(imgPath);
   return `data:image/png;base64,${buf.toString("base64")}`;
 }

@@ -1,0 +1,29 @@
+---
+import { getEntry, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import { getLocalizedPath, type SupportedLocale } from "../../lib/site";
+
+interface Props {
+  locale: SupportedLocale;
+  slug: "privacy-policy" | "terms";
+}
+
+const { locale, slug } = Astro.props;
+const uiEntry = await getEntry("ui", locale);
+const pageEntry = await getEntry("legal", `${slug}/${locale}`);
+if (!uiEntry || !pageEntry) throw new Error(`Missing content for ${slug}/${locale}`);
+const ui = uiEntry.data;
+const page = pageEntry.data;
+const { Content } = await render(pageEntry);
+---
+
+<Layout title={page.title} description={page.description} locale={locale} slug={slug} ogImage={page.ogImage}>
+  <main class="content-page">
+    <div class="container">
+      <a href={getLocalizedPath(locale)} class="back-link">&larr; {ui.backToHome}</a>
+      <article>
+        <Content />
+      </article>
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,162 @@
+{
+  "en": {
+    "meta": {
+      "langTag": "en",
+      "ogLocale": "en_US",
+      "label": "English",
+      "language": "English"
+    },
+    "home": {
+      "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
+      "description": "A menu bar system monitor for macOS. CPU, memory, network, and GPU in the tray. No root privileges, no private APIs."
+    },
+    "screenshotLang": "en",
+    "screenshots": {
+      "simplicity": "System Stats\nin Your Menu Bar",
+      "performance": "So Light\nYou Won't Notice It",
+      "privacy": "Runs Locally\nNo Telemetry"
+    },
+    "ogTitles": {
+      "faq": "Frequently Asked\nQuestions",
+      "privacy": "Privacy Policy",
+      "terms": "Terms & Conditions",
+      "vs-stats": "Better Resource Monitor\nvs Stats",
+      "vs-istat-menus": "Better Resource Monitor\nvs iStat Menus",
+      "vs-eul": "Better Resource Monitor\nvs Eul"
+    },
+    "badges": {
+      "appstore": {
+        "topText": "DOWNLOAD FROM",
+        "bottomText": "Mac App Store"
+      },
+      "macos": {
+        "topText": "DOWNLOAD FROM",
+        "bottomText": "GitHub Releases"
+      },
+      "ubuntu": {
+        "topText": "DOWNLOAD FROM",
+        "bottomText": "GitHub Releases"
+      }
+    }
+  },
+  "es": {
+    "meta": {
+      "langTag": "es",
+      "ogLocale": "es_ES",
+      "label": "Español",
+      "language": "Neutral Spanish for Latin America"
+    },
+    "home": {
+      "title": "Better Resource Monitor - Monitor de barra de menús para macOS",
+      "description": "Un monitor de sistema para la barra de menús de macOS. CPU, memoria, red y GPU en la barra de menús. Sin privilegios de root, sin APIs privadas."
+    },
+    "screenshotLang": "es",
+    "screenshots": {
+      "simplicity": "Estadísticas del Sistema\nen Tu Barra de Menú",
+      "performance": "Tan Ligero\nQue No Lo Notarás",
+      "privacy": "Funciona Localmente\nSin Telemetría"
+    },
+    "ogTitles": {
+      "faq": "Preguntas\nFrecuentes",
+      "privacy": "Política de\nPrivacidad",
+      "terms": "Términos y\nCondiciones",
+      "vs-stats": "Better Resource Monitor\nvs Stats",
+      "vs-istat-menus": "Better Resource Monitor\nvs iStat Menus",
+      "vs-eul": "Better Resource Monitor\nvs Eul"
+    },
+    "badges": {
+      "appstore": {
+        "topText": "DESCARGAR EN",
+        "bottomText": "Mac App Store"
+      },
+      "macos": {
+        "topText": "DESCARGAR DESDE",
+        "bottomText": "GitHub Releases"
+      },
+      "ubuntu": {
+        "topText": "DESCARGAR DESDE",
+        "bottomText": "GitHub Releases"
+      }
+    }
+  },
+  "pt-br": {
+    "meta": {
+      "langTag": "pt-BR",
+      "ogLocale": "pt_BR",
+      "label": "Português (Brasil)",
+      "language": "Brazilian Portuguese"
+    },
+    "home": {
+      "title": "Better Resource Monitor - Monitor de Barra de Menus para macOS",
+      "description": "Um monitor de sistema para a barra de menus do macOS. CPU, memória, rede e GPU na barra de menus. Sem privilégios de root, sem APIs privadas."
+    },
+    "screenshotLang": "pt-BR",
+    "screenshots": {
+      "simplicity": "Estatísticas do Sistema\nna Sua Barra de Menu",
+      "performance": "Tão Leve\nQue Você Nem Nota",
+      "privacy": "Funciona Localmente\nSem Telemetria"
+    },
+    "ogTitles": {
+      "faq": "Perguntas\nFrequentes",
+      "privacy": "Política de\nPrivacidade",
+      "terms": "Termos e\nCondições",
+      "vs-stats": "Better Resource Monitor\nvs Stats",
+      "vs-istat-menus": "Better Resource Monitor\nvs iStat Menus",
+      "vs-eul": "Better Resource Monitor\nvs Eul"
+    },
+    "badges": {
+      "appstore": {
+        "topText": "BAIXAR NA",
+        "bottomText": "Mac App Store"
+      },
+      "macos": {
+        "topText": "BAIXAR DE",
+        "bottomText": "GitHub Releases"
+      },
+      "ubuntu": {
+        "topText": "BAIXAR DE",
+        "bottomText": "GitHub Releases"
+      }
+    }
+  },
+  "zh-cn": {
+    "meta": {
+      "langTag": "zh-CN",
+      "ogLocale": "zh_CN",
+      "label": "简体中文",
+      "language": "Simplified Chinese"
+    },
+    "home": {
+      "title": "Better Resource Monitor - macOS 菜单栏系统监视器",
+      "description": "macOS 菜单栏系统监视器。在菜单栏显示 CPU、内存、网络和 GPU。无需 root 权限，不使用私有 API。"
+    },
+    "screenshotLang": "zh-Hans",
+    "screenshots": {
+      "simplicity": "系统状态\n显示在菜单栏",
+      "performance": "轻盈运行\n几乎无感",
+      "privacy": "本地运行\n无遥测数据"
+    },
+    "ogTitles": {
+      "faq": "常见问题",
+      "privacy": "隐私政策",
+      "terms": "使用条款",
+      "vs-stats": "Better Resource Monitor\nvs Stats",
+      "vs-istat-menus": "Better Resource Monitor\nvs iStat Menus",
+      "vs-eul": "Better Resource Monitor\nvs Eul"
+    },
+    "badges": {
+      "appstore": {
+        "topText": "下载",
+        "bottomText": "Mac App Store"
+      },
+      "macos": {
+        "topText": "下载自",
+        "bottomText": "GitHub Releases"
+      },
+      "ubuntu": {
+        "topText": "下载自",
+        "bottomText": "GitHub Releases"
+      }
+    }
+  }
+}

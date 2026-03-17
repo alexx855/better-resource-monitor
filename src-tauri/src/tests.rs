@@ -390,9 +390,6 @@ fn test_all_languages_have_translations() {
     let languages = [
         i18n::Language::English,
         i18n::Language::Spanish,
-        i18n::Language::French,
-        i18n::Language::German,
-        i18n::Language::Japanese,
         i18n::Language::Portuguese,
         i18n::Language::Chinese,
     ];

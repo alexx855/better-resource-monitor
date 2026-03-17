@@ -1,18 +1,31 @@
 ---
+import { getEntry } from "astro:content";
 import { ClientRouter } from "astro:transitions";
+import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
+
 
 interface Props {
   title: string;
   description: string;
+  locale: SupportedLocale;
+  slug: string;
   showBackLink?: boolean;
   ogImage?: string;
 }
 
-const { title, description, showBackLink = true, ogImage = "/images/og-index.png" } = Astro.props;
+const { title, description, locale, slug, showBackLink = true, ogImage = "/images/og-index-en.png" } = Astro.props;
+const localeMeta = getLocaleMeta(locale);
+const uiEntry = await getEntry("ui", locale);
+if (!uiEntry) throw new Error(`Missing UI content for ${locale}`);
+const labels = uiEntry.data;
+const alternateLinks = getAlternateLinks(slug);
+const ogAlternateLocales = alternateLinks
+  .filter((link) => link.locale !== locale)
+  .map((link) => getLocaleMeta(link.locale).ogLocale);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={localeMeta.langTag}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -25,6 +38,8 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
     <meta property="og:type" content="website" />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+    <meta property="og:locale" content={localeMeta.ogLocale} />
+    {ogAlternateLocales.map((value) => <meta property="og:locale:alternate" content={value} />)}
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -37,6 +52,10 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {alternateLinks.map((link) => (
+      <link rel="alternate" hreflang={link.hrefLang} href={new URL(link.href, Astro.site)} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site)} />
     <meta name="robots" content="index, follow" />
     <title>{title}</title>
     <ClientRouter />
@@ -47,6 +66,7 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
       "@type": "SoftwareApplication",
       "name": "Better Resource Monitor",
       "description": description,
+      "inLanguage": localeMeta.langTag,
       "applicationCategory": "UtilitiesApplication",
       "applicationSubCategory": "System Monitor",
       "operatingSystem": "macOS, Linux",
@@ -66,7 +86,9 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         --c-surface: #202020;
         --c-surface-alt: #242424;
         --c-border: #3a3a3a;
-        --c-accent: #edbc63;
+        --c-alert-bg: #D14715;
+        --c-alert-fg: #ffffff;
+        --c-accent: var(--c-alert-bg);
         --c-text: #fff;
         --c-text-dim: #c5c5c5;
 
@@ -75,7 +97,7 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         --space-2: 8px;
         --space-3: 12px;
         --space-4: 16px;
-        --space-4: 24px;
+        --space-5: 24px;
         --space-6: 32px;
         --space-10: 64px;
 
@@ -98,8 +120,13 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", menlo,
           monospace;
 
+        /* Easing */
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
         /* Transitions */
-        --transition-fast: 0.1s ease;
+        --transition-fast: 0.15s var(--ease-out);
+        --transition-normal: 0.2s var(--ease-out);
       }
 
       /* Base reset */
@@ -153,8 +180,8 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         font-weight: 600;
         line-height: 1.2;
         color: var(--c-text);
-        margin: 0 0 var(--space-4);
-        padding-top:  var(--space-4);
+        margin: 0 0 var(--space-5);
+        padding-top:  var(--space-5);
       }
 
       h1 {
@@ -167,16 +194,14 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
 
       h3 {
         font-size: var(--fs-lg);
-
       }
 
       h4 {
         font-size: var(--fs-md);
-
       }
 
       p {
-        margin: 0 0 var(--space-4);
+        margin: 0 0 var(--space-5);
         color: var(--c-text-dim);
         font-size: var(--fs-base);
       }
@@ -194,23 +219,47 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         color: inherit;
       }
 
-      /* Links */
+      /* Links — orange pill default */
       a {
-        color: var(--c-accent);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-        text-decoration-thickness: var(--border-width);
-        transition: color var(--transition-fast);
+        color: var(--c-alert-fg);
+        background-color: var(--c-alert-bg);
+        text-decoration: none;
+        padding: 2px 4px;
+        margin: 0 -4px;
+        transition: filter var(--transition-fast),
+                    translate var(--transition-fast),
+                    scale 0.1s var(--ease-out);
       }
 
-      a:hover {
-        color: var(--c-accent);
-        text-decoration: none;
+      a:active {
+        scale: 0.97;
+      }
+
+      a:has(img) {
+        padding: 0;
+        margin: 0;
+        background-color: transparent;
+        transition: filter var(--transition-fast),
+                    translate var(--transition-fast),
+                    scale 0.1s var(--ease-out);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        a:hover {
+          filter: brightness(1.15);
+          translate: 0 -1px;
+        }
       }
 
       *:focus-visible {
-        outline: var(--border-width-thick) solid var(--c-accent);
+        outline: var(--border-width-thick) solid var(--c-alert-bg);
         outline-offset: 2px;
+      }
+
+      .back-link {
+        display: inline-block;
+        font-size: var(--fs-sm);
+        margin-bottom: var(--space-4);
       }
 
       /* Container */
@@ -218,15 +267,15 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         width: 100%;
         max-width: var(--max-width);
         margin: 0 auto;
-        padding: var(--space-4);
+        padding: var(--space-5);
         flex: 1;
       }
 
       /* Lists */
       ul,
       ol {
-        margin-bottom: var(--space-4);
-        padding-left: var(--space-4);
+        margin-bottom: var(--space-5);
+        padding-left: var(--space-5);
         color: var(--c-text-dim);
       }
 
@@ -244,9 +293,9 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
 
       pre {
         background: var(--c-surface-alt);
-        padding: var(--space-4);
+        padding: var(--space-5);
         overflow-x: auto;
-        margin: 0 0 var(--space-4);
+        margin: 0 0 var(--space-5);
         border: var(--border-width) solid var(--c-border);
       }
 
@@ -269,14 +318,14 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
       table {
         width: 100%;
         border-collapse: collapse;
-        margin: var(--space-4) 0;
+        margin: var(--space-5) 0;
         border: var(--border-width) solid var(--c-border);
         background: var(--c-surface);
       }
 
       th,
       td {
-        padding: var(--space-3) var(--space-4);
+        padding: var(--space-3) var(--space-5);
         text-align: left;
         border-bottom: var(--border-width) solid var(--c-border);
       }
@@ -302,18 +351,16 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         margin: var(--space-10) 0;
       }
 
-
       /* Content Page Specifics */
       .content-page .container {
-        padding-top: var(--space-4);
+        padding-top: var(--space-5);
       }
-
 
       /* Blockquotes */
       blockquote {
-        border-left: var(--border-width-thick) solid var(--c-accent);
-        padding: var(--space-3) var(--space-4);
-        margin: var(--space-4) 0;
+        border-left: 22px solid var(--c-alert-bg);
+        padding: var(--space-3) var(--space-5);
+        margin: var(--space-5) 0;
         background: var(--c-surface);
       }
 
@@ -335,19 +382,13 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
       .site-footer nav {
         display: flex;
         justify-content: space-between;
-        gap: var(--space-4);
+        gap: var(--space-5);
       }
 
       .site-footer nav a {
-        color: var(--c-text-dim);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-size: var(--fs-xs);
-        text-decoration: none;
-      }
-
-      .site-footer nav a:hover {
-        color: var(--c-accent);
       }
 
       /* Responsive */
@@ -357,8 +398,8 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
         }
 
         pre {
-          margin-left: calc(-1 * var(--space-4));
-          margin-right: calc(-1 * var(--space-4));
+          margin-left: calc(-1 * var(--space-5));
+          margin-right: calc(-1 * var(--space-5));
           border-left: 0;
           border-right: 0;
         }
@@ -375,29 +416,62 @@ const { title, description, showBackLink = true, ogImage = "/images/og-index.png
           gap: var(--space-3);
         }
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      /* View Transitions */
+      ::view-transition-old(root) {
+        animation: vt-exit 150ms var(--ease-out) both;
+      }
+
+      ::view-transition-new(root) {
+        animation: vt-enter 250ms var(--ease-out) 100ms both;
+      }
+
+      @keyframes vt-exit {
+        to {
+          opacity: 0;
+          filter: blur(2px);
+        }
+      }
+
+      @keyframes vt-enter {
+        from {
+          opacity: 0;
+          filter: blur(2px);
+          transform: translateY(8px);
+        }
+      }
     </style>
   </head>
   <body>
     <div>
       <slot />
     </div>
-    <footer class="site-footer" transition:persist>
+    <footer class="site-footer">
       <div class="container">
         <nav>
-          <a href="/faq">FAQ</a>
-          <a href="/privacy-policy">Privacy Policy</a>
-          <a href="/terms">Terms & Conditions</a>
+          <a href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
+          <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
+          <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
           <a
             href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"
-            target="_blank">License</a
+            target="_blank">{labels.footer.license}</a
           >
           <a
             href="https://github.com/alexx855/better-resource-monitor/issues/new"
-            target="_blank">Support</a
+            target="_blank">{labels.footer.support}</a
           >
           <a
             href="https://github.com/alexx855/better-resource-monitor"
-            target="_blank">GitHub</a
+            target="_blank">{labels.footer.github}</a
           >
         </nav>
       </div>

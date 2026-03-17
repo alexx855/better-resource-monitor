@@ -2,13 +2,17 @@
 interface Props {
   title: string;
   description: string;
+  locale: SupportedLocale;
   slug: string;
   competitorName: string;
   competitorPrice: string;
 }
 
-const { title, description, slug, competitorName, competitorPrice } = Astro.props;
+import { getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
+
+const { title, description, locale, slug, competitorName, competitorPrice } = Astro.props;
 const site = Astro.site?.origin ?? '';
+const langTag = getLocaleMeta(locale).langTag;
 ---
 
 <script type="application/ld+json" set:html={JSON.stringify({
@@ -16,10 +20,12 @@ const site = Astro.site?.origin ?? '';
   "@type": "WebPage",
   "name": title,
   "description": description,
-  "url": `${site}/${slug}`,
+  "inLanguage": langTag,
+  "url": `${site}${getLocalizedPath(locale, slug)}`,
   "mainEntity": {
     "@type": "SoftwareApplication",
     "name": "Better Resource Monitor",
+    "inLanguage": langTag,
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -27,6 +33,7 @@ const site = Astro.site?.origin ?? '';
   "about": {
     "@type": "SoftwareApplication",
     "name": competitorName,
+    "inLanguage": langTag,
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS",
     "offers": { "@type": "Offer", "price": competitorPrice, "priceCurrency": "USD" },

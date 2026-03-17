@@ -1,8 +1,8 @@
 [package]
 name = "better-resource-monitor"
 version = "1.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A lightweight menu bar and tray system monitor"
+authors = ["Alex Pedersen <hello@alexpedersen.dev>"]
 edition = "2021"
 default-run = "better-resource-monitor"
 

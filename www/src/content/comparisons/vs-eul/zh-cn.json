@@ -1,0 +1,68 @@
+{
+  "title": "Better Resource Monitor vs Eul",
+  "description": "Eul 已经停止更新，且在 Apple Silicon 上占用较高 CPU。这是我切换的原因。",
+  "ogImage": "/images/og-vs-eul-zh-cn.png",
+  "competitorName": "Eul",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Eul",
+  "intro": "Eul 多年前就停止了更新。在 M 系列 Mac 上，它存在已知的高 CPU 占用问题，且不会有修复，其 GPU 监控依赖于私有 API，在 macOS 版本更新时会失效。在忍受了一段时间后，我编写了 Better Resource Monitor。GPU 数据来自 IOAccelerator API，整个应用保持在 App 沙盒内，在 Apple Silicon 上 CPU 占用低于 0.1%。",
+  "table": {
+    "featureLabel": "功能",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Eul",
+    "features": [
+      "Mac App Store",
+      "管理员密码 / 权限",
+      "GPU API 稳定性",
+      "内存占用",
+      "CPU / 能源影响",
+      "应用大小",
+      "隐私 / 遥测",
+      "状态",
+      "语言",
+      "价格",
+      "许可证"
+    ],
+    "productValues": [
+      "功能完整",
+      "无需 (沙盒)",
+      "公开 API",
+      "~15 MB",
+      "< 0.1%",
+      "< 7 MB",
+      "100% 离线",
+      "活跃",
+      "Rust",
+      "免费",
+      "MIT"
+    ],
+    "competitorValues": [
+      "受限",
+      "无需",
+      "私有 API",
+      "~40 MB",
+      "高 (M 系列)",
+      "~5 MB",
+      "离线",
+      "停止维护",
+      "Swift",
+      "免费",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "维护对于系统工具至关重要",
+      "body": "菜单栏监视器会接触到 IOKit、SMC 以及 Apple 每年秋季调整的各种组件。Eul 的最后一次重要提交是在几年前。没有 macOS Sequoia 的修复，没有针对 Apple Silicon 的优化，没有安全补丁。我会针对每个 macOS 测试版进行测试，并在正式发布前推送修复。"
+    },
+    {
+      "heading": "Apple Silicon 上的 CPU 占用",
+      "body": "在 M 系列 Mac 上，Eul 的 CPU 占用率会明显攀升。由于无人维护，这个问题永远不会得到解决。Better Resource Monitor 的 Rust 核心通过跳过导致开销的操作（SMC 辅助工具、持续的传感器轮询），使整个应用的 CPU 占用率保持在 0.1% 以下。"
+    },
+    {
+      "heading": "无需私有 API 的 GPU 数据",
+      "body": "Eul 的 App Store 版本功能受限，因为它使用私有的、未记录的 API 获取 GPU 数据。这些 API 在任何 macOS 小版本更新中都可能静默失效。我通过 IOAccelerator（公开的 IOKit 接口）读取 GPU 使用率。数据相同，更新后依然稳定，且在 App Store 上实现了完整的 GPU 监控。"
+    }
+  ],
+  "cta": "如果 Eul 在停止更新前对你有效，[Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) 涵盖了相同的功能。如果你想在安装前查看源码，请访问 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
+}

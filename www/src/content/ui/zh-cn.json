@@ -1,0 +1,11 @@
+{
+  "backToHome": "返回首页",
+  "footer": {
+    "faq": "常见问题",
+    "privacyPolicy": "隐私政策",
+    "terms": "条款与条件",
+    "license": "许可证",
+    "support": "支持",
+    "github": "GitHub"
+  }
+}

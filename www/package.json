@@ -18,8 +18,10 @@
 		"satori": "^0.19.1"
 	},
 	"devDependencies": {
+		"@astrojs/check": "^0.9.8",
 		"@types/node": "^25.0.5",
 		"sharp": "^0.34.5",
+		"typescript": "^5.9.3",
 		"wrangler": "^4.58.0"
 	}
 }

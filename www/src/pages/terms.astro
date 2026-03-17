@@ -1,20 +1,5 @@
 ---
-import { getCollection, render } from 'astro:content';
-import Layout from '../layouts/Layout.astro';
-
-const legal = await getCollection('legal');
-const terms = legal.find(entry => entry.id === 'terms');
-if (!terms) throw new Error('Terms not found');
-const { Content } = await render(terms);
+import MarkdownPage from "../components/pages/MarkdownPage.astro";
 ---
 
-<Layout title={terms.data.title} description={terms.data.description} ogImage="/images/og-terms.png">
-  <main class="content-page">
-    <div class="container">
-      <a href="/" class="back-link">&larr; Back to Home</a>
-      <article>
-        <Content />
-      </article>
-    </div>
-  </main>
-</Layout>
+<MarkdownPage locale="en" slug="terms" />

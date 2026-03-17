@@ -1,0 +1,5 @@
+{
+  "title": "Better Resource Monitor - macOS 菜单栏系统监视器",
+  "description": "macOS 菜单栏系统监视器。在菜单栏显示 CPU、内存、网络和 GPU。无需 root 权限，不使用私有 API。",
+  "ogImage": "/images/og-index-zh-cn.png"
+}

@@ -1,0 +1,15 @@
+---
+import HomePage from "../../components/pages/HomePage.astro";
+import { isSupportedLocale, localizedLocales } from "../../lib/site";
+
+export function getStaticPaths() {
+  return localizedLocales.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+if (!locale || !isSupportedLocale(locale)) {
+  throw new Error(`Unsupported locale: ${locale}`);
+}
+---
+
+<HomePage locale={locale} />

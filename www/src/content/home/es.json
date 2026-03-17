@@ -1,0 +1,5 @@
+{
+  "title": "Better Resource Monitor - Monitor de barra de menús para macOS",
+  "description": "Un monitor de sistema para la barra de menús de macOS. CPU, memoria, red y GPU en la barra de menús. Sin privilegios de root, sin APIs privadas.",
+  "ogImage": "/images/og-index-es.png"
+}
