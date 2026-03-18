@@ -68,15 +68,17 @@ export const GET: APIRoute = async ({ props }) => {
       props: {
         style: {
           alignSelf: "stretch",
-          fontSize: st(96),
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: st(60),
           fontWeight: 700,
           color: colors.text,
           backgroundColor: colors.accent,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
-          textAlign: "center",
           marginBottom: st(48),
-          padding: `${st(12)}px ${st(24)}px`,
+          padding: `${st(8)}px ${st(24)}px`,
         },
         children: "Better Resource Monitor",
       },
@@ -104,7 +106,7 @@ export const GET: APIRoute = async ({ props }) => {
     props: {
       src: trayIcon,
       width: showAppName ? "100%" : s(2400),
-      height: s(showAppName ? 62 : 124),
+      ...(showAppName ? {} : { height: s(124) }),
     },
   });
 
