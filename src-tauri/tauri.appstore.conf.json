@@ -1,6 +1,7 @@
 {
   "bundle": {
     "macOS": {
+      "entitlements": "Entitlements.appstore.plist",
       "files": {
         "embedded.provisionprofile": "embedded.provisionprofile"
       }
