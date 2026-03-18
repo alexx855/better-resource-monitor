@@ -67,12 +67,14 @@ export const GET: APIRoute = async ({ props }) => {
       type: "div",
       props: {
         style: {
+          alignSelf: "stretch",
           fontSize: st(96),
           fontWeight: 700,
           color: colors.text,
           backgroundColor: colors.accent,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
+          textAlign: "center",
           marginBottom: st(48),
           padding: `${st(12)}px ${st(24)}px`,
         },
@@ -98,26 +100,11 @@ export const GET: APIRoute = async ({ props }) => {
   });
 
   children.push({
-    type: "div",
+    type: "img",
     props: {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#252525",
-        borderRadius: s(24),
-        border: `${s(3)}px solid ${colors.border}`,
-        padding: `${s(40)}px ${s(70)}px`,
-      },
-      children: {
-        type: "img",
-        props: {
-          src: trayIcon,
-          width: s(2400),
-          height: s(showAppName ? 62 : 124),
-          style: { objectFit: "contain" },
-        },
-      },
+      src: trayIcon,
+      width: showAppName ? "100%" : s(2400),
+      height: s(showAppName ? 62 : 124),
     },
   });
 
