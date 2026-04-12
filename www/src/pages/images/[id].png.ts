@@ -21,7 +21,7 @@ const appStoreEntries = supportedLangs.flatMap((lang) =>
 
 // OG images: 7 pages x 4 locales = 28 entries (1200x630)
 const ogPages = [
-  { key: "index", title: (l: SiteMarketingLocale) => appStoreScreenshots[screenshotLangByLocale[l]].simplicity },
+  { key: "index", title: (l: SiteMarketingLocale) => ogTitles[l].index },
   { key: "faq", title: (l: SiteMarketingLocale) => ogTitles[l].faq },
   { key: "privacy", title: (l: SiteMarketingLocale) => ogTitles[l].privacy },
   { key: "terms", title: (l: SiteMarketingLocale) => ogTitles[l].terms },
@@ -83,32 +83,73 @@ export const GET: APIRoute = async ({ props }) => {
         children: "Better Resource Monitor",
       },
     });
-  }
 
-  children.push({
-    type: "div",
-    props: {
-      style: {
-        fontSize: st(160),
-        fontWeight: 700,
-        color: colors.text,
-        textAlign: "center",
-        whiteSpace: "pre-line",
-        lineHeight: 1.1,
-        marginBottom: st(100),
+    children.push({
+      type: "div",
+      props: {
+        style: {
+          fontSize: st(160),
+          fontWeight: 700,
+          color: colors.text,
+          textAlign: "center",
+          whiteSpace: "pre-line",
+          lineHeight: 1.1,
+          marginBottom: st(100),
+        },
+        children: title,
       },
-      children: title,
-    },
-  });
+    });
 
-  children.push({
-    type: "img",
-    props: {
-      src: trayIcon,
-      width: showAppName ? "100%" : s(2400),
-      ...(showAppName ? {} : { height: s(124) }),
-    },
-  });
+    children.push({
+      type: "img",
+      props: {
+        src: trayIcon,
+        style: {
+          width: "100%",
+        },
+      },
+    });
+  } else {
+    children.push({
+      type: "img",
+      props: {
+        src: trayIcon,
+        style: {
+          width: "100%",
+          objectFit: "cover",
+        },
+      },
+    });
+
+    children.push({
+      type: "div",
+      props: {
+        style: {
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          padding: `0 ${s(140)}px`,
+        },
+        children: {
+          type: "div",
+          props: {
+            style: {
+              fontSize: st(200),
+              fontWeight: 700,
+              color: colors.text,
+              textAlign: "center",
+              whiteSpace: "pre-line",
+              lineHeight: 1.1,
+            },
+            children: title,
+          },
+        },
+      },
+    });
+  }
 
   const element = {
     type: "div",
@@ -119,10 +160,10 @@ export const GET: APIRoute = async ({ props }) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: showAppName ? "center" : "flex-start",
         backgroundColor: colors.bg,
         fontFamily: "JetBrains Mono",
-        padding: `0 ${s(140)}px`,
+        padding: showAppName ? `0 ${s(140)}px` : "0",
       },
       children,
     },

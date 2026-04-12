@@ -12,11 +12,12 @@
     },
     "screenshotLang": "en",
     "screenshots": {
-      "simplicity": "System Stats\nin Your Menu Bar",
-      "performance": "So Light\nYou Won't Notice It",
+      "simplicity": "CPU, GPU, Memory, Network\nin Your Menu Bar",
+      "performance": "Always Visible\nZero Clicks to Check",
       "privacy": "Runs Locally\nNo Telemetry"
     },
     "ogTitles": {
+      "index": "Menu Bar Monitor\nfor macOS",
       "faq": "Frequently Asked\nQuestions",
       "privacy": "Privacy Policy",
       "terms": "Terms & Conditions",
@@ -52,11 +53,12 @@
     },
     "screenshotLang": "es",
     "screenshots": {
-      "simplicity": "Estadísticas del Sistema\nen Tu Barra de Menú",
-      "performance": "Tan Ligero\nQue No Lo Notarás",
+      "simplicity": "CPU, GPU, Memoria, Red\nen Tu Barra de Menú",
+      "performance": "Siempre Visible\nSin Abrir Ninguna App",
       "privacy": "Funciona Localmente\nSin Telemetría"
     },
     "ogTitles": {
+      "index": "Monitor de Barra\npara macOS",
       "faq": "Preguntas\nFrecuentes",
       "privacy": "Política de\nPrivacidad",
       "terms": "Términos y\nCondiciones",
@@ -92,11 +94,12 @@
     },
     "screenshotLang": "pt-BR",
     "screenshots": {
-      "simplicity": "Estatísticas do Sistema\nna Sua Barra de Menu",
-      "performance": "Tão Leve\nQue Você Nem Nota",
+      "simplicity": "CPU, GPU, Memória, Rede\nna Sua Barra de Menu",
+      "performance": "Sempre Visível\nSem Abrir Nenhum App",
       "privacy": "Funciona Localmente\nSem Telemetria"
     },
     "ogTitles": {
+      "index": "Monitor de Barra\npara macOS",
       "faq": "Perguntas\nFrequentes",
       "privacy": "Política de\nPrivacidade",
       "terms": "Termos e\nCondições",
@@ -132,11 +135,12 @@
     },
     "screenshotLang": "zh-Hans",
     "screenshots": {
-      "simplicity": "系统状态\n显示在菜单栏",
-      "performance": "轻盈运行\n几乎无感",
+      "simplicity": "CPU, GPU, 内存, 网络\n显示在菜单栏",
+      "performance": "始终可见\n无需打开任何应用",
       "privacy": "本地运行\n无遥测数据"
     },
     "ogTitles": {
+      "index": "菜单栏监视器\nmacOS",
       "faq": "常见问题",
       "privacy": "隐私政策",
       "terms": "使用条款",
