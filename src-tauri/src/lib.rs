@@ -1,6 +1,8 @@
 mod gpu;
 pub mod i18n;
 pub mod tray_render;
+#[cfg(target_os = "macos")]
+mod macos_autostart;
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
@@ -25,7 +27,7 @@ use tauri_plugin_store::StoreExt;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 
-#[cfg(desktop)]
+#[cfg(target_os = "linux")]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 use gpu::GpuSampler;
@@ -252,17 +254,25 @@ fn setup_tray(
     is_autostart_enabled: bool,
     translations: &i18n::Translations,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    #[cfg(desktop)]
+    #[cfg(target_os = "macos")]
+    {
+        if is_autostart_enabled {
+            if let Err(e) = macos_autostart::enable() {
+                eprintln!("Failed to enable autostart: {e}");
+            }
+        } else if let Err(e) = macos_autostart::disable() {
+            eprintln!("Failed to disable autostart: {e}");
+        }
+    }
+    #[cfg(target_os = "linux")]
     {
         let manager = app.autolaunch();
         if is_autostart_enabled {
             if let Err(e) = manager.enable() {
                 eprintln!("Failed to enable autostart: {e}");
             }
-        } else {
-            if let Err(e) = manager.disable() {
-                eprintln!("Failed to disable autostart: {e}");
-            }
+        } else if let Err(e) = manager.disable() {
+            eprintln!("Failed to disable autostart: {e}");
         }
     }
 
@@ -392,7 +402,19 @@ fn setup_tray(
             ];
             match event.id.as_ref() {
                 menu_id::AUTOSTART => {
-                    #[cfg(desktop)]
+                    #[cfg(target_os = "macos")]
+                    {
+                        let enabled = macos_autostart::is_enabled();
+                        if enabled {
+                            if let Err(e) = macos_autostart::disable() {
+                                eprintln!("Failed to disable autostart: {e}");
+                            }
+                        } else if let Err(e) = macos_autostart::enable() {
+                            eprintln!("Failed to enable autostart: {e}");
+                        }
+                        save_setting(app, menu_id::AUTOSTART, !enabled);
+                    }
+                    #[cfg(target_os = "linux")]
                     {
                         let manager = app.autolaunch();
                         let enabled = manager.is_enabled().unwrap_or(false);
@@ -400,10 +422,8 @@ fn setup_tray(
                             if let Err(e) = manager.disable() {
                                 eprintln!("Failed to disable autostart: {e}");
                             }
-                        } else {
-                            if let Err(e) = manager.enable() {
-                                eprintln!("Failed to enable autostart: {e}");
-                            }
+                        } else if let Err(e) = manager.enable() {
+                            eprintln!("Failed to enable autostart: {e}");
                         }
                         save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
@@ -652,18 +672,22 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(ActivationPolicy::Accessory);
 
-            #[cfg(desktop)]
+            #[cfg(target_os = "linux")]
             {
                 app.handle().plugin(tauri_plugin_autostart::init(
                     MacosLauncher::LaunchAgent,
-                    Some(vec![]),
+                    None,
                 ))?;
             }
 
             #[cfg(target_os = "linux")]
             start_theme_detection_thread();
 
-            let (cpu, mem, gpu, net, alerts, autostart) = load_settings(app.handle());
+            let (cpu, mem, gpu, net, alerts, _stored_autostart) = load_settings(app.handle());
+            #[cfg(target_os = "macos")]
+            let autostart = macos_autostart::is_enabled();
+            #[cfg(not(target_os = "macos"))]
+            let autostart = _stored_autostart;
             show_cpu_tray.store(cpu, Relaxed);
             show_mem_tray.store(mem, Relaxed);
             show_gpu_tray.store(gpu, Relaxed);
