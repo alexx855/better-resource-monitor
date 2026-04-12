@@ -70,6 +70,10 @@ CPU, memory, GPU, and network in your menu bar. Runs sandboxed. On the Mac App S
 
 Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
 
+### Compatibility
+
+Tested on Intel Macs running macOS Ventura and on the latest macOS Sonoma release.
+
 ### Build from Source
 
 You'll need <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">Tauri v2 prerequisites</a> and <a href="https://pnpm.io/" target="_blank">pnpm</a>.
