@@ -67,7 +67,7 @@ CPU、内存、GPU、网络，全在菜单栏里。沙盒运行。Mac App Store 
 
 ### 兼容性
 
-已在运行 macOS Ventura 的 Intel Mac 上，以及最新版本的 macOS Sonoma 上完成测试。
+支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。
 
 ### 从源码构建
 

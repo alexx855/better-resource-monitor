@@ -10,7 +10,7 @@
     },
     {
       "question": "Which macOS versions has it been tested on?",
-      "answer": "It has been tested on Intel Macs running macOS Ventura and on the latest macOS Sonoma release."
+      "answer": "It works on Intel Macs and Apple Silicon Macs running macOS Ventura 13 or newer."
     },
     {
       "question": "Is it free?",

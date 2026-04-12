@@ -72,7 +72,7 @@ Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id67
 
 ### Compatibility
 
-Tested on Intel Macs running macOS Ventura and on the latest macOS Sonoma release.
+Works on Intel Macs and Apple Silicon Macs running macOS Ventura 13 or newer.
 
 ### Build from Source
 

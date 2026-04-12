@@ -10,7 +10,7 @@
     },
     {
       "question": "它在哪些 macOS 版本上完成了测试？",
-      "answer": "已在运行 macOS Ventura 的 Intel Mac 上，以及最新版本的 macOS Sonoma 上完成测试。"
+      "answer": "支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。"
     },
     {
       "question": "它是免费的吗？",

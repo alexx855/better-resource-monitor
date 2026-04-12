@@ -10,7 +10,7 @@
     },
     {
       "question": "Em quais versões do macOS ele foi testado?",
-      "answer": "Ele foi testado em Macs Intel com macOS Ventura e na versão mais recente do macOS Sonoma."
+      "answer": "Funciona em Macs Intel e Apple Silicon com macOS Ventura 13 ou mais recente."
     },
     {
       "question": "É gratuito?",

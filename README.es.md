@@ -67,7 +67,7 @@ Consíguelo en la <a href="https://apps.apple.com/app/better-resource-monitor/id
 
 ### Compatibilidad
 
-Probado en Macs Intel con macOS Ventura y en la versión más reciente de macOS Sonoma.
+Funciona en Macs Intel y Apple Silicon con macOS Ventura 13 o posterior.
 
 ### Compilar desde el código fuente
 
