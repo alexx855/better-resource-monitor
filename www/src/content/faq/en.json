@@ -9,6 +9,10 @@
       "answer": "A free, open-source menu bar app that shows CPU, memory, GPU, and network usage on macOS. Written in Rust. Under 0.1% CPU and about 15 MB of RAM."
     },
     {
+      "question": "Which macOS versions has it been tested on?",
+      "answer": "It has been tested on Intel Macs running macOS Ventura and on the latest macOS Sonoma release."
+    },
+    {
       "question": "Is it free?",
       "answer": "Yes. MIT-licensed, no paid tiers, no in-app purchases. The Mac App Store and GitHub versions are the same app."
     },

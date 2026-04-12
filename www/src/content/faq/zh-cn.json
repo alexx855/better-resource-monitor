@@ -9,6 +9,10 @@
       "answer": "一款免费、开源的 macOS 菜单栏应用，用于显示 CPU、内存、GPU 和网络使用情况。使用 Rust 编写。CPU 占用低于 0.1%，内存占用约 15 MB。"
     },
     {
+      "question": "它在哪些 macOS 版本上完成了测试？",
+      "answer": "已在运行 macOS Ventura 的 Intel Mac 上，以及最新版本的 macOS Sonoma 上完成测试。"
+    },
+    {
       "question": "它是免费的吗？",
       "answer": "是的。采用 MIT 许可证，无付费层级，无应用内购买。Mac App Store 版本和 GitHub 版本是完全相同的应用。"
     },

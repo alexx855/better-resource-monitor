@@ -65,6 +65,10 @@ CPU、内存、GPU、网络，全在菜单栏里。沙盒运行。Mac App Store 
 
 从 <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> 获取（包含自动更新），或从 <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> 下载 `.dmg` 文件。
 
+### 兼容性
+
+已在运行 macOS Ventura 的 Intel Mac 上，以及最新版本的 macOS Sonoma 上完成测试。
+
 ### 从源码构建
 
 你需要 <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">Tauri v2 前置条件</a> 和 <a href="https://pnpm.io/" target="_blank">pnpm</a>。
