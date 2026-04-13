@@ -40,6 +40,8 @@ sys-locale = "0.3"
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
+objc2-foundation = { version = "0.3.2", features = ["NSBundle", "NSString"] }
+objc2-service-management = "0.3.2"
 
 # Linux-specific dependencies
 [target.'cfg(target_os = "linux")'.dependencies]

@@ -386,6 +386,46 @@ fn test_detect_language_does_not_panic() {
 }
 
 #[test]
+fn test_detect_language_from_locales_recognizes_supported_tags() {
+    assert_eq!(
+        i18n::detect_language_from_locales(["es-ES"]),
+        i18n::Language::Spanish
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["ES_mx"]),
+        i18n::Language::Spanish
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["pt-BR"]),
+        i18n::Language::Portuguese
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["zh-Hans"]),
+        i18n::Language::Chinese
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["en-US"]),
+        i18n::Language::English
+    );
+}
+
+#[test]
+fn test_detect_language_from_locales_uses_preference_order() {
+    assert_eq!(
+        i18n::detect_language_from_locales(["fr-FR", "es-ES"]),
+        i18n::Language::Spanish
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["en-US", "es-ES"]),
+        i18n::Language::English
+    );
+    assert_eq!(
+        i18n::detect_language_from_locales(["fr-FR", "de-DE", ""]),
+        i18n::Language::English
+    );
+}
+
+#[test]
 fn test_all_languages_have_translations() {
     let languages = [
         i18n::Language::English,
