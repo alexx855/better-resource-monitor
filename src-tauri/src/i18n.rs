@@ -9,7 +9,7 @@ pub struct Translations {
     pub system_monitor: &'static str,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Language {
     English,
     Spanish,
@@ -72,14 +72,29 @@ impl Language {
     }
 }
 
-pub fn detect_language() -> Language {
-    let locale = sys_locale::get_locale().unwrap_or_default();
-    let prefix = locale.split(['-', '_']).next().unwrap_or("en");
+fn language_for_locale(locale: &str) -> Option<Language> {
+    let prefix = locale.split(['-', '_']).next()?.to_ascii_lowercase();
 
-    match prefix {
-        "es" => Language::Spanish,
-        "pt" => Language::Portuguese,
-        "zh" => Language::Chinese,
-        _ => Language::English,
+    match prefix.as_str() {
+        "en" => Some(Language::English),
+        "es" => Some(Language::Spanish),
+        "pt" => Some(Language::Portuguese),
+        "zh" => Some(Language::Chinese),
+        _ => None,
     }
+}
+
+pub(crate) fn detect_language_from_locales<I, S>(locales: I) -> Language
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    locales
+        .into_iter()
+        .find_map(|locale| language_for_locale(locale.as_ref()))
+        .unwrap_or(Language::English)
+}
+
+pub fn detect_language() -> Language {
+    detect_language_from_locales(sys_locale::get_locales())
 }
