@@ -20,10 +20,16 @@
 
 <!-- README-LANG-END -->
 
-<p align="center">
-  <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" width="270" height="65"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.2/Better.Resource.Monitor_1.1.2_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" width="270" height="65"></a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore.webp" alt="Download on the Mac App Store" width="270" height="65"></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.2/Better.Resource.Monitor_1.1.2_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos.webp" alt="Download macOS on GitHub Releases" width="270" height="65"></a>
+    </td>
+  </tr>
+</table>
 
 <p align="center">
   <a href="#why">Why</a> <span>•</span>
