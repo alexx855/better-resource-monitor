@@ -13,6 +13,10 @@
       "answer": "Funciona em Macs Intel e Apple Silicon com macOS Ventura 13 ou mais recente."
     },
     {
+      "question": "Existe uma versão para Linux?",
+      "answer": "As compilações a partir do código-fonte ainda funcionam no Linux, mas as versões oficiais para Linux estão em pausa por enquanto. No Ubuntu/GNOME Wayland, a cadeia upstream de appindicator vaza texturas do compositor quando o ícone da bandeja é atualizado, e isso pode degradar toda a área de trabalho com o tempo. As versões podem voltar quando o Tauri adicionar suporte a KSNI. Veja a [issue #10](https://github.com/alexx855/better-resource-monitor/issues/10) para mais detalhes."
+    },
+    {
       "question": "É gratuito?",
       "answer": "Sim. Licenciado sob MIT, sem níveis pagos, sem compras no aplicativo. As versões da Mac App Store e do GitHub são o mesmo aplicativo."
     },

@@ -74,6 +74,10 @@ Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id67
 
 Works on Intel Macs and Apple Silicon Macs running macOS Ventura 13 or newer.
 
+### Linux Status
+
+Official Linux releases are paused for now. On Ubuntu/GNOME Wayland, the upstream appindicator stack leaks compositor textures when tray icons update, which can degrade the whole desktop over time. This app already throttles tray icon updates, but that only slows the leak down. Source builds still compile on Linux if you want to experiment, but publishing new `.deb` releases would be irresponsible until Tauri ships KSNI support. See <a href="https://github.com/alexx855/better-resource-monitor/issues/10" target="_blank">issue #10</a> and <a href="https://github.com/tauri-apps/tauri/issues/11293" target="_blank">tauri-apps/tauri#11293</a> for details.
+
 ### Build from Source
 
 You'll need <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">Tauri v2 prerequisites</a> and <a href="https://pnpm.io/" target="_blank">pnpm</a>.

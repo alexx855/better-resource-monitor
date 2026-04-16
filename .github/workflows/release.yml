@@ -143,6 +143,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux release artifacts remain intentionally disabled while issue #10 is open.
+          # The app still compiles from source on Linux, but we only publish macOS builds for now.
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
 

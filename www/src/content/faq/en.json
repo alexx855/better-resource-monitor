@@ -13,6 +13,10 @@
       "answer": "It works on Intel Macs and Apple Silicon Macs running macOS Ventura 13 or newer."
     },
     {
+      "question": "Is there a Linux version?",
+      "answer": "Source builds still compile on Linux, but official Linux releases are paused for now. On Ubuntu/GNOME Wayland, the upstream appindicator stack leaks compositor textures when tray icons update, which can degrade the whole desktop over time. Releases can resume once Tauri ships KSNI support. See [issue #10](https://github.com/alexx855/better-resource-monitor/issues/10) for details."
+    },
+    {
       "question": "Is it free?",
       "answer": "Yes. MIT-licensed, no paid tiers, no in-app purchases. The Mac App Store and GitHub versions are the same app."
     },

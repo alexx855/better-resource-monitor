@@ -69,6 +69,10 @@ Consíguelo en la <a href="https://apps.apple.com/app/better-resource-monitor/id
 
 Funciona en Macs Intel y Apple Silicon con macOS Ventura 13 o posterior.
 
+### Estado de Linux
+
+Las versiones oficiales para Linux están en pausa por ahora. En Ubuntu/GNOME Wayland, la cadena upstream de appindicator filtra texturas del compositor cuando el icono de la bandeja se actualiza, y con el tiempo puede degradar todo el escritorio. Esta app ya reduce la frecuencia de actualización del icono, pero eso solo ralentiza la fuga. Compilar desde el código fuente en Linux sigue siendo posible si quieres experimentar, pero publicar nuevas versiones `.deb` sería irresponsable hasta que Tauri incorpore soporte para KSNI. Consulta <a href="https://github.com/alexx855/better-resource-monitor/issues/10" target="_blank">issue #10</a> y <a href="https://github.com/tauri-apps/tauri/issues/11293" target="_blank">tauri-apps/tauri#11293</a> para más detalles.
+
 ### Compilar desde el código fuente
 
 Necesitarás los <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">requisitos previos de Tauri v2</a> y <a href="https://pnpm.io/" target="_blank">pnpm</a>.

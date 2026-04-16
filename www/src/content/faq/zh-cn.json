@@ -13,6 +13,10 @@
       "answer": "支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。"
     },
     {
+      "question": "有 Linux 版本吗？",
+      "answer": "Linux 仍然可以从源码构建，但官方 Linux 发行版目前暂停发布。在 Ubuntu/GNOME Wayland 上，上游 appindicator 链路会在托盘图标更新时泄漏合成器纹理，时间一长会拖慢整个桌面环境。等到 Tauri 提供 KSNI 支持后，官方发行版才适合恢复。详情请参阅 [issue #10](https://github.com/alexx855/better-resource-monitor/issues/10)。"
+    },
+    {
       "question": "它是免费的吗？",
       "answer": "是的。采用 MIT 许可证，无付费层级，无应用内购买。Mac App Store 版本和 GitHub 版本是完全相同的应用。"
     },

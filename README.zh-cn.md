@@ -69,6 +69,10 @@ CPU、内存、GPU、网络，全在菜单栏里。沙盒运行。Mac App Store 
 
 支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。
 
+### Linux 状态
+
+官方 Linux 发行版目前暂停发布。在 Ubuntu/GNOME Wayland 上，上游 appindicator 链路会在托盘图标更新时泄漏合成器纹理，时间一长会拖慢整个桌面环境。这个应用已经对托盘图标更新做了节流处理，但这只能减缓泄漏速度。如果你想自行尝试，Linux 仍然可以从源码构建，但在 Tauri 提供 KSNI 支持之前，继续发布新的 `.deb` 版本并不负责任。详情请参阅 <a href="https://github.com/alexx855/better-resource-monitor/issues/10" target="_blank">issue #10</a> 和 <a href="https://github.com/tauri-apps/tauri/issues/11293" target="_blank">tauri-apps/tauri#11293</a>。
+
 ### 从源码构建
 
 你需要 <a href="https://v2.tauri.app/start/prerequisites/" target="_blank">Tauri v2 前置条件</a> 和 <a href="https://pnpm.io/" target="_blank">pnpm</a>。
