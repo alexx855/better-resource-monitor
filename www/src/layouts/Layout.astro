@@ -74,6 +74,8 @@ const siteUrl = new URL("/", Astro.site).href;
     <link rel="manifest" href="/site.webmanifest" />
     {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" type="text/plain" href={new URL("/llms.txt", Astro.site).href} title="LLMs.txt" />
+    <link rel="alternate" type="application/json" href={new URL("/agent-facts.json", Astro.site).href} title="Agent facts" />
     {alternateLinks.map((link) => (
       <link rel="alternate" hreflang={link.hrefLang} href={new URL(link.href, Astro.site).href} />
     ))}

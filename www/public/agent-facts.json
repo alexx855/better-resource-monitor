@@ -6,7 +6,6 @@
   "support": "https://github.com/alexx855/better-resource-monitor/issues/new",
   "appStore": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
   "releases": "https://github.com/alexx855/better-resource-monitor/releases",
-  "version": "1.1.2",
   "bundleIdentifier": "dev.alexpedersen.better-resource-monitor",
   "category": "System Monitor",
   "platforms": ["macOS"],
@@ -16,7 +15,7 @@
     "currency": "USD",
     "label": "Free"
   },
-  "license": "MIT",
+  "license": "https://opensource.org/licenses/MIT",
   "privacy": {
     "telemetry": false,
     "worksOffline": true
