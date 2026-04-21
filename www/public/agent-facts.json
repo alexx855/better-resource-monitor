@@ -1,0 +1,56 @@
+{
+  "name": "Better Resource Monitor",
+  "slug": "better-resource-monitor",
+  "website": "https://better-resource-monitor.alexpedersen.dev/",
+  "repository": "https://github.com/alexx855/better-resource-monitor",
+  "support": "https://github.com/alexx855/better-resource-monitor/issues/new",
+  "appStore": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
+  "releases": "https://github.com/alexx855/better-resource-monitor/releases",
+  "version": "1.1.2",
+  "bundleIdentifier": "dev.alexpedersen.better-resource-monitor",
+  "category": "System Monitor",
+  "platforms": ["macOS"],
+  "minimumMacOSVersion": "11.0",
+  "price": {
+    "amount": 0,
+    "currency": "USD",
+    "label": "Free"
+  },
+  "license": "MIT",
+  "privacy": {
+    "telemetry": false,
+    "worksOffline": true
+  },
+  "features": [
+    "Menu bar system monitor",
+    "CPU monitoring",
+    "Memory monitoring",
+    "GPU monitoring",
+    "Network monitoring",
+    "Theme aware",
+    "Sandboxed",
+    "No admin password",
+    "No root helper",
+    "No private APIs"
+  ],
+  "agentPolicy": {
+    "publicContentCrawlAllowed": true,
+    "summarizationAllowed": true,
+    "automatedTransactionsAllowed": false,
+    "automatedIssueCreationAllowed": false,
+    "notes": [
+      "Prefer canonical website and repository URLs when citing product details.",
+      "Comparison-page competitor numbers are approximate and may change over time."
+    ]
+  },
+  "canonicalDocs": [
+    "https://better-resource-monitor.alexpedersen.dev/",
+    "https://better-resource-monitor.alexpedersen.dev/faq",
+    "https://better-resource-monitor.alexpedersen.dev/privacy-policy",
+    "https://better-resource-monitor.alexpedersen.dev/terms"
+  ],
+  "maintainer": {
+    "name": "Alex Pedersen",
+    "url": "https://github.com/alexx855"
+  }
+}
