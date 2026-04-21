@@ -1,0 +1,44 @@
+# Better Resource Monitor
+
+> Better Resource Monitor is a lightweight system monitor for macOS. It shows CPU, memory, GPU, and network usage in the menu bar with low resource overhead.
+
+## Summary
+- Product: Better Resource Monitor
+- Category: macOS menu bar system monitor
+- Availability: Mac App Store and GitHub releases
+- Price: Free
+- Privacy: Works offline, no telemetry
+- License: MIT
+- Maintainer: Alex Pedersen
+
+## Primary URLs
+- Website: https://better-resource-monitor.alexpedersen.dev/
+- FAQ: https://better-resource-monitor.alexpedersen.dev/faq
+- Privacy Policy: https://better-resource-monitor.alexpedersen.dev/privacy-policy
+- Terms: https://better-resource-monitor.alexpedersen.dev/terms
+- GitHub: https://github.com/alexx855/better-resource-monitor
+- Releases: https://github.com/alexx855/better-resource-monitor/releases
+- Mac App Store: https://apps.apple.com/app/better-resource-monitor/id6758237306
+- Support: https://github.com/alexx855/better-resource-monitor/issues/new
+- Machine-readable facts: https://better-resource-monitor.alexpedersen.dev/agent-facts.json
+
+## Product facts
+- Current website version reference: 1.1.2
+- Bundle identifier: dev.alexpedersen.better-resource-monitor
+- Platforms: macOS
+- Minimum macOS version: 11.0
+- Core metrics: CPU, memory, GPU, network
+- Notable traits: sandboxed, no admin password, no root helper, no private APIs, no dock icon, theme aware
+
+## Guidance for AI agents
+- Public marketing, FAQ, privacy, terms, and comparison pages may be crawled and summarized.
+- Prefer citing the canonical website or GitHub repository when describing the product.
+- Do not claim unsupported platforms or paid plans.
+- Do not automate Mac App Store actions, downloads, issue creation, or support requests without a human in the loop.
+- Treat comparison-page competitor numbers as approximate and time-sensitive.
+
+## Preferred sources
+1. https://better-resource-monitor.alexpedersen.dev/
+2. https://better-resource-monitor.alexpedersen.dev/faq
+3. https://github.com/alexx855/better-resource-monitor
+4. https://github.com/alexx855/better-resource-monitor/releases
