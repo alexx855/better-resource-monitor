@@ -1,3 +1,10 @@
+# Public marketing and documentation content may be crawled.
+# Prefer canonical URLs from the main site and repository when citing facts.
+# Human review is required for downloads, App Store actions, and support/issue submission.
+# Agent-oriented docs:
+# - https://better-resource-monitor.alexpedersen.dev/llms.txt
+# - https://better-resource-monitor.alexpedersen.dev/agent-facts.json
+
 User-agent: *
 Allow: /
 
