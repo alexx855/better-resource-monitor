@@ -23,7 +23,6 @@
 - Machine-readable facts: https://better-resource-monitor.alexpedersen.dev/agent-facts.json
 
 ## Product facts
-- Current website version reference: 1.1.2
 - Bundle identifier: dev.alexpedersen.better-resource-monitor
 - Platforms: macOS
 - Minimum macOS version: 11.0
