@@ -5,7 +5,7 @@
   "competitorName": "iStat Menus",
   "competitorPrice": "14.99",
   "heading": "Better Resource Monitor vs iStat Menus",
-  "intro": "iStat Menus and Better Resource Monitor are built for different jobs. iStat Menus is a bigger system utility with more sensors, controls, and extra detail. Better Resource Monitor is for the simpler use case: keep CPU, memory, GPU, and network visible from the menu bar so you can spot unusual load quickly without adding much overhead.",
+  "intro": "iStat Menus and Better Resource Monitor are built for different jobs. iStat Menus is a bigger system utility with more sensors, controls, and extra detail. Better Resource Monitor is for the simpler use case: keep CPU, memory, GPU, and network visible from the menu bar, notice unusual load quickly, and keep the monitor itself light enough to ignore.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
@@ -60,8 +60,8 @@
       "body": "Better Resource Monitor uses under 0.1% CPU on Apple Silicon and around 15 MB of memory. That lower overhead comes from keeping the feature set tighter and skipping the always-on sensor polling that heavier monitoring apps rely on. It is built to stay open all day without feeling like one more thing your Mac has to carry."
     },
     {
-      "heading": "Less friction matters too",
-      "body": "Better Resource Monitor installs like a normal Mac app. No admin-password step, no root helper, no private APIs. Most people will not choose an app because of those details alone, but they do make the experience simpler and easier to trust."
+      "heading": "Easy to install, easy to trust",
+      "body": "Better Resource Monitor installs like a normal Mac app and keeps the experience simple: no extra setup, no private APIs, and no background helper to think about. Most people will care more about the lighter footprint and cleaner focus, but those choices are part of why it feels straightforward."
     },
     {
       "heading": "Privacy",

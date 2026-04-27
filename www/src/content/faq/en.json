@@ -22,7 +22,7 @@
     },
     {
       "question": "How does GPU monitoring work?",
-      "answer": "On macOS, it reads device utilization from Apple Silicon GPUs through Apple's public IOAccelerator API. No private APIs, no sudo. Both the App Store and GitHub versions include GPU monitoring."
+      "answer": "On macOS, it reads device utilization from Apple Silicon GPUs through Apple's public IOAccelerator API. That keeps GPU monitoring available in both the App Store and GitHub versions without relying on private APIs or sudo."
     },
     {
       "question": "Does it collect any data?",
@@ -30,7 +30,7 @@
     },
     {
       "question": "How does it compare to iStat Menus and Stats?",
-      "answer": "All three show system metrics in the menu bar. The differences: Stats needs a root helper for fan and thermal data. iStat Menus costs $14.99 and also needs root. Better Resource Monitor runs entirely in user space, uses about 15 MB of RAM, and is free. See the [Stats comparison page]({{vsStatsUrl}}) and [iStat Menus comparison page]({{vsIstatMenusUrl}}) for details."
+      "answer": "All three show system metrics in the menu bar. Better Resource Monitor is the focused option: CPU, memory, GPU, and network usage at a glance, about 15 MB of RAM, under 0.1% CPU on Apple Silicon, and free. Stats and iStat Menus go deeper into extra sensors, but they also carry more overhead. See the [Stats comparison page]({{vsStatsUrl}}) and [iStat Menus comparison page]({{vsIstatMenusUrl}}) for details."
     },
     {
       "question": "Does it drain MacBook battery?",

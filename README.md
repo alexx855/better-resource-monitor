@@ -33,13 +33,13 @@
 
 ## Why
 
-Better Resource Monitor is for people who just want a simple way to keep an eye on their Mac.
+Better Resource Monitor is for people who just want a quick, low-noise way to keep an eye on their Mac.
 
-It shows CPU, memory, GPU, and network usage right in the menu bar, so you can notice unusual load quickly without opening Activity Monitor or digging through system tools.
+It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
 
-It is also designed to stay lightweight, so the monitor itself does not become the problem.
+It is built to stay light enough to leave running all day: under 0.1% CPU on Apple Silicon, around 15 MB of memory, and zero network requests.
 
-The technical side is there to support that experience: no admin-password step, no root helper, no private APIs, no dock icon, sandboxed, and available on the Mac App Store with full features.
+The technical side is there to support that experience. It installs like a normal Mac app, stays sandboxed, ships on the Mac App Store with full features, and avoids admin-password prompts or background root helpers.
 
 ## Comparison
 
