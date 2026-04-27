@@ -1,5 +1,5 @@
 {
   "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
-  "description": "A simple menu bar monitor for macOS. Keep CPU, memory, GPU, and network usage visible so you can notice unusual load quickly.",
+  "description": "A menu bar monitor for macOS that keeps CPU, memory, GPU, and network usage visible so you can catch unusual load without opening Activity Monitor.",
   "ogImage": "/images/og-index-en.png"
 }
