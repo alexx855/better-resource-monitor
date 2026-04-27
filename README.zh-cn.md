@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>一款 macOS 菜单栏/托盘系统监视器。</strong>
+  <strong>在菜单栏里直接看到你的 Mac 正在做什么。</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -23,14 +23,18 @@
 
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore-zh-cn.webp" alt="在 Mac App Store 下载" width="270" height="65"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.0/Better.Resource.Monitor_1.1.0_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-zh-cn.webp" alt="从 GitHub Releases 下载 macOS 版" width="270" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.3/Better.Resource.Monitor_1.1.3_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-zh-cn.webp" alt="从 GitHub Releases 下载 macOS 版" width="270" height="65"></a>
 </p>
 
 ## 为什么选择它
 
-不需要管理员密码。不需要特权辅助工具。不用私有 API。没有 Dock 图标。
+Better Resource Monitor 适合那些只想用一种简单方式看看自己的 Mac 状态的人。
 
-CPU、内存、GPU、网络，全在菜单栏里。沙盒运行。Mac App Store 完整上架。
+它会把 CPU、内存、GPU 和网络使用情况直接放在菜单栏里，让你不用打开活动监视器，也不用钻进系统工具，就能更快发现异常负载。
+
+它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
+
+技术上的选择是为了支撑这种体验：无需管理员密码步骤、无需 root 辅助工具、不使用私有 API、没有 Dock 图标、运行在沙盒中，并且以完整功能上架 Mac App Store。
 
 ## 对比
 
