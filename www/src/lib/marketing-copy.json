@@ -8,7 +8,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
-      "description": "A menu bar system monitor for macOS. CPU, memory, network, and GPU in the tray. No root privileges, no private APIs."
+      "description": "A simple menu bar monitor for macOS. Keep CPU, memory, GPU, and network usage visible so you can notice unusual load quickly."
     },
     "screenshotLang": "en",
     "screenshots": {
