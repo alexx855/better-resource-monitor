@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>A menu bar/tray system monitor for macOS.</strong>
+  <strong>See what your Mac is doing from the menu bar.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -33,9 +33,13 @@
 
 ## Why
 
-No admin password. No root helpers. No private APIs. No dock icon.
+Better Resource Monitor is for people who just want a simple way to keep an eye on their Mac.
 
-CPU, memory, GPU, and network in your menu bar. Runs sandboxed. On the Mac App Store with full features.
+It shows CPU, memory, GPU, and network usage right in the menu bar, so you can notice unusual load quickly without opening Activity Monitor or digging through system tools.
+
+It is also designed to stay lightweight, so the monitor itself does not become the problem.
+
+The technical side is there to support that experience: no admin-password step, no root helper, no private APIs, no dock icon, sandboxed, and available on the Mac App Store with full features.
 
 ## Comparison
 
