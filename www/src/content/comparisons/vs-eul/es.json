@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs Eul",
-  "description": "Eul dejó de recibir actualizaciones y consume mucha CPU en Apple Silicon. Aquí te cuento a qué me cambié y por qué.",
+  "description": "Si te gustaba la configuración simple de Eul en la barra de menús, Better Resource Monitor ofrece una idea parecida con soporte actual para macOS y menor consumo en Macs nuevas.",
   "ogImage": "/images/og-vs-eul-es.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Eul",
-  "intro": "Eul dejó de recibir actualizaciones hace años. En Macs con chip serie M, tiene un alto uso de CPU conocido, no hay correcciones en camino y un monitoreo de GPU que depende de APIs privadas que se rompen entre versiones de macOS. Después de lidiar con eso por un tiempo, escribí Better Resource Monitor. Los datos de GPU provienen de la API IOAccelerator, todo permanece dentro del App Sandbox y mide menos del 0.1% de CPU en Apple Silicon.",
+  "intro": "A mucha gente le gustaba Eul porque era pequeño, simple y fácil de dejar en la barra de menús. Better Resource Monitor apunta a esa misma utilidad cotidiana, pero con mantenimiento activo, soporte para Macs actuales y menor consumo en Apple Silicon.",
   "table": {
     "featureLabel": "Característica",
     "productLabel": "Better Resource Monitor",
@@ -52,17 +52,17 @@
   },
   "sections": [
     {
-      "heading": "El mantenimiento importa para las herramientas del sistema",
-      "body": "Un monitor de barra de menús interactúa con IOKit, SMC y todo lo que Apple reorganiza cada otoño. El último commit significativo de Eul fue hace años. Sin correcciones para macOS Sequoia, sin ajustes para Apple Silicon, sin parches de seguridad. Pruebo contra cada beta de macOS y envío correcciones antes de que se lance la versión pública."
+      "heading": "Por qué la gente deja Eul",
+      "body": "Eul sigue teniendo una sensación minimalista agradable, pero ya no se mantiene activamente. Eso importa más en un monitor de sistema que en la mayoría de apps, porque macOS sigue cambiando las APIs y los detalles de hardware de los que dependen estas herramientas."
     },
     {
-      "heading": "Uso de CPU en Apple Silicon",
-      "body": "En Macs con chip serie M, el uso de CPU de Eul aumenta notablemente. Nadie lo mantiene, así que eso nunca se solucionará. El núcleo en Rust de Better Resource Monitor mantiene toda la aplicación por debajo del 0.1% de CPU al omitir el trabajo que causa la sobrecarga (helpers SMC, sondeo constante de sensores)."
+      "heading": "Mejor encaje para Macs nuevas",
+      "body": "En Apple Silicon, Better Resource Monitor se mantiene por debajo del 0.1% de CPU y usa alrededor de 15 MB de memoria. Eso hace que sea más fácil dejarlo abierto todo el día, que al final es el punto de un monitor de barra de menús."
     },
     {
-      "heading": "Datos de GPU sin APIs privadas",
-      "body": "La versión de Eul en la App Store se envía con funciones limitadas porque utiliza APIs privadas y no documentadas para los datos de GPU. Esas pueden romperse silenciosamente en cualquier actualización menor de macOS. Yo leo la utilización de la GPU a través de IOAccelerator, la interfaz pública de IOKit. Los mismos datos, estables ante actualizaciones, monitoreo completo de GPU en la App Store."
+      "heading": "Detalles técnicos, resultado práctico",
+      "body": "Better Resource Monitor usa APIs públicas para los datos de GPU, corre en sandbox y está disponible en la Mac App Store con todas sus funciones. Son detalles técnicos, sí, pero el resultado práctico es simple: un monitor más fácil de instalar, más fácil de confiar y menos propenso a romperse con la próxima actualización de macOS."
     }
   ],
-  "cta": "Si Eul te funcionaba antes de que dejara de recibir actualizaciones, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) cubre el mismo terreno. El código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor) si quieres echar un vistazo antes de instalar."
+  "cta": "Si te gustaba el estilo más simple de Eul pero quieres algo actual, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) cubre el mismo uso cotidiano. El código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor) si quieres revisarlo antes de instalar."
 }

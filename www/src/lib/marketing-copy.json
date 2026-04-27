@@ -49,7 +49,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - Monitor de barra de menús para macOS",
-      "description": "Un monitor de sistema para la barra de menús de macOS. CPU, memoria, red y GPU en la barra de menús. Sin privilegios de root, sin APIs privadas."
+      "description": "Un monitor simple para la barra de menús de macOS. Mantén visibles CPU, memoria, GPU y red para detectar carga inusual rápidamente."
     },
     "screenshotLang": "es",
     "screenshots": {
@@ -90,7 +90,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - Monitor de Barra de Menus para macOS",
-      "description": "Um monitor de sistema para a barra de menus do macOS. CPU, memória, rede e GPU na barra de menus. Sem privilégios de root, sem APIs privadas."
+      "description": "Um monitor simples para a barra de menus do macOS. Deixe CPU, memória, GPU e rede sempre visíveis para perceber cargas incomuns mais rápido."
     },
     "screenshotLang": "pt-BR",
     "screenshots": {
@@ -131,7 +131,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - macOS 菜单栏系统监视器",
-      "description": "macOS 菜单栏系统监视器。在菜单栏显示 CPU、内存、网络和 GPU。无需 root 权限，不使用私有 API。"
+      "description": "一款简单的 macOS 菜单栏监视器。让 CPU、内存、GPU 和网络使用情况始终可见，方便你更快发现异常负载。"
     },
     "screenshotLang": "zh-Hans",
     "screenshots": {

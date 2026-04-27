@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs Stats",
-  "description": "Stats 和 Better Resource Monitor 都是免费开源的。区别在于 root 访问权限、私有 API 以及对电池续航的影响。",
+  "description": "Stats 和 Better Resource Monitor 都是免费的 Mac 菜单栏监视器。如果你主要想一眼看到 CPU、内存、GPU 和网络，Better Resource Monitor 会是更简单、更轻量的选择。",
   "ogImage": "/images/og-vs-stats-zh-cn.png",
   "competitorName": "Stats",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats",
-  "intro": "Stats 和 Better Resource Monitor 都驻留在菜单栏，且都是免费、MIT 许可证的开源软件。区别在于它们获取硬件数据的方式。Stats 安装了一个需要管理员密码的特权辅助工具，通过 SMC 读取风扇和温度数据。我不希望我的机器上运行这种程序，因此 Better Resource Monitor 完全在用户空间运行，无需提升权限。",
+  "intro": "Stats 和 Better Resource Monitor 都是不错的菜单栏监视器，但它们面向的用户并不完全一样。Stats 会更深入地覆盖风扇、温度等额外传感器。Better Resource Monitor 走的是更简单的路线：把 CPU、内存、GPU 和网络始终放在眼前，保持轻量，并且不要为了看看 Mac 状态就增加额外负担。",
   "table": {
     "featureLabel": "功能",
     "productLabel": "Better Resource Monitor",
@@ -52,17 +52,17 @@
   },
   "sections": [
     {
-      "heading": "无需 root 辅助工具，无需管理员密码",
-      "body": "Stats 安装了一个以 root 权限运行的特权辅助工具，通过 SMC 读取风扇转速和温度传感器。Better Resource Monitor 跳过了所有这些。无需管理员密码，后台没有以 root 身份运行的进程。减少了一个在你机器上拥有系统级访问权限的进程。"
+      "heading": "每款应用分别更适合什么人",
+      "body": "如果你很在意风扇转速、温度和更深入的传感器数据，Stats 覆盖得更广。Better Resource Monitor 则是有意收窄范围。它专注于大多数人在觉得 Mac 不对劲时最先会看的四项数据：CPU、内存、GPU 和网络。"
     },
     {
-      "heading": "通过公开 API 进行 GPU 监控",
-      "body": "Stats 通过私有的、未记录的 Apple API 读取 GPU 指标，这些 API 可能会在任何 macOS 更新中失效。这也是 Stats 无法通过 Mac App Store 审核的原因。我通过 IOAccelerator（一个公开的 IOKit 接口）读取 GPU 使用率。数据相同，但当 Apple 发布小版本更新时，API 不会消失。"
+      "heading": "为什么 Better Resource Monitor 更轻量",
+      "body": "在 Apple Silicon 上，Better Resource Monitor 的 CPU 占用低于 0.1%，内存占用大约 15 MB。其中一个原因就是它不会去追每一个可能的传感器。如果你想要的是快速可见性，而不是完整的硬件仪表盘，这样的取舍会让它更适合整天开着。"
     },
     {
-      "heading": "电池影响",
-      "body": "在 Apple Silicon 上，Better Resource Monitor 的 CPU 占用低于 0.1%。Stats 轮询额外的传感器（风扇、温度），这会阻止 CPU 进入深度睡眠。在活动监视器中，我观察到它的能源影响始终是 Better Resource Monitor 的 10 倍左右。对于使用电池的笔记本电脑来说，这在一天的工作中会产生显著差异。"
+      "heading": "为什么技术选择依然重要",
+      "body": "无管理员密码、无 root 辅助工具并不是选择 Better Resource Monitor 的唯一理由，但这些确实能解释它为什么会是现在这个样子。它像普通 Mac 应用一样安装，运行在沙盒里，并使用公开 API 获取 GPU 数据。对大多数人来说，这只是意味着更少的折腾和更少的意外。"
     }
   ],
-  "cta": "Stats 是一款不错的应用。如果你需要风扇转速和温度数据，且不介意 root 辅助工具，它涵盖的范围更广。如果你更倾向于保持无特权运行，[Better Resource Monitor 已上架 Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306)，源码位于 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
+  "cta": "如果你想要更完整的传感器套件，Stats 依然是不错的选择。如果你的目标更简单——看看 Mac 状态、更早发现异常负载、并保持较低开销——那 [Better Resource Monitor 已上架 Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306)，源码也在 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
 }
