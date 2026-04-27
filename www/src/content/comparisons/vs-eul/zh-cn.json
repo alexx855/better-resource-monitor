@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs Eul",
-  "description": "Eul 已经停止更新，且在 Apple Silicon 上占用较高 CPU。这是我切换的原因。",
+  "description": "如果你喜欢 Eul 那种简单的菜单栏体验，Better Resource Monitor 提供了类似的思路，但对当前 macOS 支持更好，在新款 Mac 上也更省资源。",
   "ogImage": "/images/og-vs-eul-zh-cn.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Eul",
-  "intro": "Eul 多年前就停止了更新。在 M 系列 Mac 上，它存在已知的高 CPU 占用问题，且不会有修复，其 GPU 监控依赖于私有 API，在 macOS 版本更新时会失效。在忍受了一段时间后，我编写了 Better Resource Monitor。GPU 数据来自 IOAccelerator API，整个应用保持在 App 沙盒内，在 Apple Silicon 上 CPU 占用低于 0.1%。",
+  "intro": "很多人喜欢 Eul，是因为它小巧、简单，而且很适合一直放在菜单栏里。Better Resource Monitor 也在追求同样的日常实用性，但它有持续维护、支持当前的 Mac，并且在 Apple Silicon 上更省资源。",
   "table": {
     "featureLabel": "功能",
     "productLabel": "Better Resource Monitor",
@@ -52,17 +52,17 @@
   },
   "sections": [
     {
-      "heading": "维护对于系统工具至关重要",
-      "body": "菜单栏监视器会接触到 IOKit、SMC 以及 Apple 每年秋季调整的各种组件。Eul 的最后一次重要提交是在几年前。没有 macOS Sequoia 的修复，没有针对 Apple Silicon 的优化，没有安全补丁。我会针对每个 macOS 测试版进行测试，并在正式发布前推送修复。"
+      "heading": "为什么很多人会离开 Eul",
+      "body": "Eul 依然有一种很讨喜的极简感，但它已经不再被积极维护。对于系统监视器来说，这比大多数应用都更关键，因为 macOS 一直在调整这些工具所依赖的 API 和硬件细节。"
     },
     {
-      "heading": "Apple Silicon 上的 CPU 占用",
-      "body": "在 M 系列 Mac 上，Eul 的 CPU 占用率会明显攀升。由于无人维护，这个问题永远不会得到解决。Better Resource Monitor 的 Rust 核心通过跳过导致开销的操作（SMC 辅助工具、持续的传感器轮询），使整个应用的 CPU 占用率保持在 0.1% 以下。"
+      "heading": "对新款 Mac 更合适",
+      "body": "在 Apple Silicon 上，Better Resource Monitor 的 CPU 占用低于 0.1%，内存占用大约 15 MB。这也让它更适合整天开着，而这本来就是菜单栏监视器存在的意义。"
     },
     {
-      "heading": "无需私有 API 的 GPU 数据",
-      "body": "Eul 的 App Store 版本功能受限，因为它使用私有的、未记录的 API 获取 GPU 数据。这些 API 在任何 macOS 小版本更新中都可能静默失效。我通过 IOAccelerator（公开的 IOKit 接口）读取 GPU 使用率。数据相同，更新后依然稳定，且在 App Store 上实现了完整的 GPU 监控。"
+      "heading": "技术选择带来的实际结果",
+      "body": "Better Resource Monitor 使用公开 API 获取 GPU 数据，运行在沙盒中，并且以完整功能上架 Mac App Store。这些听起来像技术细节，但实际结果很简单：更容易安装、更容易信任，也更不容易在下一次 macOS 更新后出问题。"
     }
   ],
-  "cta": "如果 Eul 在停止更新前对你有效，[Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) 涵盖了相同的功能。如果你想在安装前查看源码，请访问 [GitHub](https://github.com/alexx855/better-resource-monitor)。"
+  "cta": "如果你喜欢 Eul 那种更简单的风格，但又想要一个还在持续更新的选择，[Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) 覆盖的是同样的日常使用场景。源码也在 [GitHub](https://github.com/alexx855/better-resource-monitor)，你可以先看再装。"
 }
