@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs Stats",
-  "description": "Stats and Better Resource Monitor are both free and open-source. The difference is root access, private APIs, and what that costs your battery.",
+  "description": "Stats and Better Resource Monitor are both free Mac menu bar monitors. Better Resource Monitor is the simpler, lower-overhead option if you mainly want CPU, memory, GPU, and network at a glance.",
   "ogImage": "/images/og-vs-stats-en.png",
   "competitorName": "Stats",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats",
-  "intro": "Stats and Better Resource Monitor both live in your menu bar and both are free, MIT-licensed, open-source. The difference is how they get hardware data. Stats installs a privileged helper that needs your admin password to read fans and thermals via SMC. I didn't want that on my machine, so Better Resource Monitor runs entirely in user space with no elevated privileges.",
+  "intro": "Stats and Better Resource Monitor are both good menu bar monitors, but they aim at slightly different people. Stats goes deeper into extra sensors like fans and thermals. Better Resource Monitor takes the simpler route: keep CPU, memory, GPU, and network visible all the time, stay lightweight, and avoid adding extra friction just to keep an eye on your Mac.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
@@ -52,17 +52,17 @@
   },
   "sections": [
     {
-      "heading": "No root helper, no admin password",
-      "body": "Stats installs a privileged helper running at root to read fan speeds and thermal sensors through SMC. Better Resource Monitor skips all of that. No admin password, nothing running as root in the background. One less process with system-level access on your machine."
+      "heading": "What each app is optimized for",
+      "body": "Stats covers more ground if you care about fan speeds, thermals, and deeper sensor data. Better Resource Monitor is narrower on purpose. It focuses on the four things most people actually check first when their Mac feels off: CPU, memory, GPU, and network usage."
     },
     {
-      "heading": "GPU monitoring through public APIs",
-      "body": "Stats reads GPU metrics through private, undocumented Apple APIs that can break with any macOS update. That's also why Stats can't pass Mac App Store review. I read GPU utilization through IOAccelerator, a public IOKit interface. Same numbers, but the API won't vanish when Apple ships a point release."
+      "heading": "Why Better Resource Monitor stays lighter",
+      "body": "Better Resource Monitor sits under 0.1% CPU on Apple Silicon and uses about 15 MB of memory. Part of that comes from not chasing every possible sensor. If you mostly want quick visibility instead of a full hardware dashboard, that tradeoff keeps the app easier to leave running all day."
     },
     {
-      "heading": "Battery impact",
-      "body": "Better Resource Monitor sits under 0.1% CPU on Apple Silicon. Stats polls additional sensors (fans, thermals) that prevent the CPU from entering deep sleep. In Activity Monitor I consistently see its energy impact at about 10x what Better Resource Monitor reports. On a laptop running on battery, that adds up over a workday."
+      "heading": "Why the technical choices still matter",
+      "body": "The no-admin-password, no-root-helper approach is not the main reason to pick Better Resource Monitor, but it does help explain the product. It installs like a normal Mac app, stays sandboxed, and uses public APIs for GPU data. For most people, that just translates to lower friction and fewer surprises."
     }
   ],
-  "cta": "Stats is a good app. If you want fan speeds and thermals and don't mind the root helper, it covers more ground. If you'd rather keep things unprivileged, [Better Resource Monitor is on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and the source is on [GitHub](https://github.com/alexx855/better-resource-monitor)."
+  "cta": "Stats is still a good pick if you want the broader sensor suite. If your goal is simpler — keep an eye on your Mac, notice unusual load sooner, and keep overhead low — [Better Resource Monitor is on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and the source is on [GitHub](https://github.com/alexx855/better-resource-monitor)."
 }

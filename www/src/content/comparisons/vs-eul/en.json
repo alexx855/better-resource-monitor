@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs Eul",
-  "description": "Eul stopped getting updates and burns CPU on Apple Silicon. Here is what I switched to and why.",
+  "description": "If you liked Eul's simple menu bar setup, Better Resource Monitor is a similar idea with current macOS support and lower overhead on newer Macs.",
   "ogImage": "/images/og-vs-eul-en.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Eul",
-  "intro": "Eul stopped getting updates years ago. On M-series Macs it has known high CPU usage, no fixes coming, and GPU monitoring that depends on private APIs which break between macOS releases. After dealing with that for a while I wrote Better Resource Monitor. GPU data comes from the IOAccelerator API, the whole thing stays inside the App Sandbox, and it measures under 0.1% CPU on Apple Silicon.",
+  "intro": "A lot of people liked Eul because it was small, simple, and easy to keep in the menu bar. Better Resource Monitor aims for that same kind of everyday usefulness, but with active maintenance, support for current Macs, and lower overhead on Apple Silicon.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
@@ -52,17 +52,17 @@
   },
   "sections": [
     {
-      "heading": "Maintenance matters for system tools",
-      "body": "A menu bar monitor touches IOKit, SMC, and whatever Apple rearranges each fall. Eul's last meaningful commit was years ago. No macOS Sequoia fixes, no Apple Silicon tuning, no security patches. I test against every macOS beta and push fixes before the public release ships."
+      "heading": "Why people move on from Eul",
+      "body": "Eul still has a nice, minimal feel, but it is no longer being actively maintained. That matters more for a system monitor than it does for most apps, because macOS keeps changing the APIs and hardware details these tools depend on."
     },
     {
-      "heading": "CPU usage on Apple Silicon",
-      "body": "On M-series Macs, Eul's CPU usage climbs noticeably. Nobody is maintaining it, so that will never get fixed. The Rust core in Better Resource Monitor keeps the whole app under 0.1% CPU by skipping the work that causes the overhead (SMC helpers, constant sensor polling)."
+      "heading": "Better fit for newer Macs",
+      "body": "On Apple Silicon, Better Resource Monitor stays under 0.1% CPU and uses about 15 MB of memory. That makes it easier to leave running all day, which is the whole point of a menu bar monitor in the first place."
     },
     {
-      "heading": "GPU data without private APIs",
-      "body": "Eul's App Store version ships with limited features because it uses private, undocumented APIs for GPU data. Those can silently break on any macOS point release. I read GPU utilization through IOAccelerator, the public IOKit interface. Same data, stable across updates, full GPU monitoring on the App Store."
+      "heading": "Technical choices, practical result",
+      "body": "Better Resource Monitor uses public APIs for GPU data, stays sandboxed, and is available on the Mac App Store with full features. Those are technical details, but the practical result is simple: a monitor that is easier to install, easier to trust, and less likely to break on the next macOS update."
     }
   ],
-  "cta": "If Eul was working for you before it stopped getting updates, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) covers the same ground. Source is on [GitHub](https://github.com/alexx855/better-resource-monitor) if you want to look before you install."
+  "cta": "If you liked Eul's simpler style but want something current, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) covers the same everyday use case. The source is on [GitHub](https://github.com/alexx855/better-resource-monitor) if you want to look before you install."
 }
