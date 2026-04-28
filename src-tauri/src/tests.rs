@@ -179,13 +179,35 @@ fn test_alert_colors_all_segments() {
     );
     assert!(!has_alert_no);
 
-    // CPU at 95% with alerts enabled - has_active_alert should be true
+    // CPU at 80% with alerts enabled - has_active_alert should be false
+    let (_, _, has_alert_below_threshold) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        &tray_render::RenderConfig {
+            sizing: APP_SIZING,
+            cpu_usage: 80.0,
+            mem_percent: 50.0,
+            gpu_usage: 0.0,
+            down_str: "0 KB",
+            up_str: "0 KB",
+            show_cpu: true,
+            show_mem: true,
+            show_gpu: false,
+            show_net: false,
+            show_alerts: true,
+            use_light_icons: true,
+            background: None,
+        },
+    );
+    assert!(!has_alert_below_threshold);
+
+    // CPU at 81% with alerts enabled - has_active_alert should be true
     let (_, _, has_alert_yes) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
         &tray_render::RenderConfig {
             sizing: APP_SIZING,
-            cpu_usage: 95.0,
+            cpu_usage: 81.0,
             mem_percent: 50.0,
             gpu_usage: 0.0,
             down_str: "0 KB",
@@ -201,13 +223,13 @@ fn test_alert_colors_all_segments() {
     );
     assert!(has_alert_yes);
 
-    // CPU at 95% but alerts disabled - has_active_alert should be false
+    // CPU at 81% but alerts disabled - has_active_alert should be false
     let (_, _, has_alert_disabled) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
         &tray_render::RenderConfig {
             sizing: APP_SIZING,
-            cpu_usage: 95.0,
+            cpu_usage: 81.0,
             mem_percent: 50.0,
             gpu_usage: 0.0,
             down_str: "0 KB",
