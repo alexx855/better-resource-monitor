@@ -59,7 +59,7 @@ fi
 
 echo "Building universal binary for App Store..."
 echo "Using --bundles app to create only .app bundle"
-pnpm tauri build --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json
+pnpm tauri build --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json --features app-store
 
 if [ ! -d "$APP_PATH" ]; then
   echo "Error: App bundle not found at $APP_PATH"

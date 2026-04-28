@@ -8,7 +8,7 @@
 // macOS Implementation (Apple Silicon via IOAccelerator)
 // ============================================================================
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "app-store")))]
 mod macos {
     use std::ffi::c_void;
 
@@ -86,12 +86,7 @@ mod macos {
     fn read_gpu_utilization(service: io_registry_entry_t) -> Option<f32> {
         unsafe {
             let mut props: CFMutableDictionaryRef = std::ptr::null_mut();
-            let kr = IORegistryEntryCreateCFProperties(
-                service,
-                &mut props,
-                kCFAllocatorDefault as *const c_void,
-                0,
-            );
+            let kr = IORegistryEntryCreateCFProperties(service, &mut props, kCFAllocatorDefault, 0);
 
             if kr != KERN_SUCCESS || props.is_null() {
                 return None;
@@ -126,7 +121,7 @@ mod macos {
     impl GpuSampler {
         pub fn new() -> Option<Self> {
             unsafe {
-                let matching = IOServiceMatching(b"IOAccelerator\0".as_ptr().cast());
+                let matching = IOServiceMatching(c"IOAccelerator".as_ptr());
                 if matching.is_null() {
                     return None;
                 }
@@ -138,20 +133,20 @@ mod macos {
                     return None;
                 }
 
-                let service = IOIteratorNext(iterator);
-                IOObjectRelease(iterator);
+                loop {
+                    let service = IOIteratorNext(iterator);
+                    if service == IO_OBJECT_NULL {
+                        IOObjectRelease(iterator);
+                        return None;
+                    }
 
-                if service == IO_OBJECT_NULL {
-                    return None;
-                }
+                    if read_gpu_utilization(service).is_some() {
+                        IOObjectRelease(iterator);
+                        return Some(Self { service });
+                    }
 
-                // Verify this service actually has PerformanceStatistics
-                if read_gpu_utilization(service).is_none() {
                     IOObjectRelease(service);
-                    return None;
                 }
-
-                Some(Self { service })
             }
         }
 
@@ -165,6 +160,26 @@ mod macos {
             unsafe {
                 IOObjectRelease(self.service);
             }
+        }
+    }
+
+    unsafe impl Send for GpuSampler {}
+}
+
+#[cfg(any(
+    not(any(target_os = "macos", target_os = "linux")),
+    all(target_os = "macos", feature = "app-store")
+))]
+mod unavailable {
+    pub struct GpuSampler;
+
+    impl GpuSampler {
+        pub fn new() -> Option<Self> {
+            None
+        }
+
+        pub fn sample(&mut self) -> Option<f32> {
+            None
         }
     }
 
@@ -218,8 +233,14 @@ mod linux {
 // Re-export platform-specific implementation
 // ============================================================================
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "app-store")))]
 pub use macos::GpuSampler;
 
 #[cfg(target_os = "linux")]
 pub use linux::GpuSampler;
+
+#[cfg(any(
+    not(any(target_os = "macos", target_os = "linux")),
+    all(target_os = "macos", feature = "app-store")
+))]
+pub use unavailable::GpuSampler;

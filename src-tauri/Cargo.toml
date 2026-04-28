@@ -37,6 +37,10 @@ font-kit = "0.13"
 resvg = { version = "0.44", default-features = false }
 sys-locale = "0.3"
 
+[features]
+default = []
+app-store = []
+
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
