@@ -6,11 +6,9 @@ const BUNDLE_ID: &str = "dev.alexpedersen.better-resource-monitor";
 /// Returns false if not running as the proper app bundle (e.g. `tauri dev` raw binary).
 /// SMAppService.mainApp would register the wrong process in that case.
 fn is_bundled() -> bool {
-    unsafe {
-        NSBundle::mainBundle()
-            .bundleIdentifier()
-            .is_some_and(|id| id.to_string() == BUNDLE_ID)
-    }
+    NSBundle::mainBundle()
+        .bundleIdentifier()
+        .is_some_and(|id| id.to_string() == BUNDLE_ID)
 }
 
 pub fn enable() -> Result<(), String> {

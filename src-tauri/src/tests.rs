@@ -310,6 +310,21 @@ fn test_get_update_interval_ms_invalid_env_falls_back() {
 }
 
 #[test]
+fn test_get_update_interval_ms_zero_env_falls_back() {
+    let _guard = env_lock().lock().expect("env lock poisoned");
+    let previous = std::env::var("SILICON_UPDATE_INTERVAL").ok();
+    std::env::set_var("SILICON_UPDATE_INTERVAL", "0");
+
+    assert_eq!(get_update_interval_ms(), UPDATE_INTERVAL_MS);
+
+    if let Some(value) = previous {
+        std::env::set_var("SILICON_UPDATE_INTERVAL", value);
+    } else {
+        std::env::remove_var("SILICON_UPDATE_INTERVAL");
+    }
+}
+
+#[test]
 fn test_render_with_all_segments_disabled() {
     let font = load_system_font().expect("test font required");
     let mut buffer = Vec::new();

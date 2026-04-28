@@ -29,7 +29,7 @@
     "macOS": {
       "infoPlist": "Info.plist",
       "entitlements": "Entitlements.plist",
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "13.0"
     },
     "linux": {
       "deb": {

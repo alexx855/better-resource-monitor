@@ -1,8 +1,8 @@
 mod gpu;
 pub mod i18n;
-pub mod tray_render;
 #[cfg(target_os = "macos")]
 mod macos_autostart;
+pub mod tray_render;
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::Arc;
@@ -173,6 +173,7 @@ fn get_update_interval_ms() -> u64 {
     std::env::var("SILICON_UPDATE_INTERVAL")
         .ok()
         .and_then(|s| s.parse().ok())
+        .filter(|interval| *interval > 0)
         .unwrap_or(UPDATE_INTERVAL_MS)
 }
 
@@ -229,11 +230,11 @@ fn toggle_setting(
     app: &AppHandle,
     key: &str,
     flag: &AtomicBool,
-    all_flags: [&AtomicBool; 4],
+    all_flags: [bool; 4],
     item: &CheckMenuItem<tauri::Wry>,
 ) {
     let current = flag.load(Relaxed);
-    let enabled_count = all_flags.iter().filter(|v| v.load(Relaxed)).count();
+    let enabled_count = all_flags.iter().filter(|v| **v).count();
     if !current || enabled_count > 1 {
         flag.store(!current, Relaxed);
         save_setting(app, key, !current);
@@ -388,6 +389,7 @@ fn setup_tray(
     let mem_item = show_mem_item.clone();
     let gpu_item = show_gpu_item.clone();
     let net_item = show_net_item.clone();
+    let autostart_menu_item = autostart_item.clone();
 
     let _tray = tray_builder
         .menu(&menu)
@@ -395,10 +397,10 @@ fn setup_tray(
         .tooltip(translations.system_monitor)
         .on_menu_event(move |app, event| {
             let flags = [
-                show_cpu.as_ref(),
-                show_mem.as_ref(),
-                show_gpu.as_ref(),
-                show_net.as_ref(),
+                show_cpu.load(Relaxed),
+                show_mem.load(Relaxed),
+                show_gpu.load(Relaxed) && gpu_available,
+                show_net.load(Relaxed),
             ];
             match event.id.as_ref() {
                 menu_id::AUTOSTART => {
@@ -406,26 +408,56 @@ fn setup_tray(
                     {
                         let enabled = macos_autostart::is_enabled();
                         if enabled {
-                            if let Err(e) = macos_autostart::disable() {
-                                eprintln!("Failed to disable autostart: {e}");
+                            match macos_autostart::disable() {
+                                Ok(()) => {
+                                    save_setting(app, menu_id::AUTOSTART, false);
+                                    let _ = autostart_menu_item.set_checked(false);
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to disable autostart: {e}");
+                                    let _ = autostart_menu_item.set_checked(true);
+                                }
                             }
-                        } else if let Err(e) = macos_autostart::enable() {
-                            eprintln!("Failed to enable autostart: {e}");
+                        } else {
+                            match macos_autostart::enable() {
+                                Ok(()) => {
+                                    save_setting(app, menu_id::AUTOSTART, true);
+                                    let _ = autostart_menu_item.set_checked(true);
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to enable autostart: {e}");
+                                    let _ = autostart_menu_item.set_checked(false);
+                                }
+                            }
                         }
-                        save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
                     #[cfg(target_os = "linux")]
                     {
                         let manager = app.autolaunch();
                         let enabled = manager.is_enabled().unwrap_or(false);
                         if enabled {
-                            if let Err(e) = manager.disable() {
-                                eprintln!("Failed to disable autostart: {e}");
+                            match manager.disable() {
+                                Ok(()) => {
+                                    save_setting(app, menu_id::AUTOSTART, false);
+                                    let _ = autostart_menu_item.set_checked(false);
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to disable autostart: {e}");
+                                    let _ = autostart_menu_item.set_checked(true);
+                                }
                             }
-                        } else if let Err(e) = manager.enable() {
-                            eprintln!("Failed to enable autostart: {e}");
+                        } else {
+                            match manager.enable() {
+                                Ok(()) => {
+                                    save_setting(app, menu_id::AUTOSTART, true);
+                                    let _ = autostart_menu_item.set_checked(true);
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to enable autostart: {e}");
+                                    let _ = autostart_menu_item.set_checked(false);
+                                }
+                            }
                         }
-                        save_setting(app, menu_id::AUTOSTART, !enabled);
                     }
                 }
                 menu_id::SHOW_CPU => {
