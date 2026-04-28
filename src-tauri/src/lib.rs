@@ -232,6 +232,22 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
     })
 }
 
+fn normalize_metric_flags(
+    show_cpu: bool,
+    show_mem: bool,
+    show_gpu: bool,
+    show_net: bool,
+    gpu_available: bool,
+) -> (bool, bool, bool, bool) {
+    let show_gpu = show_gpu && gpu_available;
+
+    if show_cpu || show_mem || show_gpu || show_net {
+        (show_cpu, show_mem, show_gpu, show_net)
+    } else {
+        (true, show_mem, show_gpu, show_net)
+    }
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -714,6 +730,7 @@ pub fn run() {
             start_theme_detection_thread();
 
             let (cpu, mem, gpu, net, alerts, _stored_autostart) = load_settings(app.handle());
+            let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
             #[cfg(target_os = "macos")]
             let autostart = macos_autostart::is_enabled();
             #[cfg(not(target_os = "macos"))]

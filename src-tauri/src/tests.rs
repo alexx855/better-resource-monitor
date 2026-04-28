@@ -28,6 +28,42 @@ fn test_should_update_threshold() {
 }
 
 #[test]
+fn test_normalize_metric_flags_keeps_gpu_only_when_available() {
+    assert_eq!(
+        normalize_metric_flags(false, false, true, false, true),
+        (false, false, true, false)
+    );
+}
+
+#[test]
+fn test_normalize_metric_flags_enables_cpu_when_gpu_only_unavailable() {
+    assert_eq!(
+        normalize_metric_flags(false, false, true, false, false),
+        (true, false, false, false)
+    );
+}
+
+#[test]
+fn test_normalize_metric_flags_keeps_visible_metric_when_gpu_unavailable() {
+    assert_eq!(
+        normalize_metric_flags(false, true, true, false, false),
+        (false, true, false, false)
+    );
+}
+
+#[test]
+fn test_normalize_metric_flags_enables_cpu_when_all_metrics_disabled() {
+    assert_eq!(
+        normalize_metric_flags(false, false, false, false, true),
+        (true, false, false, false)
+    );
+    assert_eq!(
+        normalize_metric_flags(false, false, false, false, false),
+        (true, false, false, false)
+    );
+}
+
+#[test]
 fn test_format_speed() {
     // KB range (0.0 - 999.5)
     assert_eq!(format_speed(0.0), "0.0 KB");
