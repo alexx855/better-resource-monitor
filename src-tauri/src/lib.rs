@@ -163,6 +163,10 @@ fn save_setting(app: &AppHandle, key: &str, value: bool) {
 
 const UPDATE_INTERVAL_MS: u64 = 2000;
 const CPU_STABILIZE_MS: u64 = 200;
+#[cfg(target_os = "macos")]
+const MACOS_TRAY_SETUP_ATTEMPTS: usize = 5;
+#[cfg(target_os = "macos")]
+const MACOS_TRAY_SETUP_RETRY_MS: u64 = 1_500;
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
 const HYSTERESIS_THRESHOLD: f32 = 2.0;
@@ -248,6 +252,10 @@ fn normalize_metric_flags(
     }
 }
 
+fn should_repair_macos_autostart(stored_autostart: bool, system_autostart: bool) -> bool {
+    stored_autostart || system_autostart
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -279,8 +287,8 @@ fn setup_tray(
     #[cfg(target_os = "macos")]
     {
         if is_autostart_enabled {
-            if let Err(e) = macos_autostart::enable() {
-                eprintln!("Failed to enable autostart: {e}");
+            if let Err(e) = macos_autostart::repair() {
+                eprintln!("Failed to repair autostart registration: {e}");
             }
         } else if let Err(e) = macos_autostart::disable() {
             eprintln!("Failed to disable autostart: {e}");
@@ -507,6 +515,77 @@ fn setup_tray(
     Ok(())
 }
 
+fn setup_initial_tray(
+    app: &AppHandle,
+    metrics: MetricToggles,
+    gpu_available: bool,
+    autostart: bool,
+    translations: &'static i18n::Translations,
+) -> Result<Font<'static>, Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    let attempts = MACOS_TRAY_SETUP_ATTEMPTS;
+    #[cfg(not(target_os = "macos"))]
+    let attempts = 1;
+
+    let mut last_error = String::new();
+
+    for attempt in 1..=attempts {
+        match load_system_font()
+            .map_err(|e| format!("Font required for tray icon: {e}"))
+            .and_then(|font| {
+                setup_tray(
+                    app,
+                    &font,
+                    metrics.clone(),
+                    gpu_available,
+                    autostart,
+                    translations,
+                )
+                .map(|()| font)
+                .map_err(|e| e.to_string())
+            }) {
+            Ok(font) => return Ok(font),
+            Err(error) => {
+                last_error = error;
+
+                #[cfg(target_os = "macos")]
+                if attempt < attempts {
+                    eprintln!(
+                        "Tray setup attempt {attempt}/{attempts} failed: {last_error}; retrying"
+                    );
+                    thread::sleep(Duration::from_millis(
+                        MACOS_TRAY_SETUP_RETRY_MS * attempt as u64,
+                    ));
+                }
+            }
+        }
+    }
+
+    Err(last_error.into())
+}
+
+fn handle_second_instance_launch(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        if let Err(e) = app.set_activation_policy(ActivationPolicy::Accessory) {
+            eprintln!("Failed to set activation policy on second launch: {e}");
+        }
+
+        let (_, _, _, _, _, stored_autostart) = load_settings(app);
+        if should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled()) {
+            if let Err(e) = macos_autostart::repair() {
+                eprintln!("Failed to repair autostart registration on second launch: {e}");
+            }
+        }
+
+        if let Some(tray) = app.tray_by_id(TRAY_ID) {
+            if let Err(e) = tray.set_visible(true) {
+                eprintln!("Failed to show tray icon on second launch: {e}");
+            }
+        }
+    }
+}
+
 fn start_monitoring(
     app: AppHandle,
     font: Font<'static>,
@@ -710,7 +789,9 @@ pub fn run() {
     let gpu_available = gpu_sampler.is_some();
 
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            handle_second_instance_launch(app);
+        }))
         .plugin(tauri_plugin_store::Builder::new().build());
 
     builder
@@ -729,26 +810,23 @@ pub fn run() {
             #[cfg(target_os = "linux")]
             start_theme_detection_thread();
 
-            let (cpu, mem, gpu, net, alerts, _stored_autostart) = load_settings(app.handle());
+            let (cpu, mem, gpu, net, alerts, stored_autostart) = load_settings(app.handle());
             let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
             #[cfg(target_os = "macos")]
-            let autostart = macos_autostart::is_enabled();
+            let autostart =
+                should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
             #[cfg(not(target_os = "macos"))]
-            let autostart = _stored_autostart;
+            let autostart = stored_autostart;
             tray_metrics.show_cpu.store(cpu, Relaxed);
             tray_metrics.show_mem.store(mem, Relaxed);
             tray_metrics.show_gpu.store(gpu, Relaxed);
             tray_metrics.show_net.store(net, Relaxed);
             tray_metrics.show_alerts.store(alerts, Relaxed);
 
-            let font =
-                load_system_font().map_err(|e| format!("Font required for tray icon: {e}"))?;
-
             let translations = i18n::detect_language().translations();
 
-            setup_tray(
+            let font = setup_initial_tray(
                 app.handle(),
-                &font,
                 tray_metrics,
                 gpu_available,
                 autostart,
