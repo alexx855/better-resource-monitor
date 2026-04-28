@@ -3,7 +3,30 @@ import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { siteMarketingLocales } from "./lib/translations";
+import { siteMarketingLocales, type SiteMarketingLocale } from "./lib/translations";
+
+const productionOrigin = "https://better-resource-monitor.alexpedersen.dev";
+const executableHtmlPatterns = [
+  { label: "script tags", pattern: /<\s*script\b/i },
+  { label: "inline event handlers", pattern: /\son[a-z]+\s*=/i },
+  { label: "javascript URLs", pattern: /javascript\s*:/i },
+  { label: "embedded frames", pattern: /<\s*(iframe|object|embed)\b/i },
+];
+
+function assertNoExecutableHtml(html: string, source: string) {
+  for (const { label, pattern } of executableHtmlPatterns) {
+    if (pattern.test(html)) {
+      throw new Error(`${source} contains unsafe HTML: ${label}`);
+    }
+  }
+}
+
+const homeComparisonCaptions = {
+  en: "System monitor comparison",
+  es: "Comparación de monitores de sistema",
+  "pt-br": "Comparação de monitores de sistema",
+  "zh-cn": "系统监视器对比",
+} satisfies Record<SiteMarketingLocale, string>;
 
 const ui = defineCollection({
   loader: glob({ pattern: "*.json", base: "./src/content/ui" }),
@@ -11,6 +34,7 @@ const ui = defineCollection({
     backToHome: z.string(),
 
     footer: z.object({
+      navigation: z.string(),
       faq: z.string(),
       privacyPolicy: z.string(),
       terms: z.string(),
@@ -48,9 +72,24 @@ const homeBody = defineCollection({
           .trim();
 
         const rendered = await renderMarkdown(body);
+        const comparisonCaption = homeComparisonCaptions[locale];
         const html = rendered.html
           .replace(/href="README\.md"/g, 'href="/"')
-          .replace(/href="README\.([\w-]+)\.md"/g, (_, loc) => `href="/${loc}/"`);
+          .replace(/href="README\.([\w-]+)\.md"/g, (_, loc) => `href="/${loc}/"`)
+          .replace(
+            "<table>",
+            `<div class="table-scroll" tabindex="0" aria-label="${comparisonCaption}"><table>\n<caption class="sr-only">${comparisonCaption}</caption>`,
+          )
+          .replace("</table>", "</table></div>")
+          .replace(/<th width="20%">/g, '<th scope="col" width="20%">')
+          .replaceAll(`src="${productionOrigin}/`, 'src="/')
+          .replaceAll(`href="${productionOrigin}/`, 'href="/')
+          .replace(/target="_blank"(?![^>]*\srel=)/g, 'target="_blank" rel="noopener noreferrer"')
+          .replace(
+            '<img src="/better-resource-monitor.png"',
+            '<img src="/better-resource-monitor.png" fetchpriority="high" decoding="async"',
+          );
+        assertNoExecutableHtml(html, filename);
         store.set({ id: locale, data: {}, rendered: { html } });
       }
     },

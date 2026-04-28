@@ -94,7 +94,7 @@ const faqSchema = faq.items.map((item) => ({
         </dl>
       </section>
 
-      <script type="application/ld+json" set:html={JSON.stringify({
+      <script is:inline type="application/ld+json" set:html={JSON.stringify({
         "@context": "https://schema.org",
         "@type": "FAQPage",
         inLanguage: langTag,

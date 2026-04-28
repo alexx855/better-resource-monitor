@@ -1,5 +1,6 @@
 ---
 interface Props {
+  caption: string;
   featureLabel: string;
   productLabel: string;
   competitorLabel: string;
@@ -8,24 +9,27 @@ interface Props {
   competitorValues: string[];
 }
 
-const { featureLabel, productLabel, competitorLabel, features, productValues, competitorValues } = Astro.props;
+const { caption, featureLabel, productLabel, competitorLabel, features, productValues, competitorValues } = Astro.props;
 ---
 
-<table>
-  <thead>
-    <tr>
-      <th>{featureLabel}</th>
-      <th>{productLabel}</th>
-      <th>{competitorLabel}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {features.map((feature, i) => (
+<div class="table-scroll" tabindex="0" aria-label={caption}>
+  <table>
+    <caption class="sr-only">{caption}</caption>
+    <thead>
       <tr>
-        <td><strong>{feature}</strong></td>
-        <td><strong>{productValues[i]}</strong></td>
-        <td>{competitorValues[i]}</td>
+        <th scope="col">{featureLabel}</th>
+        <th scope="col">{productLabel}</th>
+        <th scope="col">{competitorLabel}</th>
       </tr>
-    ))}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {features.map((feature, i) => (
+        <tr>
+          <th scope="row">{feature}</th>
+          <td><strong>{productValues[i]}</strong></td>
+          <td>{competitorValues[i]}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

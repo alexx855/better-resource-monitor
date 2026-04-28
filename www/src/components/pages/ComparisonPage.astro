@@ -33,6 +33,7 @@ const ctaHtml = renderInlineLinks(replaceContentTokens(page.cta, locale));
       <Fragment set:html={introHtml} />
 
       <ComparisonTable
+        caption={page.heading}
         featureLabel={page.table.featureLabel}
         productLabel={page.table.productLabel}
         competitorLabel={page.table.competitorLabel}

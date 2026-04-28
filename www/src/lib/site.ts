@@ -95,5 +95,51 @@ export function getLocalizedPageDescriptor(slug: InternalSlug) {
   return localizedPageMap[slug];
 }
 
-export const renderInlineLinks = (s: string) =>
-  s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+const markdownLink = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+function escapeHtmlChar(char: string) {
+  switch (char) {
+    case "&":
+      return "&amp;";
+    case "<":
+      return "&lt;";
+    case ">":
+      return "&gt;";
+    case '"':
+      return "&quot;";
+    case "'":
+      return "&#39;";
+    default:
+      throw new Error(`Unexpected HTML escape character: ${char}`);
+  }
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, escapeHtmlChar);
+}
+
+function assertSafeHref(href: string) {
+  if (href.startsWith("/") || href.startsWith("https://")) return;
+  throw new Error(`Unsafe content link: ${href}`);
+}
+
+export function renderInlineLinks(value: string) {
+  let html = "";
+  let lastIndex = 0;
+
+  for (const match of value.matchAll(markdownLink)) {
+    const [raw, text, href] = match;
+    if (text === undefined || href === undefined) {
+      throw new Error(`Invalid markdown link: ${raw}`);
+    }
+
+    const index = match.index ?? 0;
+    assertSafeHref(href);
+    html += escapeHtml(value.slice(lastIndex, index));
+    html += `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>`;
+    lastIndex = index + raw.length;
+  }
+
+  html += escapeHtml(value.slice(lastIndex));
+  return html;
+}
