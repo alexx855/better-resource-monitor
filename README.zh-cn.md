@@ -23,7 +23,7 @@
 
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore-zh-cn.webp" alt="在 Mac App Store 下载" width="270" height="65"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.0/Better.Resource.Monitor_1.1.0_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-zh-cn.webp" alt="从 GitHub Releases 下载 macOS 版" width="270" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.3/Better.Resource.Monitor_1.1.3_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-zh-cn.webp" alt="从 GitHub Releases 下载 macOS 版" width="270" height="65"></a>
 </p>
 
 ## 为什么选择它
