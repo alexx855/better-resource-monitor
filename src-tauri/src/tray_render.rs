@@ -11,7 +11,7 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 
 type Color = (u8, u8, u8);
 
-const ALERT_THRESHOLD: f32 = 90.0;
+const ALERT_THRESHOLD: f32 = 81.0;
 const ALERT_COLOR: Color = (209, 71, 21); // #D14715
 const ALERT_FOREGROUND: Color = (255, 255, 255);
 
