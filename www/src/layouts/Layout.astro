@@ -1,6 +1,5 @@
 ---
 import { getEntry } from "astro:content";
-import { ClientRouter } from "astro:transitions";
 import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
 
 
@@ -9,11 +8,22 @@ interface Props {
   description: string;
   locale: SupportedLocale;
   slug: string;
-  showBackLink?: boolean;
   ogImage?: string;
+  ogImageAlt?: string;
+  preloadImage?: string;
+  robots?: string;
 }
 
-const { title, description, locale, slug, showBackLink = true, ogImage = "/images/og-index-en.png" } = Astro.props;
+const {
+  title,
+  description,
+  locale,
+  slug,
+  ogImage = "/images/og-index-en.png",
+  ogImageAlt = title,
+  preloadImage,
+  robots = "index, follow",
+} = Astro.props;
 const localeMeta = getLocaleMeta(locale);
 const uiEntry = await getEntry("ui", locale);
 if (!uiEntry) throw new Error(`Missing UI content for ${locale}`);
@@ -22,6 +32,9 @@ const alternateLinks = getAlternateLinks(slug);
 const ogAlternateLocales = alternateLinks
   .filter((link) => link.locale !== locale)
   .map((link) => getLocaleMeta(link.locale).ogLocale);
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
+const ogImageUrl = new URL(ogImage, Astro.site).href;
+const siteUrl = new URL("/", Astro.site).href;
 ---
 
 <!doctype html>
@@ -31,66 +44,87 @@ const ogAlternateLocales = alternateLinks
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="author" content="Alex Pedersen" />
+    <meta name="application-name" content="Better Resource Monitor" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#18120f" />
+    <meta name="color-scheme" content="dark" />
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
-    <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="Better Resource Monitor" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta property="og:locale" content={localeMeta.ogLocale} />
     {ogAlternateLocales.map((value) => <meta property="og:locale:alternate" content={value} />)}
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@alexx855" />
+    <meta name="twitter:creator" content="@alexx855" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL(ogImage, Astro.site).href} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
+    <link rel="canonical" href={canonicalUrl} />
     {alternateLinks.map((link) => (
-      <link rel="alternate" hreflang={link.hrefLang} href={new URL(link.href, Astro.site)} />
+      <link rel="alternate" hreflang={link.hrefLang} href={new URL(link.href, Astro.site).href} />
     ))}
-    <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site)} />
-    <meta name="robots" content="index, follow" />
+    <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />
+    <meta name="robots" content={robots} />
     <title>{title}</title>
-    <ClientRouter />
 
     <!-- Structured Data -->
-    <script type="application/ld+json" set:html={JSON.stringify({
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Better Resource Monitor",
       "description": description,
+      "url": siteUrl,
       "inLanguage": localeMeta.langTag,
       "applicationCategory": "UtilitiesApplication",
       "applicationSubCategory": "System Monitor",
-      "operatingSystem": "macOS, Linux",
+      "operatingSystem": "macOS",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
       "downloadUrl": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
+      "isAccessibleForFree": true,
       "featureList": "Cross-Platform, Lightweight, GPU Monitoring, Theme Aware, Configurable, Private",
-      "screenshot": new URL(ogImage, Astro.site).href,
+      "screenshot": ogImageUrl,
       "codeRepository": "https://github.com/alexx855/better-resource-monitor",
       "license": "https://opensource.org/licenses/MIT"
+    })} />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Better Resource Monitor",
+      "url": siteUrl,
+      "inLanguage": localeMeta.langTag,
+      "publisher": { "@type": "Person", "name": "Alex Pedersen", "url": "https://alexpedersen.dev/" },
     })} />
 
     <style is:global>
       :root {
         /* Colors */
-        --c-bg: #181818;
-        --c-surface: #202020;
-        --c-surface-alt: #242424;
-        --c-border: #3a3a3a;
-        --c-alert-bg: #D14715;
+        --c-bg: #18120f;
+        --c-surface: #211914;
+        --c-surface-alt: #2a211c;
+        --c-border: #4a382e;
+        --c-alert-bg: #a93a12;
+        --c-alert-hover: #822d0e;
+        --c-focus: #ff8a4c;
         --c-alert-fg: #ffffff;
         --c-accent: var(--c-alert-bg);
-        --c-text: #fff;
-        --c-text-dim: #c5c5c5;
+        --c-text: #fff8f2;
+        --c-text-dim: #dcc9bc;
 
         /* Spacing */
         --space-1: 4px;
@@ -112,17 +146,17 @@ const ogAlternateLocales = alternateLinks
         --fs-sm: 0.875rem;
         --fs-base: 1rem;
         --fs-md: 1.25rem;
-        --fs-lg: 1.5rem;
-        --fs-xl: 2rem;
-        --fs-2xl: 3rem;
+        --fs-lg: clamp(1.35rem, 3vw, 1.65rem);
+        --fs-xl: clamp(1.85rem, 5vw, 2.4rem);
+        --fs-2xl: clamp(2.6rem, 9vw, 4.9rem);
 
         /* Font */
         --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", menlo,
           monospace;
 
         /* Easing */
-        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-        --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
         /* Transitions */
         --transition-fast: 0.15s var(--ease-out);
@@ -141,6 +175,11 @@ const ogAlternateLocales = alternateLinks
         padding: 0;
         overflow-x: hidden;
       }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
       img,
       video,
       iframe {
@@ -150,12 +189,22 @@ const ogAlternateLocales = alternateLinks
 
       body {
         font: 400 16px/1.6 var(--font-mono);
-        background: var(--c-bg);
+        background:
+          radial-gradient(circle at 12% -10%, rgba(169, 58, 18, 0.22), transparent 32rem),
+          radial-gradient(circle at 85% 12%, rgba(255, 138, 76, 0.10), transparent 26rem),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 18px),
+          var(--c-bg);
         color: var(--c-text);
         -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+      }
+
+      ::selection {
+        background: var(--c-focus);
+        color: #1a0f09;
       }
 
       @media (min-width: 700px) {
@@ -181,7 +230,8 @@ const ogAlternateLocales = alternateLinks
         line-height: 1.2;
         color: var(--c-text);
         margin: 0 0 var(--space-5);
-        padding-top:  var(--space-5);
+        padding-top: var(--space-5);
+        text-wrap: balance;
       }
 
       h1 {
@@ -204,6 +254,7 @@ const ogAlternateLocales = alternateLinks
         margin: 0 0 var(--space-5);
         color: var(--c-text-dim);
         font-size: var(--fs-base);
+        overflow-wrap: break-word;
       }
 
       p + p {
@@ -226,7 +277,8 @@ const ogAlternateLocales = alternateLinks
         text-decoration: none;
         padding: 2px 4px;
         margin: 0 -4px;
-        transition: filter var(--transition-fast),
+        transition: background-color var(--transition-fast),
+                    color var(--transition-fast),
                     translate var(--transition-fast),
                     scale 0.1s var(--ease-out);
       }
@@ -246,18 +298,37 @@ const ogAlternateLocales = alternateLinks
 
       @media (hover: hover) and (pointer: fine) {
         a:hover {
-          filter: brightness(1.15);
+          background-color: var(--c-alert-hover);
           translate: 0 -1px;
+        }
+
+        a:has(img):hover {
+          background-color: transparent;
+          filter: brightness(1.08) contrast(1.02);
         }
       }
 
       *:focus-visible {
-        outline: var(--border-width-thick) solid var(--c-alert-bg);
+        outline: var(--border-width-thick) solid var(--c-focus);
         outline-offset: 2px;
       }
 
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
       .back-link {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--touch-target);
         font-size: var(--fs-sm);
         margin-bottom: var(--space-4);
       }
@@ -267,7 +338,7 @@ const ogAlternateLocales = alternateLinks
         width: 100%;
         max-width: var(--max-width);
         margin: 0 auto;
-        padding: var(--space-5);
+        padding: clamp(var(--space-4), 4vw, var(--space-6));
         flex: 1;
       }
 
@@ -323,6 +394,19 @@ const ogAlternateLocales = alternateLinks
         background: var(--c-surface);
       }
 
+      .table-scroll {
+        margin: var(--space-5) 0;
+        overflow-x: auto;
+        border: var(--border-width) solid var(--c-border);
+        background: var(--c-surface);
+      }
+
+      .table-scroll table {
+        min-width: 44rem;
+        margin: 0;
+        border: 0;
+      }
+
       th,
       td {
         padding: var(--space-3) var(--space-5);
@@ -339,6 +423,14 @@ const ogAlternateLocales = alternateLinks
         letter-spacing: 0.05em;
       }
 
+      tbody th {
+        background: transparent;
+        font-size: var(--fs-base);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      tr:last-child th,
       tr:last-child td {
         border-bottom: none;
       }
@@ -381,11 +473,16 @@ const ogAlternateLocales = alternateLinks
 
       .site-footer nav {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         gap: var(--space-5);
       }
 
       .site-footer nav a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--touch-target);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-size: var(--fs-xs);
@@ -408,6 +505,11 @@ const ogAlternateLocales = alternateLinks
           display: block;
           overflow-x: auto;
         }
+
+        .table-scroll table {
+          display: table;
+          overflow-x: visible;
+        }
       }
 
       @media (max-width: 600px) {
@@ -425,30 +527,6 @@ const ogAlternateLocales = alternateLinks
           scroll-behavior: auto !important;
         }
       }
-
-      /* View Transitions */
-      ::view-transition-old(root) {
-        animation: vt-exit 150ms var(--ease-out) both;
-      }
-
-      ::view-transition-new(root) {
-        animation: vt-enter 250ms var(--ease-out) 100ms both;
-      }
-
-      @keyframes vt-exit {
-        to {
-          opacity: 0;
-          filter: blur(2px);
-        }
-      }
-
-      @keyframes vt-enter {
-        from {
-          opacity: 0;
-          filter: blur(2px);
-          transform: translateY(8px);
-        }
-      }
     </style>
   </head>
   <body>
@@ -457,21 +535,24 @@ const ogAlternateLocales = alternateLinks
     </div>
     <footer class="site-footer">
       <div class="container">
-        <nav>
+        <nav aria-label={labels.footer.navigation}>
           <a href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
           <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
           <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
           <a
             href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"
-            target="_blank">{labels.footer.license}</a
+            target="_blank"
+            rel="noopener noreferrer">{labels.footer.license}</a
           >
           <a
             href="https://github.com/alexx855/better-resource-monitor/issues/new"
-            target="_blank">{labels.footer.support}</a
+            target="_blank"
+            rel="noopener noreferrer">{labels.footer.support}</a
           >
           <a
             href="https://github.com/alexx855/better-resource-monitor"
-            target="_blank">{labels.footer.github}</a
+            target="_blank"
+            rel="noopener noreferrer">{labels.footer.github}</a
           >
         </nav>
       </div>

@@ -15,7 +15,14 @@ const home = metaEntry.data;
 const { Content } = await render(bodyEntry);
 ---
 
-<Layout title={home.title} description={home.description} locale={locale} slug="" showBackLink={false} ogImage={home.ogImage}>
+<Layout
+  title={home.title}
+  description={home.description}
+  locale={locale}
+  slug=""
+  ogImage={home.ogImage}
+  preloadImage="/better-resource-monitor.png"
+>
   <style is:global>
     p[align="center"] img[alt="Better Resource Monitor"] {
       width: 100%;
@@ -52,26 +59,6 @@ const { Content } = await render(bodyEntry);
         flex-wrap: wrap;
       }
 
-      p[align="center"]:has(a[href^="#"]) {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        font-size: 0;
-      }
-
-      p[align="center"]:has(a[href^="#"]) a {
-        font-size: var(--fs-base);
-        display: block;
-        padding: var(--space-2);
-        background: var(--c-surface);
-        border: var(--border-width) solid var(--c-border);
-        text-align: center;
-      }
-
-      p[align="center"]:has(a[href^="#"]) span {
-        display: none;
-      }
-
       p[align="center"]:not(:has(img)):has(a) {
         display: flex;
         flex-wrap: wrap;
@@ -87,7 +74,6 @@ const { Content } = await render(bodyEntry);
     }
   </style>
 
-  <link rel="preload" as="image" href="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" />
   <main class="container">
     <article>
       <Content />

@@ -17,12 +17,17 @@ export const colors = {
 // Font cache — fetched once per build
 let fontData: ArrayBuffer | null = null;
 
+async function fetchFont(url: string): Promise<ArrayBuffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch font ${url}: ${res.status} ${res.statusText}`);
+  return res.arrayBuffer();
+}
+
 async function loadFont(): Promise<ArrayBuffer> {
   if (fontData) return fontData;
-  const res = await fetch(
+  fontData = await fetchFont(
     "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPQ.ttf"
   );
-  fontData = await res.arrayBuffer();
   return fontData;
 }
 
@@ -30,10 +35,9 @@ let fontBoldData: ArrayBuffer | null = null;
 
 async function loadFontBold(): Promise<ArrayBuffer> {
   if (fontBoldData) return fontBoldData;
-  const res = await fetch(
+  fontBoldData = await fetchFont(
     "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.ttf"
   );
-  fontBoldData = await res.arrayBuffer();
   return fontBoldData;
 }
 
@@ -42,10 +46,9 @@ let notoJPData: ArrayBuffer | null = null;
 
 async function loadNotoJP(): Promise<ArrayBuffer> {
   if (notoJPData) return notoJPData;
-  const res = await fetch(
+  notoJPData = await fetchFont(
     "https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
   );
-  notoJPData = await res.arrayBuffer();
   return notoJPData;
 }
 
@@ -53,10 +56,9 @@ let notoSCData: ArrayBuffer | null = null;
 
 async function loadNotoSC(): Promise<ArrayBuffer> {
   if (notoSCData) return notoSCData;
-  const res = await fetch(
+  notoSCData = await fetchFont(
     "https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf"
   );
-  notoSCData = await res.arrayBuffer();
   return notoSCData;
 }
 
