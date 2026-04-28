@@ -116,6 +116,15 @@ mod menu_id {
 
 const TRAY_ID: &str = "main";
 
+#[derive(Clone)]
+struct MetricToggles {
+    show_cpu: Arc<AtomicBool>,
+    show_mem: Arc<AtomicBool>,
+    show_gpu: Arc<AtomicBool>,
+    show_net: Arc<AtomicBool>,
+    show_alerts: Arc<AtomicBool>,
+}
+
 fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool) {
     let store = match app.store(SETTINGS_FILE) {
         Ok(s) => Some(s),
@@ -246,11 +255,7 @@ fn toggle_setting(
 fn setup_tray(
     app: &AppHandle,
     font: &Font,
-    show_cpu: Arc<AtomicBool>,
-    show_mem: Arc<AtomicBool>,
-    show_gpu: Arc<AtomicBool>,
-    show_net: Arc<AtomicBool>,
-    show_alerts: Arc<AtomicBool>,
+    metrics: MetricToggles,
     gpu_available: bool,
     is_autostart_enabled: bool,
     translations: &i18n::Translations,
@@ -293,7 +298,7 @@ fn setup_tray(
         menu_id::SHOW_MEM,
         translations.show_memory,
         true,
-        show_mem.load(Relaxed),
+        metrics.show_mem.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -302,7 +307,7 @@ fn setup_tray(
         menu_id::SHOW_CPU,
         translations.show_cpu,
         true,
-        show_cpu.load(Relaxed),
+        metrics.show_cpu.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -311,7 +316,7 @@ fn setup_tray(
         menu_id::SHOW_NET,
         translations.show_network,
         true,
-        show_net.load(Relaxed),
+        metrics.show_net.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -322,7 +327,7 @@ fn setup_tray(
         menu_id::SHOW_ALERTS,
         translations.show_alert_colors,
         true,
-        show_alerts.load(Relaxed),
+        metrics.show_alerts.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -334,7 +339,7 @@ fn setup_tray(
         menu_id::SHOW_GPU,
         translations.show_gpu,
         true,
-        show_gpu.load(Relaxed),
+        metrics.show_gpu.load(Relaxed),
         None::<&str>,
     )?;
 
@@ -369,11 +374,11 @@ fn setup_tray(
             gpu_usage: 0.0,
             down_str: "0 KB",
             up_str: "0 KB",
-            show_cpu: show_cpu.load(Relaxed),
-            show_mem: show_mem.load(Relaxed),
-            show_gpu: show_gpu.load(Relaxed) && gpu_available,
-            show_net: show_net.load(Relaxed),
-            show_alerts: show_alerts.load(Relaxed),
+            show_cpu: metrics.show_cpu.load(Relaxed),
+            show_mem: metrics.show_mem.load(Relaxed),
+            show_gpu: metrics.show_gpu.load(Relaxed) && gpu_available,
+            show_net: metrics.show_net.load(Relaxed),
+            show_alerts: metrics.show_alerts.load(Relaxed),
             use_light_icons,
             background: None,
         },
@@ -397,10 +402,10 @@ fn setup_tray(
         .tooltip(translations.system_monitor)
         .on_menu_event(move |app, event| {
             let flags = [
-                show_cpu.load(Relaxed),
-                show_mem.load(Relaxed),
-                show_gpu.load(Relaxed) && gpu_available,
-                show_net.load(Relaxed),
+                metrics.show_cpu.load(Relaxed),
+                metrics.show_mem.load(Relaxed),
+                metrics.show_gpu.load(Relaxed) && gpu_available,
+                metrics.show_net.load(Relaxed),
             ];
             match event.id.as_ref() {
                 menu_id::AUTOSTART => {
@@ -461,20 +466,20 @@ fn setup_tray(
                     }
                 }
                 menu_id::SHOW_CPU => {
-                    toggle_setting(app, menu_id::SHOW_CPU, &show_cpu, flags, &cpu_item)
+                    toggle_setting(app, menu_id::SHOW_CPU, &metrics.show_cpu, flags, &cpu_item)
                 }
                 menu_id::SHOW_MEM => {
-                    toggle_setting(app, menu_id::SHOW_MEM, &show_mem, flags, &mem_item)
+                    toggle_setting(app, menu_id::SHOW_MEM, &metrics.show_mem, flags, &mem_item)
                 }
                 menu_id::SHOW_GPU => {
-                    toggle_setting(app, menu_id::SHOW_GPU, &show_gpu, flags, &gpu_item)
+                    toggle_setting(app, menu_id::SHOW_GPU, &metrics.show_gpu, flags, &gpu_item)
                 }
                 menu_id::SHOW_NET => {
-                    toggle_setting(app, menu_id::SHOW_NET, &show_net, flags, &net_item)
+                    toggle_setting(app, menu_id::SHOW_NET, &metrics.show_net, flags, &net_item)
                 }
                 menu_id::SHOW_ALERTS => {
-                    let new_value = !show_alerts.load(Relaxed);
-                    show_alerts.store(new_value, Relaxed);
+                    let new_value = !metrics.show_alerts.load(Relaxed);
+                    metrics.show_alerts.store(new_value, Relaxed);
                     save_setting(app, menu_id::SHOW_ALERTS, new_value);
                 }
                 menu_id::QUIT => app.exit(0),
@@ -489,11 +494,7 @@ fn setup_tray(
 fn start_monitoring(
     app: AppHandle,
     font: Font<'static>,
-    show_cpu: Arc<AtomicBool>,
-    show_mem: Arc<AtomicBool>,
-    show_gpu: Arc<AtomicBool>,
-    show_net: Arc<AtomicBool>,
-    show_alerts: Arc<AtomicBool>,
+    metrics: MetricToggles,
     mut gpu_sampler: Option<GpuSampler>,
 ) {
     thread::spawn(move || {
@@ -535,12 +536,12 @@ fn start_monitoring(
             let full_tick = tick_count % 2 == 0;
             tick_count = tick_count.wrapping_add(1);
 
-            let sc = show_cpu.load(Relaxed);
-            let sm = show_mem.load(Relaxed);
-            let show_gpu_enabled = show_gpu.load(Relaxed);
+            let sc = metrics.show_cpu.load(Relaxed);
+            let sm = metrics.show_mem.load(Relaxed);
+            let show_gpu_enabled = metrics.show_gpu.load(Relaxed);
             let sg = show_gpu_enabled && gpu_sampler.is_some();
-            let sn = show_net.load(Relaxed);
-            let sa = show_alerts.load(Relaxed);
+            let sn = metrics.show_net.load(Relaxed);
+            let sa = metrics.show_alerts.load(Relaxed);
 
             #[cfg(target_os = "linux")]
             let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
@@ -680,17 +681,14 @@ pub fn run() {
         std::process::exit(1);
     }
 
-    let show_cpu = Arc::new(AtomicBool::new(true));
-    let show_mem = Arc::new(AtomicBool::new(true));
-    let show_gpu = Arc::new(AtomicBool::new(true));
-    let show_net = Arc::new(AtomicBool::new(true));
-    let show_alerts = Arc::new(AtomicBool::new(true));
-
-    let show_cpu_tray = show_cpu.clone();
-    let show_mem_tray = show_mem.clone();
-    let show_gpu_tray = show_gpu.clone();
-    let show_net_tray = show_net.clone();
-    let show_alerts_tray = show_alerts.clone();
+    let metrics = MetricToggles {
+        show_cpu: Arc::new(AtomicBool::new(true)),
+        show_mem: Arc::new(AtomicBool::new(true)),
+        show_gpu: Arc::new(AtomicBool::new(true)),
+        show_net: Arc::new(AtomicBool::new(true)),
+        show_alerts: Arc::new(AtomicBool::new(true)),
+    };
+    let tray_metrics = metrics.clone();
 
     let gpu_sampler = GpuSampler::new();
     let gpu_available = gpu_sampler.is_some();
@@ -720,11 +718,11 @@ pub fn run() {
             let autostart = macos_autostart::is_enabled();
             #[cfg(not(target_os = "macos"))]
             let autostart = _stored_autostart;
-            show_cpu_tray.store(cpu, Relaxed);
-            show_mem_tray.store(mem, Relaxed);
-            show_gpu_tray.store(gpu, Relaxed);
-            show_net_tray.store(net, Relaxed);
-            show_alerts_tray.store(alerts, Relaxed);
+            tray_metrics.show_cpu.store(cpu, Relaxed);
+            tray_metrics.show_mem.store(mem, Relaxed);
+            tray_metrics.show_gpu.store(gpu, Relaxed);
+            tray_metrics.show_net.store(net, Relaxed);
+            tray_metrics.show_alerts.store(alerts, Relaxed);
 
             let font =
                 load_system_font().map_err(|e| format!("Font required for tray icon: {e}"))?;
@@ -734,26 +732,13 @@ pub fn run() {
             setup_tray(
                 app.handle(),
                 &font,
-                show_cpu_tray,
-                show_mem_tray,
-                show_gpu_tray,
-                show_net_tray,
-                show_alerts_tray,
+                tray_metrics,
                 gpu_available,
                 autostart,
                 translations,
             )?;
 
-            start_monitoring(
-                app.handle().clone(),
-                font,
-                show_cpu,
-                show_mem,
-                show_gpu,
-                show_net,
-                show_alerts,
-                gpu_sampler,
-            );
+            start_monitoring(app.handle().clone(), font, metrics, gpu_sampler);
 
             Ok(())
         })
