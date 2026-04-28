@@ -23,7 +23,7 @@
 
 <p align="center">
   <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/appstore-pt-br.webp" alt="Baixar na Mac App Store" width="270" height="65"></a>
-  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.0/Better.Resource.Monitor_1.1.0_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-pt-br.webp" alt="Baixar para macOS no GitHub Releases" width="270" height="65"></a>
+  <a href="https://github.com/alexx855/better-resource-monitor/releases/download/v1.1.3/Better.Resource.Monitor_1.1.3_aarch64.dmg" target="_blank"><img src="https://better-resource-monitor.alexpedersen.dev/badges/macos-pt-br.webp" alt="Baixar para macOS no GitHub Releases" width="270" height="65"></a>
 </p>
 
 ## Por que usar

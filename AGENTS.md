@@ -18,6 +18,9 @@
 - `pnpm build:screenshots` first builds `www/`, then copies generated PNGs from `www/dist/images` into `images/appstore/<lang>/`.
 - If you change tray visuals, regenerate `www/public/better-resource-monitor.png` from `src-tauri/examples/render_tray_icon.rs` (or the repo-local `generate-banner` skill). Do not hand-redraw marketing tray art separately from the app renderer.
 
+## Website UX Decisions
+- Do not add a skip-to-content link to the current marketing site by default. Pages start directly with their main content, and the extra localized copy, CSS, focus target, and DOM add complexity without clear value here. Revisit only if persistent navigation or other repeated chrome is added before the content.
+
 ## Release Notes
 - Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.
 - Hardcoded DMG download links also exist in `README.es.md`, `README.pt-br.md`, and `README.zh-cn.md`; the current release workflow only rewrites `README.md`, so localized READMEs are easy to leave stale.
