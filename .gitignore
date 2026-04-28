@@ -31,3 +31,4 @@ scripts/.build-number
 # applestoreconnect
 src-tauri/embedded.provisionprofile
 private_keys/*.p8
+.agents/skills
