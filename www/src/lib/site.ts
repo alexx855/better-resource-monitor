@@ -45,10 +45,10 @@ export function getLocaleMeta(locale: SupportedLocale) {
 
 export function getLocalizedPath(locale: SupportedLocale, slug = "") {
   if (locale === "en") {
-    return slug ? `/${slug}` : "/";
+    return slug ? `/${slug}/` : "/";
   }
 
-  return slug ? `/${locale}/${slug}` : `/${locale}/`;
+  return slug ? `/${locale}/${slug}/` : `/${locale}/`;
 }
 
 export function getAlternateLinks(slug = "") {

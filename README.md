@@ -44,9 +44,9 @@ CPU, memory, GPU, and network in your menu bar. Runs sandboxed. On the Mac App S
     <tr>
       <th width="20%">Feature</th>
       <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-stats">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-eul">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus">iStat Menus</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus</a></th>
     </tr>
   </thead>
   <tbody>
