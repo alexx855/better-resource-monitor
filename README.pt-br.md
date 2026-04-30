@@ -39,9 +39,9 @@ CPU, memória, GPU e rede na barra de menus. Roda em sandbox. Na Mac App Store c
     <tr>
       <th width="20%">Recurso</th>
       <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-stats">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-eul">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-istat-menus">iStat Menus</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-istat-menus/">iStat Menus</a></th>
     </tr>
   </thead>
   <tbody>

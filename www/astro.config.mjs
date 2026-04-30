@@ -18,6 +18,7 @@ export default defineConfig({
     },
   },
   site: 'https://better-resource-monitor.alexpedersen.dev',
+  trailingSlash: 'always',
   integrations: [sitemap()],
   adapter: cloudflare({
     platformProxy: {

@@ -39,9 +39,9 @@ CPU、内存、GPU、网络，全在菜单栏里。沙盒运行。Mac App Store 
     <tr>
       <th width="20%">功能</th>
       <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-stats">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-eul">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-istat-menus">iStat Menus</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-istat-menus/">iStat Menus</a></th>
     </tr>
   </thead>
   <tbody>
