@@ -564,7 +564,7 @@ fn setup_initial_tray(
     Err(last_error.into())
 }
 
-fn handle_second_instance_launch(app: &AppHandle) {
+fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_available: bool) {
     #[cfg(target_os = "macos")]
     {
         if let Err(e) = app.set_activation_policy(ActivationPolicy::Accessory) {
@@ -572,7 +572,9 @@ fn handle_second_instance_launch(app: &AppHandle) {
         }
 
         let (_, _, _, _, _, stored_autostart) = load_settings(app);
-        if should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled()) {
+        let autostart =
+            should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
+        if autostart {
             if let Err(e) = macos_autostart::repair() {
                 eprintln!("Failed to repair autostart registration on second launch: {e}");
             }
@@ -581,6 +583,20 @@ fn handle_second_instance_launch(app: &AppHandle) {
         if let Some(tray) = app.tray_by_id(TRAY_ID) {
             if let Err(e) = tray.set_visible(true) {
                 eprintln!("Failed to show tray icon on second launch: {e}");
+            }
+        } else {
+            let (cpu, mem, gpu, net, alerts, _) = load_settings(app);
+            let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
+            metrics.show_cpu.store(cpu, Relaxed);
+            metrics.show_mem.store(mem, Relaxed);
+            metrics.show_gpu.store(gpu, Relaxed);
+            metrics.show_net.store(net, Relaxed);
+            metrics.show_alerts.store(alerts, Relaxed);
+
+            let translations = i18n::detect_language().translations();
+            if let Err(e) = setup_initial_tray(app, metrics, gpu_available, autostart, translations)
+            {
+                eprintln!("Failed to restore tray icon on second launch: {e}");
             }
         }
     }
@@ -784,14 +800,17 @@ pub fn run() {
         show_alerts: Arc::new(AtomicBool::new(true)),
     };
     let tray_metrics = metrics.clone();
+    let second_instance_metrics = metrics.clone();
 
     let gpu_sampler = GpuSampler::new();
     let gpu_available = gpu_sampler.is_some();
 
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            handle_second_instance_launch(app);
-        }))
+        .plugin(tauri_plugin_single_instance::init(
+            move |app, _args, _cwd| {
+                handle_second_instance_launch(app, second_instance_metrics.clone(), gpu_available);
+            },
+        ))
         .plugin(tauri_plugin_store::Builder::new().build());
 
     builder
