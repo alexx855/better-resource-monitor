@@ -1,6 +1,6 @@
 {
   "title": "Better Resource Monitor vs Eul",
-  "description": "If you liked Eul's simple menu bar setup, Better Resource Monitor is a similar idea with current macOS support and lower overhead on newer Macs.",
+  "description": "If you liked Eul's simple menu bar setup, Better Resource Monitor is a similar idea for keeping CPU, memory, GPU, and network usage visible with current macOS support and lower overhead on newer Macs.",
   "ogImage": "/images/og-vs-eul-en.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
@@ -64,5 +64,5 @@
       "body": "Better Resource Monitor uses public APIs for GPU data, stays sandboxed, and is available on the Mac App Store with full features. Those are technical details, but the practical result is simple: a monitor that is easier to install, easier to trust, and less likely to break on the next macOS update."
     }
   ],
-  "cta": "If you liked Eul's simpler style but want something current, [Better Resource Monitor](https://apps.apple.com/app/better-resource-monitor/id6758237306) covers the same everyday use case. The source is on [GitHub](https://github.com/alexx855/better-resource-monitor) if you want to look before you install."
+  "cta": "If you liked Eul's simpler style but want something current, [Better Resource Monitor is on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and covers the same everyday use case. The source is on [GitHub](https://github.com/alexx855/better-resource-monitor) if you want to look before you install."
 }

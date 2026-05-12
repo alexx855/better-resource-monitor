@@ -61,7 +61,7 @@
     },
     {
       "heading": "Why it feels simpler to live with",
-      "body": "Better Resource Monitor installs like a normal Mac app, stays sandboxed, and uses public APIs for GPU data. Most people will not care about those implementation details directly. They matter because they lead to a calmer experience: less setup, fewer background pieces, and fewer surprises after macOS updates."
+      "body": "The no-admin-password, no-root-helper approach is not the main reason to pick Better Resource Monitor, but it does help explain the product. It installs like a normal Mac app, is available on the Mac App Store with full features, and uses public APIs for GPU data. For most people, that just translates to lower friction and fewer surprises."
     }
   ],
   "cta": "Stats is still a good pick if you want the broader sensor suite. If your goal is simpler — keep an eye on your Mac, notice unusual load sooner, and keep overhead low — [Better Resource Monitor is on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and the source is on [GitHub](https://github.com/alexx855/better-resource-monitor)."
