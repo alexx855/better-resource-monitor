@@ -79,11 +79,15 @@ jobs:
           codesign -dv --verbose=4 "$APP_PATH"
           spctl -a -vv -t install "$APP_PATH"
 
+          mkdir -p artifacts
+          ditto -c -k --keepParent "$APP_PATH" artifacts/Better-Resource-Monitor-x86_64.app.zip
+          shasum -a 256 artifacts/Better-Resource-Monitor-x86_64.app.zip > artifacts/Better-Resource-Monitor-x86_64.app.zip.sha256
+
       - name: Upload signed Intel artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-macos-intel
           path: |
-            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/release/bundle/macos/*.app
+            artifacts/Better-Resource-Monitor-x86_64.app.zip
+            artifacts/Better-Resource-Monitor-x86_64.app.zip.sha256
           if-no-files-found: error
