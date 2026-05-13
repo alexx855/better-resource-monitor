@@ -40,6 +40,15 @@ if [[ ! -f "$ZIP_PATH" ]]; then
   fail "Artifact zip not found: $ZIP_PATH"
 fi
 
+SHASUM_PATH="${ZIP_PATH}.sha256"
+if [[ -f "$SHASUM_PATH" ]]; then
+  note "Verifying artifact checksum"
+  EXPECTED_SHA=$(awk '{print $1; exit}' "$SHASUM_PATH")
+  ACTUAL_SHA=$(shasum -a 256 "$ZIP_PATH" | awk '{print $1; exit}')
+  [[ -n "$EXPECTED_SHA" ]] || fail "No checksum found in $SHASUM_PATH"
+  [[ "$ACTUAL_SHA" == "$EXPECTED_SHA" ]] || fail "Checksum mismatch for $ZIP_PATH"
+fi
+
 TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/brm-install.XXXXXX")
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -65,10 +74,12 @@ ARTIFACT_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString
 echo "path=$SOURCE_APP"
 echo "bundle_id=$ARTIFACT_BUNDLE_ID"
 echo "version=$ARTIFACT_VERSION"
-lipo -info "$EXECUTABLE"
+LIPO_INFO=$(lipo -info "$EXECUTABLE")
+echo "$LIPO_INFO"
 
 [[ "$ARTIFACT_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $ARTIFACT_BUNDLE_ID"
 [[ "$ARTIFACT_VERSION" == "$EXPECTED_VERSION" ]] || fail "Expected version $EXPECTED_VERSION, got $ARTIFACT_VERSION"
+[[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Artifact executable does not contain x86_64"
 
 note "Artifact signature"
 codesign --verify --deep --strict --verbose=2 "$SOURCE_APP"

@@ -81,7 +81,7 @@ jobs:
 
           mkdir -p artifacts
           ditto -c -k --keepParent "$APP_PATH" artifacts/Better-Resource-Monitor-x86_64.app.zip
-          shasum -a 256 artifacts/Better-Resource-Monitor-x86_64.app.zip > artifacts/Better-Resource-Monitor-x86_64.app.zip.sha256
+          (cd artifacts && shasum -a 256 Better-Resource-Monitor-x86_64.app.zip > Better-Resource-Monitor-x86_64.app.zip.sha256)
 
       - name: Upload signed Intel artifacts
         uses: actions/upload-artifact@v4
