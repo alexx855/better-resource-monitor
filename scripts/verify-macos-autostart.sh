@@ -4,6 +4,7 @@ set -euo pipefail
 APP_PATH="${APP_PATH:-/Applications/Better Resource Monitor.app}"
 BUNDLE_ID="${BUNDLE_ID:-dev.alexpedersen.better-resource-monitor}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-}"
+EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
@@ -83,6 +84,9 @@ echo "build=${INSTALLED_BUILD:-<missing>}"
 [[ "$INSTALLED_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $INSTALLED_BUNDLE_ID"
 if [[ -n "$EXPECTED_VERSION" && "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
   fail "Expected version $EXPECTED_VERSION, got $INSTALLED_VERSION"
+fi
+if [[ -n "$EXPECTED_BUILD" && "$INSTALLED_BUILD" != "$EXPECTED_BUILD" ]]; then
+  fail "Expected build $EXPECTED_BUILD, got ${INSTALLED_BUILD:-<missing>}"
 fi
 
 note "Architecture"

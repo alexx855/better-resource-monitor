@@ -2,7 +2,8 @@
 set -e
 
 # Builds, signs, packages, and uploads a universal macOS binary to App Store Connect.
-# Build number auto-increments from scripts/.build-number on each run.
+# Build number can be set with BUILD_NUMBER, otherwise it auto-increments from
+# scripts/.build-number while never falling below a timestamp-scale value.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -30,10 +31,30 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-# Auto-increment build number
+# Auto-increment build number. The timestamp floor avoids accidentally creating
+# a build lower than an already-distributed TestFlight/App Store build when the
+# ignored local counter file is missing or stale.
 BUILD_NUMBER_FILE="$SCRIPT_DIR/.build-number"
-BUILD_NUMBER=$(cat "$BUILD_NUMBER_FILE" 2>/dev/null || echo 0)
-BUILD_NUMBER=$((BUILD_NUMBER + 1))
+if [ -n "${BUILD_NUMBER:-}" ]; then
+  case "$BUILD_NUMBER" in
+    ''|*[!0-9]*)
+      echo "Error: BUILD_NUMBER must be numeric, got '$BUILD_NUMBER'"
+      exit 1
+      ;;
+  esac
+else
+  CURRENT_BUILD_NUMBER=$(cat "$BUILD_NUMBER_FILE" 2>/dev/null || echo 0)
+  case "$CURRENT_BUILD_NUMBER" in
+    ''|*[!0-9]*)
+      CURRENT_BUILD_NUMBER=0
+      ;;
+  esac
+  TIMESTAMP_BUILD_NUMBER=$(date -u +%Y%m%d%H%M)
+  BUILD_NUMBER=$((CURRENT_BUILD_NUMBER + 1))
+  if [ "$BUILD_NUMBER" -lt "$TIMESTAMP_BUILD_NUMBER" ]; then
+    BUILD_NUMBER="$TIMESTAMP_BUILD_NUMBER"
+  fi
+fi
 echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 
 echo "=== App Store Packaging Script ==="
