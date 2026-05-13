@@ -26,6 +26,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set build metadata
+        run: echo "BRM_BUILD_COMMIT=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:

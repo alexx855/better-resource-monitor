@@ -153,6 +153,9 @@ jobs:
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
+      - name: Set build metadata
+        run: echo "BRM_BUILD_COMMIT=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:

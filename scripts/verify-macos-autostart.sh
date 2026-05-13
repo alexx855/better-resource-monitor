@@ -4,6 +4,7 @@ set -euo pipefail
 APP_PATH="${APP_PATH:-/Applications/Better Resource Monitor.app}"
 BUNDLE_ID="${BUNDLE_ID:-dev.alexpedersen.better-resource-monitor}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-}"
+EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
 
@@ -34,6 +35,26 @@ print_recent_startup_log() {
   if [[ "$found" -eq 0 ]]; then
     note "App startup log not found in standard or sandbox container log paths"
   fi
+}
+
+verify_expected_build_commit() {
+  if [[ -z "$EXPECTED_BUILD_COMMIT" ]]; then
+    return
+  fi
+
+  local found=0
+  local log_paths=(
+    "$HOME/Library/Logs/Better Resource Monitor/autostart.log"
+    "$HOME/Library/Containers/$BUNDLE_ID/Data/Library/Logs/Better Resource Monitor/autostart.log"
+  )
+
+  for log_path in "${log_paths[@]}"; do
+    if [[ -f "$log_path" ]] && grep -q "build_commit=$EXPECTED_BUILD_COMMIT" "$log_path"; then
+      found=1
+    fi
+  done
+
+  [[ "$found" -eq 1 ]] || fail "Expected startup log to contain build_commit=$EXPECTED_BUILD_COMMIT"
 }
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -96,5 +117,6 @@ else
 fi
 
 print_recent_startup_log
+verify_expected_build_commit
 
 note "Verification passed"
