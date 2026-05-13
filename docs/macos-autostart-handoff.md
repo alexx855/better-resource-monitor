@@ -5,16 +5,10 @@ enabled in Login Items / Background Items but does not visibly start after login
 
 ## Build Commit
 
-Run the signed Intel build from the merged fix commit. The current PR-head
-commit is:
-
-```text
-13120feb4863ed02e0c28a96c9679ca4bcafb4cc
-```
-
-If the PR is squash-merged or the workflow is dispatched from another ref, use
-that actual signed-build commit instead. The app logs this short commit through
-`BRM_BUILD_COMMIT`, so post-login verification should use the same short value:
+Run the signed Intel build from the merged fix commit. If the PR is
+squash-merged or the workflow is dispatched from another ref, use that actual
+signed-build commit. The app logs this short commit through `BRM_BUILD_COMMIT`,
+so post-login verification should use the same short value:
 
 ```bash
 EXPECTED_BUILD_COMMIT=<signed-build-short-commit>
