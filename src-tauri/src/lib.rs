@@ -781,7 +781,7 @@ fn start_monitoring(
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
             last_update = now;
-            let full_tick = tick_count % 2 == 0;
+            let full_tick = tick_count.is_multiple_of(2);
             tick_count = tick_count.wrapping_add(1);
 
             let sc = metrics.show_cpu.load(Relaxed);
