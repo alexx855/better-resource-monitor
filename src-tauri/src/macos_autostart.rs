@@ -14,6 +14,22 @@ fn is_bundled() -> bool {
         .is_some_and(|id| id.to_string() == BUNDLE_ID)
 }
 
+pub fn status_label() -> &'static str {
+    if !is_bundled() {
+        return "not_bundled";
+    }
+
+    unsafe {
+        match SMAppService::mainAppService().status() {
+            SMAppServiceStatus::NotRegistered => "not_registered",
+            SMAppServiceStatus::Enabled => "enabled",
+            SMAppServiceStatus::RequiresApproval => "requires_approval",
+            SMAppServiceStatus::NotFound => "not_found",
+            _ => "unknown",
+        }
+    }
+}
+
 fn launch_agents_dir(home: &Path) -> PathBuf {
     home.join("Library").join("LaunchAgents")
 }
