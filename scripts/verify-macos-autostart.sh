@@ -16,6 +16,26 @@ note() {
   echo "==> $*"
 }
 
+print_recent_startup_log() {
+  local found=0
+  local log_paths=(
+    "$HOME/Library/Logs/Better Resource Monitor/autostart.log"
+    "$HOME/Library/Containers/$BUNDLE_ID/Data/Library/Logs/Better Resource Monitor/autostart.log"
+  )
+
+  for log_path in "${log_paths[@]}"; do
+    if [[ -f "$log_path" ]]; then
+      found=1
+      note "Recent app startup log: $log_path"
+      tail -40 "$log_path"
+    fi
+  done
+
+  if [[ "$found" -eq 0 ]]; then
+    note "App startup log not found in standard or sandbox container log paths"
+  fi
+}
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
   fail "This verifier must run on macOS"
 fi
@@ -71,22 +91,10 @@ note "Running process"
 if pgrep -x "$PROCESS_NAME" >/dev/null; then
   pgrep -ax "$PROCESS_NAME"
 else
-  LOG_PATH="$HOME/Library/Logs/Better Resource Monitor/autostart.log"
-  if [[ -f "$LOG_PATH" ]]; then
-    note "Recent app startup log"
-    tail -40 "$LOG_PATH"
-  else
-    note "App startup log not found at $LOG_PATH"
-  fi
+  print_recent_startup_log
   fail "$PROCESS_NAME is not running. If you just installed the app, log out/in or reboot, then run this verifier again."
 fi
 
-LOG_PATH="$HOME/Library/Logs/Better Resource Monitor/autostart.log"
-if [[ -f "$LOG_PATH" ]]; then
-  note "Recent app startup log"
-  tail -40 "$LOG_PATH"
-else
-  note "App startup log not found at $LOG_PATH"
-fi
+print_recent_startup_log
 
 note "Verification passed"
