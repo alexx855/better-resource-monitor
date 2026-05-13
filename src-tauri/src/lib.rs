@@ -262,6 +262,13 @@ fn should_repair_macos_autostart(stored_autostart: bool, system_autostart: bool)
 }
 
 #[cfg(target_os = "macos")]
+fn build_commit() -> &'static str {
+    option_env!("BRM_BUILD_COMMIT")
+        .or(option_env!("GITHUB_SHA"))
+        .unwrap_or("unknown")
+}
+
+#[cfg(target_os = "macos")]
 fn macos_diag_log(event: impl AsRef<str>) {
     let Some(home) = std::env::var_os("HOME") else {
         return;
@@ -948,8 +955,9 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 macos_diag_log(format!(
-                    "setup start version={} status_before={}",
+                    "setup start version={} build_commit={} status_before={}",
                     env!("CARGO_PKG_VERSION"),
+                    build_commit(),
                     macos_autostart::status_label()
                 ));
                 app.set_activation_policy(ActivationPolicy::Accessory);

@@ -9,6 +9,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 
 VERSION=$(jq -r '.version' "$PROJECT_ROOT/src-tauri/tauri.conf.json")
+BRM_BUILD_COMMIT="${BRM_BUILD_COMMIT:-$(git -C "$PROJECT_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)}"
+export BRM_BUILD_COMMIT
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Error: .env file not found at $ENV_FILE"
@@ -37,6 +39,7 @@ echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 echo "=== App Store Packaging Script ==="
 echo "Version: $VERSION"
 echo "Build: $BUILD_NUMBER"
+echo "Commit: $BRM_BUILD_COMMIT"
 echo ""
 
 APP_NAME="Better Resource Monitor"
