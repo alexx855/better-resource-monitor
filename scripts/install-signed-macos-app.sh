@@ -23,7 +23,9 @@ usage() {
 Usage: EXPECTED_BUILD_COMMIT=<commit> $0 <Better-Resource-Monitor-x86_64.app.zip>
 
 Installs a signed Better Resource Monitor .app zip produced by the signed Intel
-GitHub Actions workflow, then prints the post-login verification command.
+GitHub Actions workflow. You can pass either the inner
+Better-Resource-Monitor-x86_64.app.zip file or the outer downloaded GitHub
+artifact zip that contains it.
 EOF
 }
 
@@ -56,9 +58,30 @@ cleanup() {
 trap cleanup EXIT
 
 note "Extracting artifact"
-ditto -x -k "$ZIP_PATH" "$TMP_DIR"
+EXTRACT_DIR="$TMP_DIR/extracted"
+mkdir -p "$EXTRACT_DIR"
+ditto -x -k "$ZIP_PATH" "$EXTRACT_DIR"
 
-SOURCE_APP=$(find "$TMP_DIR" -maxdepth 2 -name "Better Resource Monitor.app" -type d -print -quit)
+SOURCE_APP=$(find "$EXTRACT_DIR" -maxdepth 3 -name "Better Resource Monitor.app" -type d -print -quit)
+if [[ -z "$SOURCE_APP" ]]; then
+  INNER_ZIP=$(find "$EXTRACT_DIR" -maxdepth 3 -name "Better-Resource-Monitor-x86_64.app.zip" -type f -print -quit)
+  if [[ -n "$INNER_ZIP" ]]; then
+    INNER_SHA="${INNER_ZIP}.sha256"
+    if [[ -f "$INNER_SHA" ]]; then
+      note "Verifying nested artifact checksum"
+      EXPECTED_SHA=$(awk '{print $1; exit}' "$INNER_SHA")
+      ACTUAL_SHA=$(shasum -a 256 "$INNER_ZIP" | awk '{print $1; exit}')
+      [[ -n "$EXPECTED_SHA" ]] || fail "No checksum found in $INNER_SHA"
+      [[ "$ACTUAL_SHA" == "$EXPECTED_SHA" ]] || fail "Checksum mismatch for $INNER_ZIP"
+    fi
+
+    note "Extracting nested app zip"
+    NESTED_DIR="$TMP_DIR/nested"
+    mkdir -p "$NESTED_DIR"
+    ditto -x -k "$INNER_ZIP" "$NESTED_DIR"
+    SOURCE_APP=$(find "$NESTED_DIR" -maxdepth 3 -name "Better Resource Monitor.app" -type d -print -quit)
+  fi
+fi
 if [[ -z "$SOURCE_APP" ]]; then
   fail "Better Resource Monitor.app not found inside $ZIP_PATH"
 fi
