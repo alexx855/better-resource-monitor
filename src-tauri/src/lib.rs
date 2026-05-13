@@ -27,6 +27,9 @@ use tauri_plugin_store::StoreExt;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 
+#[cfg(target_os = "macos")]
+use std::io::Write;
+
 #[cfg(target_os = "linux")]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
@@ -256,6 +259,37 @@ fn should_repair_macos_autostart(stored_autostart: bool, system_autostart: bool)
     stored_autostart || system_autostart
 }
 
+#[cfg(target_os = "macos")]
+fn macos_diag_log(event: impl AsRef<str>) {
+    let Some(home) = std::env::var_os("HOME") else {
+        return;
+    };
+
+    let log_dir = std::path::PathBuf::from(home)
+        .join("Library")
+        .join("Logs")
+        .join("Better Resource Monitor");
+    if std::fs::create_dir_all(&log_dir).is_err() {
+        return;
+    }
+
+    let log_path = log_dir.join("autostart.log");
+    let mut file = match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    {
+        Ok(file) => file,
+        Err(_) => return,
+    };
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or_default();
+    let _ = writeln!(file, "[{now}] {}", event.as_ref());
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -286,12 +320,38 @@ fn setup_tray(
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     {
+        macos_diag_log(format!(
+            "setup_tray autostart_requested={is_autostart_enabled} status_before={}",
+            macos_autostart::status_label()
+        ));
         if is_autostart_enabled {
-            if let Err(e) = macos_autostart::repair() {
-                eprintln!("Failed to repair autostart registration: {e}");
+            match macos_autostart::repair() {
+                Ok(()) => macos_diag_log(format!(
+                    "autostart repair ok status_after={}",
+                    macos_autostart::status_label()
+                )),
+                Err(e) => {
+                    eprintln!("Failed to repair autostart registration: {e}");
+                    macos_diag_log(format!(
+                        "autostart repair failed status_after={} error={e}",
+                        macos_autostart::status_label()
+                    ));
+                }
             }
-        } else if let Err(e) = macos_autostart::disable() {
-            eprintln!("Failed to disable autostart: {e}");
+        } else {
+            match macos_autostart::disable() {
+                Ok(()) => macos_diag_log(format!(
+                    "autostart disable ok status_after={}",
+                    macos_autostart::status_label()
+                )),
+                Err(e) => {
+                    eprintln!("Failed to disable autostart: {e}");
+                    macos_diag_log(format!(
+                        "autostart disable failed status_after={} error={e}",
+                        macos_autostart::status_label()
+                    ));
+                }
+            }
         }
     }
     #[cfg(target_os = "linux")]
@@ -441,10 +501,18 @@ fn setup_tray(
                                 Ok(()) => {
                                     save_setting(app, menu_id::AUTOSTART, false);
                                     let _ = autostart_menu_item.set_checked(false);
+                                    macos_diag_log(format!(
+                                        "menu autostart disabled status_after={}",
+                                        macos_autostart::status_label()
+                                    ));
                                 }
                                 Err(e) => {
                                     eprintln!("Failed to disable autostart: {e}");
                                     let _ = autostart_menu_item.set_checked(true);
+                                    macos_diag_log(format!(
+                                        "menu autostart disable failed status_after={} error={e}",
+                                        macos_autostart::status_label()
+                                    ));
                                 }
                             }
                         } else {
@@ -452,10 +520,18 @@ fn setup_tray(
                                 Ok(()) => {
                                     save_setting(app, menu_id::AUTOSTART, true);
                                     let _ = autostart_menu_item.set_checked(true);
+                                    macos_diag_log(format!(
+                                        "menu autostart enabled status_after={}",
+                                        macos_autostart::status_label()
+                                    ));
                                 }
                                 Err(e) => {
                                     eprintln!("Failed to enable autostart: {e}");
                                     let _ = autostart_menu_item.set_checked(false);
+                                    macos_diag_log(format!(
+                                        "menu autostart enable failed status_after={} error={e}",
+                                        macos_autostart::status_label()
+                                    ));
                                 }
                             }
                         }
@@ -512,6 +588,9 @@ fn setup_tray(
         })
         .build(app)?;
 
+    #[cfg(target_os = "macos")]
+    macos_diag_log("tray build ok");
+
     Ok(())
 }
 
@@ -544,9 +623,20 @@ fn setup_initial_tray(
                 .map(|()| font)
                 .map_err(|e| e.to_string())
             }) {
-            Ok(font) => return Ok(font),
+            Ok(font) => {
+                #[cfg(target_os = "macos")]
+                macos_diag_log(format!(
+                    "setup_initial_tray attempt={attempt}/{attempts} ok"
+                ));
+                return Ok(font);
+            }
             Err(error) => {
                 last_error = error;
+
+                #[cfg(target_os = "macos")]
+                macos_diag_log(format!(
+                    "setup_initial_tray attempt={attempt}/{attempts} failed error={last_error}"
+                ));
 
                 #[cfg(target_os = "macos")]
                 if attempt < attempts {
@@ -567,24 +657,48 @@ fn setup_initial_tray(
 fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_available: bool) {
     #[cfg(target_os = "macos")]
     {
+        macos_diag_log("second_instance launch received");
         if let Err(e) = app.set_activation_policy(ActivationPolicy::Accessory) {
             eprintln!("Failed to set activation policy on second launch: {e}");
+            macos_diag_log(format!(
+                "second_instance activation_policy failed error={e}"
+            ));
+        } else {
+            macos_diag_log("second_instance activation_policy ok");
         }
 
         let (_, _, _, _, _, stored_autostart) = load_settings(app);
         let autostart =
             should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
+        macos_diag_log(format!(
+            "second_instance stored_autostart={stored_autostart} effective_autostart={autostart} status_before={}",
+            macos_autostart::status_label()
+        ));
         if autostart {
-            if let Err(e) = macos_autostart::repair() {
-                eprintln!("Failed to repair autostart registration on second launch: {e}");
+            match macos_autostart::repair() {
+                Ok(()) => macos_diag_log(format!(
+                    "second_instance autostart repair ok status_after={}",
+                    macos_autostart::status_label()
+                )),
+                Err(e) => {
+                    eprintln!("Failed to repair autostart registration on second launch: {e}");
+                    macos_diag_log(format!(
+                        "second_instance autostart repair failed status_after={} error={e}",
+                        macos_autostart::status_label()
+                    ));
+                }
             }
         }
 
         if let Some(tray) = app.tray_by_id(TRAY_ID) {
             if let Err(e) = tray.set_visible(true) {
                 eprintln!("Failed to show tray icon on second launch: {e}");
+                macos_diag_log(format!("second_instance tray show failed error={e}"));
+            } else {
+                macos_diag_log("second_instance tray show ok");
             }
         } else {
+            macos_diag_log("second_instance tray missing; rebuilding");
             let (cpu, mem, gpu, net, alerts, _) = load_settings(app);
             let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
             metrics.show_cpu.store(cpu, Relaxed);
@@ -597,6 +711,9 @@ fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_av
             if let Err(e) = setup_initial_tray(app, metrics, gpu_available, autostart, translations)
             {
                 eprintln!("Failed to restore tray icon on second launch: {e}");
+                macos_diag_log(format!("second_instance tray rebuild failed error={e}"));
+            } else {
+                macos_diag_log("second_instance tray rebuild ok");
             }
         }
     }
@@ -816,7 +933,15 @@ pub fn run() {
     builder
         .setup(move |app| {
             #[cfg(target_os = "macos")]
-            app.set_activation_policy(ActivationPolicy::Accessory);
+            {
+                macos_diag_log(format!(
+                    "setup start version={} status_before={}",
+                    env!("CARGO_PKG_VERSION"),
+                    macos_autostart::status_label()
+                ));
+                app.set_activation_policy(ActivationPolicy::Accessory);
+                macos_diag_log("activation_policy ok");
+            }
 
             #[cfg(target_os = "linux")]
             {
@@ -836,6 +961,10 @@ pub fn run() {
                 should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
             #[cfg(not(target_os = "macos"))]
             let autostart = stored_autostart;
+            #[cfg(target_os = "macos")]
+            macos_diag_log(format!(
+                "settings loaded stored_autostart={stored_autostart} effective_autostart={autostart} metrics cpu={cpu} mem={mem} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
+            ));
             tray_metrics.show_cpu.store(cpu, Relaxed);
             tray_metrics.show_mem.store(mem, Relaxed);
             tray_metrics.show_gpu.store(gpu, Relaxed);

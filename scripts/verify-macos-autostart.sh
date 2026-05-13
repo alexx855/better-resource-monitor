@@ -33,9 +33,11 @@ EXECUTABLE="$APP_PATH/Contents/MacOS/$PROCESS_NAME"
 note "Installed app"
 INSTALLED_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")
 INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")
+INSTALLED_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST" 2>/dev/null || true)
 echo "path=$APP_PATH"
 echo "bundle_id=$INSTALLED_BUNDLE_ID"
 echo "version=$INSTALLED_VERSION"
+echo "build=${INSTALLED_BUILD:-<missing>}"
 
 [[ "$INSTALLED_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $INSTALLED_BUNDLE_ID"
 if [[ -n "$EXPECTED_VERSION" && "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
@@ -69,7 +71,22 @@ note "Running process"
 if pgrep -x "$PROCESS_NAME" >/dev/null; then
   pgrep -ax "$PROCESS_NAME"
 else
+  LOG_PATH="$HOME/Library/Logs/Better Resource Monitor/autostart.log"
+  if [[ -f "$LOG_PATH" ]]; then
+    note "Recent app startup log"
+    tail -40 "$LOG_PATH"
+  else
+    note "App startup log not found at $LOG_PATH"
+  fi
   fail "$PROCESS_NAME is not running. If you just installed the app, log out/in or reboot, then run this verifier again."
+fi
+
+LOG_PATH="$HOME/Library/Logs/Better Resource Monitor/autostart.log"
+if [[ -f "$LOG_PATH" ]]; then
+  note "Recent app startup log"
+  tail -40 "$LOG_PATH"
+else
+  note "App startup log not found at $LOG_PATH"
 fi
 
 note "Verification passed"
