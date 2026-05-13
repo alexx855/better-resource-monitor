@@ -170,6 +170,8 @@ const CPU_STABILIZE_MS: u64 = 200;
 const MACOS_TRAY_SETUP_ATTEMPTS: usize = 5;
 #[cfg(target_os = "macos")]
 const MACOS_TRAY_SETUP_RETRY_MS: u64 = 1_500;
+#[cfg(target_os = "macos")]
+const MACOS_BUNDLE_ID: &str = "dev.alexpedersen.better-resource-monitor";
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
 const HYSTERESIS_THRESHOLD: f32 = 2.0;
@@ -265,29 +267,40 @@ fn macos_diag_log(event: impl AsRef<str>) {
         return;
     };
 
-    let log_dir = std::path::PathBuf::from(home)
-        .join("Library")
-        .join("Logs")
-        .join("Better Resource Monitor");
-    if std::fs::create_dir_all(&log_dir).is_err() {
-        return;
-    }
-
-    let log_path = log_dir.join("autostart.log");
-    let mut file = match std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log_path)
-    {
-        Ok(file) => file,
-        Err(_) => return,
-    };
-
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_secs())
         .unwrap_or_default();
-    let _ = writeln!(file, "[{now}] {}", event.as_ref());
+    let line = format!("[{now}] {}\n", event.as_ref());
+    let home = std::path::PathBuf::from(home);
+    let log_dirs = [
+        home.join("Library")
+            .join("Logs")
+            .join("Better Resource Monitor"),
+        home.join("Library")
+            .join("Containers")
+            .join(MACOS_BUNDLE_ID)
+            .join("Data")
+            .join("Library")
+            .join("Logs")
+            .join("Better Resource Monitor"),
+    ];
+
+    for log_dir in log_dirs {
+        if std::fs::create_dir_all(&log_dir).is_err() {
+            continue;
+        }
+
+        let log_path = log_dir.join("autostart.log");
+        let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path)
+        else {
+            continue;
+        };
+        let _ = file.write_all(line.as_bytes());
+    }
 }
 
 #[cfg(test)]
