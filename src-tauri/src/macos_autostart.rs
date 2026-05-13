@@ -49,24 +49,18 @@ fn legacy_launch_agent_paths() -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
-fn cleanup_legacy_launch_agents() -> Result<(), String> {
-    let mut errors = Vec::new();
-
+fn cleanup_legacy_launch_agents() {
     for path in legacy_launch_agent_paths() {
         match fs::remove_file(&path) {
             Ok(()) => {}
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-            Err(err) => errors.push(format!("{}: {err}", path.display())),
+            Err(err) => {
+                eprintln!(
+                    "Failed to remove legacy LaunchAgent {}: {err}",
+                    path.display()
+                );
+            }
         }
-    }
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(format!(
-            "legacy LaunchAgent cleanup failed: {}",
-            errors.join("; ")
-        ))
     }
 }
 
@@ -87,7 +81,7 @@ fn unregister(service: &SMAppService) -> Result<(), String> {
 }
 
 pub fn enable() -> Result<(), String> {
-    cleanup_legacy_launch_agents()?;
+    cleanup_legacy_launch_agents();
 
     if !is_bundled() {
         return Ok(());
@@ -106,7 +100,7 @@ pub fn enable() -> Result<(), String> {
 /// Apple recommends re-registering updated executables, ideally with an explicit
 /// unregister first, or the service may stay enabled but stop launching.
 pub fn repair() -> Result<(), String> {
-    cleanup_legacy_launch_agents()?;
+    cleanup_legacy_launch_agents();
 
     if !is_bundled() {
         return Ok(());
@@ -122,7 +116,7 @@ pub fn repair() -> Result<(), String> {
 }
 
 pub fn disable() -> Result<(), String> {
-    cleanup_legacy_launch_agents()?;
+    cleanup_legacy_launch_agents();
 
     if !is_bundled() {
         return Ok(());
@@ -186,7 +180,7 @@ mod tests {
         }
 
         std::env::set_var("HOME", &test_home);
-        cleanup_legacy_launch_agents().expect("cleanup legacy launch agents");
+        cleanup_legacy_launch_agents();
 
         for path in legacy_launch_agent_paths_in(&test_home) {
             assert!(!path.exists(), "expected {} to be removed", path.display());
