@@ -3,19 +3,21 @@
 This branch fixes the Intel macOS Ventura case where Better Resource Monitor is
 enabled in Login Items / Background Items but does not visibly start after login.
 
-## Fixed Commit
+## Build Commit
 
-Use a signed Intel build from:
+Run the signed Intel build from the merged fix commit. The current PR-head
+commit is:
 
 ```text
-7d7a1015f4582728365a347c17436890688e5bc7
+13120feb4863ed02e0c28a96c9679ca4bcafb4cc
 ```
 
-The app logs this short commit through `BRM_BUILD_COMMIT`, so post-login
-verification should use:
+If the PR is squash-merged or the workflow is dispatched from another ref, use
+that actual signed-build commit instead. The app logs this short commit through
+`BRM_BUILD_COMMIT`, so post-login verification should use the same short value:
 
 ```bash
-EXPECTED_BUILD_COMMIT=7d7a101
+EXPECTED_BUILD_COMMIT=<signed-build-short-commit>
 ```
 
 ## Signed Artifact Path
@@ -34,7 +36,7 @@ Better-Resource-Monitor-x86_64.app.zip.sha256
 Download both files into the same directory, then install the signed app:
 
 ```bash
-EXPECTED_BUILD_COMMIT=7d7a101 scripts/install-signed-macos-app.sh ~/Downloads/Better-Resource-Monitor-x86_64.app.zip
+EXPECTED_BUILD_COMMIT=<signed-build-short-commit> scripts/install-signed-macos-app.sh ~/Downloads/Better-Resource-Monitor-x86_64.app.zip
 ```
 
 The installer checks the optional `.sha256` sidecar, bundle id, version,
@@ -47,7 +49,7 @@ Enable Start at Login in the app menu, then log out and back in. After the new
 login session starts, run:
 
 ```bash
-EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=7d7a101 scripts/verify-macos-autostart.sh
+EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=<signed-build-short-commit> scripts/verify-macos-autostart.sh
 ```
 
 The verifier requires the installed app to be signed by team `G76YQZM2FU`, the
