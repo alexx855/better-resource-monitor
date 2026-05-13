@@ -64,34 +64,26 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          args: --target x86_64-apple-darwin
+          args: --bundles app --target x86_64-apple-darwin
 
       - name: Verify signed Intel app
         run: |
           APP_PATH=$(find src-tauri/target -path '*/release/bundle/macos/*.app' -type d -print -quit)
-          DMG_PATH=$(find src-tauri/target -path '*/release/bundle/dmg/*.dmg' -type f -print -quit)
 
           if [ -z "$APP_PATH" ]; then
             echo "No macOS app bundle found"
             exit 1
           fi
 
-          if [ -z "$DMG_PATH" ]; then
-            echo "No macOS DMG found"
-            exit 1
-          fi
-
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -dv --verbose=4 "$APP_PATH"
-          spctl -a -vv -t install "$DMG_PATH"
+          spctl -a -vv -t install "$APP_PATH"
 
       - name: Upload signed Intel artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-macos-intel
           path: |
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
             src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/macos/*.app
           if-no-files-found: error
