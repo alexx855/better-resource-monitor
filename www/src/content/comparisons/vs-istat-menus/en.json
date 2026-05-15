@@ -1,11 +1,11 @@
 {
-  "title": "Better Resource Monitor vs iStat Menus",
-  "description": "iStat Menus is a deeper system suite. Better Resource Monitor is the simpler, lighter option if you mainly want CPU, memory, GPU, and network usage in your menu bar.",
+  "title": "iStat Menus Alternative for macOS | Better Resource Monitor",
+  "description": "Compare iStat Menus and Better Resource Monitor for macOS. See the simpler, lighter menu bar monitor for CPU, memory, GPU, and network usage.",
   "ogImage": "/images/og-vs-istat-menus-en.png",
   "competitorName": "iStat Menus",
   "competitorPrice": "14.99",
-  "heading": "Better Resource Monitor vs iStat Menus",
-  "intro": "iStat Menus and Better Resource Monitor are built for different jobs. iStat Menus is a bigger system utility with more sensors, controls, and extra detail. Better Resource Monitor is for the simpler use case: keep CPU, memory, GPU, and network visible from the menu bar, notice unusual load quickly, and keep the monitor itself light enough to ignore.",
+  "heading": "Better Resource Monitor vs iStat Menus for macOS",
+  "intro": "iStat Menus and Better Resource Monitor are built for different jobs. iStat Menus is a bigger system utility with more sensors, controls, and extra detail. Better Resource Monitor is for the simpler use case: keep CPU, memory, GPU, and network visible from the menu bar, notice unusual load quickly, and keep the monitor itself light enough to ignore. If you are looking for an iStat Menus alternative because you only need the everyday numbers, this page shows where Better Resource Monitor keeps things simpler.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",

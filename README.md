@@ -70,6 +70,8 @@ The technical side is there to support that experience. It installs like a norma
 
 > Third-party numbers are rough estimates. Your mileage may vary.
 
+For more detail, read the <a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats comparison</a> or the <a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus comparison</a>.
+
 ## Installation
 
 Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
