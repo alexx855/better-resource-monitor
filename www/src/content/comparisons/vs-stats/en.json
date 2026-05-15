@@ -1,11 +1,11 @@
 {
-  "title": "Better Resource Monitor vs Stats",
-  "description": "Stats and Better Resource Monitor are both free Mac menu bar monitors. Better Resource Monitor is the simpler, lower-overhead option if you mainly want CPU, memory, GPU, and network at a glance.",
+  "title": "Stats Alternative for macOS | Better Resource Monitor",
+  "description": "Compare Stats and Better Resource Monitor for macOS. Both are free menu bar monitors, but Better Resource Monitor is simpler and lower-overhead.",
   "ogImage": "/images/og-vs-stats-en.png",
   "competitorName": "Stats",
   "competitorPrice": "0",
-  "heading": "Better Resource Monitor vs Stats",
-  "intro": "Stats and Better Resource Monitor are both good menu bar monitors, but they aim at slightly different people. Stats goes deeper into fans, thermals, and extra sensor detail. Better Resource Monitor is for the simpler everyday job: keep CPU, memory, GPU, and network visible, catch unusual load quickly, and do it without adding much overhead of its own.",
+  "heading": "Better Resource Monitor vs Stats for macOS",
+  "intro": "Stats and Better Resource Monitor are both good menu bar monitors, but they aim at slightly different people. Stats goes deeper into fans, thermals, and extra sensor detail. Better Resource Monitor is for the simpler everyday job: keep CPU, memory, GPU, and network visible, catch unusual load quickly, and do it without adding much overhead of its own. If you want a Stats alternative that keeps CPU, memory, GPU, and network visible without extra sensor depth, Better Resource Monitor is the narrower option on purpose.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
