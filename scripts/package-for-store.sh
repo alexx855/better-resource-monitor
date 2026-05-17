@@ -94,6 +94,13 @@ fi
 
 echo "App bundle found at: $APP_PATH"
 
+APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
+if ! strings -a "$APP_EXECUTABLE" | grep -Fq "$BRM_BUILD_COMMIT"; then
+  echo "Error: App executable does not contain expected build commit $BRM_BUILD_COMMIT"
+  exit 1
+fi
+echo "Build commit embedded successfully"
+
 if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
   echo "Error: Provisioning profile was not embedded by Tauri"
   echo "Check that 'files' config in tauri.appstore.conf.json is correct"
