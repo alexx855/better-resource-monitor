@@ -77,6 +77,7 @@ jobs:
 
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -dv --verbose=4 "$APP_PATH"
+          strings -a "$APP_PATH/Contents/MacOS/better-resource-monitor" | grep -F "$BRM_BUILD_COMMIT"
           scripts/verify-macos-autostart-agent-plist.sh "$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
           spctl -a -vv -t install "$APP_PATH"
 

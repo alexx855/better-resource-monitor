@@ -20,6 +20,16 @@ note() {
   echo "==> $*"
 }
 
+verify_executable_contains_build_commit() {
+  if [[ -z "$EXPECTED_BUILD_COMMIT" ]]; then
+    return
+  fi
+
+  if ! strings -a "$EXECUTABLE" | grep -Fq "$EXPECTED_BUILD_COMMIT"; then
+    fail "Artifact executable does not contain expected build commit $EXPECTED_BUILD_COMMIT"
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: EXPECTED_BUILD_COMMIT=<commit> $0 <Better-Resource-Monitor-x86_64.app.zip>
@@ -108,6 +118,7 @@ echo "$LIPO_INFO"
 [[ "$ARTIFACT_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $ARTIFACT_BUNDLE_ID"
 [[ "$ARTIFACT_VERSION" == "$EXPECTED_VERSION" ]] || fail "Expected version $EXPECTED_VERSION, got $ARTIFACT_VERSION"
 [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Artifact executable does not contain x86_64"
+verify_executable_contains_build_commit
 
 note "Artifact signature"
 codesign --verify --deep --strict --verbose=2 "$SOURCE_APP"
