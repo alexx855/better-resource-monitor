@@ -9,7 +9,7 @@
   "bundleIdentifier": "dev.alexpedersen.better-resource-monitor",
   "category": "System Monitor",
   "platforms": ["macOS"],
-  "minimumMacOSVersion": "11.0",
+  "minimumMacOSVersion": "13.0",
   "price": {
     "amount": 0,
     "currency": "USD",

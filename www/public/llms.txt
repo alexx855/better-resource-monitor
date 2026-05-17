@@ -25,7 +25,7 @@
 ## Product facts
 - Bundle identifier: dev.alexpedersen.better-resource-monitor
 - Platforms: macOS
-- Minimum macOS version: 11.0
+- Minimum macOS version: 13.0
 - Core metrics: CPU, memory, GPU, network
 - Notable traits: sandboxed, no admin password, no root helper, no private APIs, no dock icon, theme aware
 
