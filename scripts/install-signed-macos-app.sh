@@ -102,7 +102,7 @@ echo "bundle_id=$ARTIFACT_BUNDLE_ID"
 echo "version=$ARTIFACT_VERSION"
 LIPO_INFO=$(lipo -info "$EXECUTABLE")
 echo "$LIPO_INFO"
-plutil -lint "$AUTOSTART_AGENT"
+scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
 
 [[ "$ARTIFACT_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $ARTIFACT_BUNDLE_ID"
 [[ "$ARTIFACT_VERSION" == "$EXPECTED_VERSION" ]] || fail "Expected version $EXPECTED_VERSION, got $ARTIFACT_VERSION"
