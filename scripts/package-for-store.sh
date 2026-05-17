@@ -127,7 +127,29 @@ echo "Signature verified."
 
 echo ""
 echo "Embedded entitlements:"
-codesign -d --entitlements :- "$APP_PATH" 2>/dev/null | head -20
+ENTITLEMENTS_OUT="$(mktemp "${TMPDIR:-/tmp}/brm-entitlements.XXXXXX.plist")"
+trap 'rm -f "$ENTITLEMENTS_OUT"' EXIT
+codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_OUT" 2>/dev/null
+cat "$ENTITLEMENTS_OUT" | head -20
+
+SANDBOX_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+APP_IDENTIFIER_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+TEAM_IDENTIFIER_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+
+if [ "$SANDBOX_ENTITLEMENT" != "true" ]; then
+  echo "Error: Signed app is missing com.apple.security.app-sandbox=true"
+  exit 1
+fi
+
+if [ "$APP_IDENTIFIER_ENTITLEMENT" != "$APPLE_TEAM_ID.dev.alexpedersen.better-resource-monitor" ]; then
+  echo "Error: Signed app has unexpected application identifier entitlement: $APP_IDENTIFIER_ENTITLEMENT"
+  exit 1
+fi
+
+if [ "$TEAM_IDENTIFIER_ENTITLEMENT" != "$APPLE_TEAM_ID" ]; then
+  echo "Error: Signed app has unexpected team identifier entitlement: $TEAM_IDENTIFIER_ENTITLEMENT"
+  exit 1
+fi
 
 echo ""
 echo "Creating installer package with: $APPLE_INSTALLER_IDENTITY"
