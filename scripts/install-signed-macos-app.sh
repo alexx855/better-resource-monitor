@@ -8,6 +8,7 @@ EXPECTED_VERSION="${EXPECTED_VERSION:-1.1.3}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
+AUTOSTART_AGENT_PLIST="${AUTOSTART_AGENT_PLIST:-dev.alexpedersen.better-resource-monitor.autostart.plist}"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -88,8 +89,10 @@ fi
 
 INFO_PLIST="$SOURCE_APP/Contents/Info.plist"
 EXECUTABLE="$SOURCE_APP/Contents/MacOS/$PROCESS_NAME"
+AUTOSTART_AGENT="$SOURCE_APP/Contents/Library/LaunchAgents/$AUTOSTART_AGENT_PLIST"
 [[ -f "$INFO_PLIST" ]] || fail "Info.plist not found: $INFO_PLIST"
 [[ -x "$EXECUTABLE" ]] || fail "Executable not found: $EXECUTABLE"
+[[ -f "$AUTOSTART_AGENT" ]] || fail "Autostart LaunchAgent not found: $AUTOSTART_AGENT"
 
 note "Artifact identity"
 ARTIFACT_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")
@@ -99,6 +102,7 @@ echo "bundle_id=$ARTIFACT_BUNDLE_ID"
 echo "version=$ARTIFACT_VERSION"
 LIPO_INFO=$(lipo -info "$EXECUTABLE")
 echo "$LIPO_INFO"
+plutil -lint "$AUTOSTART_AGENT"
 
 [[ "$ARTIFACT_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $ARTIFACT_BUNDLE_ID"
 [[ "$ARTIFACT_VERSION" == "$EXPECTED_VERSION" ]] || fail "Expected version $EXPECTED_VERSION, got $ARTIFACT_VERSION"

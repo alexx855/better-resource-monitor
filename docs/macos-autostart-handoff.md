@@ -2,6 +2,9 @@
 
 This branch fixes the Intel macOS Ventura case where Better Resource Monitor is
 enabled in Login Items / Background Items but does not visibly start after login.
+The reproduced failure was a login-started process stuck in `T` state before app
+setup ran; reopening the app or sending `SIGCONT` resumed it and made the tray
+appear.
 
 ## Build Commit
 
@@ -34,8 +37,8 @@ EXPECTED_BUILD_COMMIT=<signed-build-short-commit> scripts/install-signed-macos-a
 ```
 
 The installer checks the optional `.sha256` sidecar, bundle id, version,
-`x86_64` architecture, code signature, and Gatekeeper before replacing the app
-in `/Applications`.
+`x86_64` architecture, bundled autostart LaunchAgent, code signature, and
+Gatekeeper before replacing the app in `/Applications`.
 
 ## Verify After Login
 
@@ -47,5 +50,6 @@ EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=<signed-build-short-commit> scripts
 ```
 
 The verifier requires the installed app to be signed by team `G76YQZM2FU`, the
-Background Item to be enabled, the process to be running, and the startup log to
-contain the expected build commit.
+autostart LaunchAgent or Background Item to be registered, the process to be
+running and not stopped/suspended, and the startup log to contain the expected
+build commit.
