@@ -62,4 +62,4 @@ jobs:
           APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
           AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
           test -f "$AUTOSTART_AGENT"
-          plutil -lint "$AUTOSTART_AGENT"
+          scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"

@@ -99,7 +99,7 @@ echo "$LIPO_INFO"
 if [[ "$(uname -m)" == "x86_64" ]]; then
   [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Installed executable does not contain x86_64"
 fi
-plutil -lint "$AUTOSTART_AGENT"
+scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
 
 note "Code signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
