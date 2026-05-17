@@ -1,9 +1,10 @@
-use objc2_foundation::NSBundle;
+use objc2_foundation::{NSBundle, NSString};
 use objc2_service_management::{SMAppService, SMAppServiceStatus};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 const BUNDLE_ID: &str = "dev.alexpedersen.better-resource-monitor";
+const AUTOSTART_AGENT_PLIST: &str = "dev.alexpedersen.better-resource-monitor.autostart.plist";
 const LEGACY_LAUNCH_AGENT_IDS: &[&str] = &["better-resource-monitor", "silicon-resources-monitor"];
 
 /// Returns false if not running as the proper app bundle (e.g. `tauri dev` raw binary).
@@ -14,13 +15,9 @@ fn is_bundled() -> bool {
         .is_some_and(|id| id.to_string() == BUNDLE_ID)
 }
 
-pub fn status_label() -> &'static str {
-    if !is_bundled() {
-        return "not_bundled";
-    }
-
+fn service_status_label(service: &SMAppService) -> &'static str {
     unsafe {
-        match SMAppService::mainAppService().status() {
+        match service.status() {
             SMAppServiceStatus::NotRegistered => "not_registered",
             SMAppServiceStatus::Enabled => "enabled",
             SMAppServiceStatus::RequiresApproval => "requires_approval",
@@ -28,6 +25,33 @@ pub fn status_label() -> &'static str {
             _ => "unknown",
         }
     }
+}
+
+fn with_autostart_agent_service<T>(f: impl FnOnce(&SMAppService) -> T) -> T {
+    let plist = NSString::from_str(AUTOSTART_AGENT_PLIST);
+    let service = unsafe { SMAppService::agentServiceWithPlistName(&plist) };
+    f(&service)
+}
+
+fn with_main_app_service<T>(f: impl FnOnce(&SMAppService) -> T) -> T {
+    let service = unsafe { SMAppService::mainAppService() };
+    f(&service)
+}
+
+pub fn status_label() -> String {
+    if !is_bundled() {
+        return "not_bundled".to_string();
+    }
+
+    with_autostart_agent_service(|agent| {
+        with_main_app_service(|main| {
+            format!(
+                "agent={} main_app={}",
+                service_status_label(agent),
+                service_status_label(main)
+            )
+        })
+    })
 }
 
 fn launch_agents_dir(home: &Path) -> PathBuf {
@@ -80,6 +104,28 @@ fn unregister(service: &SMAppService) -> Result<(), String> {
     }
 }
 
+fn unregister_if_registered(service: &SMAppService) -> Result<(), String> {
+    unsafe {
+        match service.status() {
+            SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound => Ok(()),
+            _ => unregister(service),
+        }
+    }
+}
+
+fn register_if_needed(service: &SMAppService) -> Result<(), String> {
+    unsafe {
+        if service.status() == SMAppServiceStatus::Enabled {
+            return Ok(());
+        }
+        register(service)
+    }
+}
+
+fn remove_main_app_login_item() -> Result<(), String> {
+    with_main_app_service(unregister_if_registered)
+}
+
 pub fn enable() -> Result<(), String> {
     cleanup_legacy_launch_agents();
 
@@ -87,18 +133,20 @@ pub fn enable() -> Result<(), String> {
         return Ok(());
     }
 
-    unsafe {
-        let service = SMAppService::mainAppService();
-        if service.status() == SMAppServiceStatus::Enabled {
-            return Ok(());
-        }
-        register(&service)
-    }
+    remove_main_app_login_item()?;
+    with_autostart_agent_service(register_if_needed)
 }
 
-/// Repair an existing enabled login-item registration after updates or reinstalls.
-/// Apple recommends re-registering updated executables, ideally with an explicit
-/// unregister first, or the service may stay enabled but stop launching.
+/// Repair autostart registration after updates or reinstalls.
+///
+/// The old main-app login item can be relaunched by macOS as a stopped process
+/// on Ventura Intel before any app setup code runs. The bundled LaunchAgent
+/// starts the app executable directly through launchd, which avoids that
+/// LaunchServices-suspended path while still using SMAppService-managed metadata.
+///
+/// Registering a LaunchAgent immediately bootstraps it, so an already-enabled
+/// agent must be left alone during normal app startup and second-instance
+/// handling. Otherwise each launch would spawn another app instance.
 pub fn repair() -> Result<(), String> {
     cleanup_legacy_launch_agents();
 
@@ -106,13 +154,9 @@ pub fn repair() -> Result<(), String> {
         return Ok(());
     }
 
-    unsafe {
-        let service = SMAppService::mainAppService();
-        if service.status() == SMAppServiceStatus::Enabled {
-            unregister(&service)?;
-        }
-        register(&service)
-    }
+    remove_main_app_login_item()?;
+
+    with_autostart_agent_service(register_if_needed)
 }
 
 pub fn disable() -> Result<(), String> {
@@ -122,13 +166,8 @@ pub fn disable() -> Result<(), String> {
         return Ok(());
     }
 
-    unsafe {
-        let service = SMAppService::mainAppService();
-        match service.status() {
-            SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound => Ok(()),
-            _ => unregister(&service),
-        }
-    }
+    with_autostart_agent_service(unregister_if_registered)?;
+    remove_main_app_login_item()
 }
 
 pub fn is_enabled() -> bool {
@@ -136,7 +175,10 @@ pub fn is_enabled() -> bool {
         return false;
     }
 
-    unsafe { SMAppService::mainAppService().status() == SMAppServiceStatus::Enabled }
+    unsafe {
+        with_autostart_agent_service(|agent| agent.status() == SMAppServiceStatus::Enabled)
+            || with_main_app_service(|main| main.status() == SMAppServiceStatus::Enabled)
+    }
 }
 
 #[cfg(test)]

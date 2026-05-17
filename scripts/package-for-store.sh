@@ -101,6 +101,15 @@ if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
 fi
 echo "Provisioning profile embedded successfully"
 
+AUTOSTART_AGENT_PATH="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
+if [ ! -f "$AUTOSTART_AGENT_PATH" ]; then
+  echo "Error: Autostart LaunchAgent was not embedded by Tauri"
+  echo "Check that 'files' config in tauri.appstore.conf.json is correct"
+  exit 1
+fi
+plutil -lint "$AUTOSTART_AGENT_PATH"
+echo "Autostart LaunchAgent embedded successfully"
+
 APP_PLIST="$APP_PATH/Contents/Info.plist"
 echo "Setting CFBundleVersion to $BUILD_NUMBER"
 /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$APP_PLIST" 2>/dev/null || \

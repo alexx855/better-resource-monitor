@@ -8,6 +8,8 @@ EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
+AUTOSTART_AGENT_LABEL="${AUTOSTART_AGENT_LABEL:-dev.alexpedersen.better-resource-monitor.autostart}"
+AUTOSTART_AGENT_PLIST="${AUTOSTART_AGENT_PLIST:-dev.alexpedersen.better-resource-monitor.autostart.plist}"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -68,9 +70,11 @@ fi
 
 INFO_PLIST="$APP_PATH/Contents/Info.plist"
 EXECUTABLE="$APP_PATH/Contents/MacOS/$PROCESS_NAME"
+AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/$AUTOSTART_AGENT_PLIST"
 
 [[ -f "$INFO_PLIST" ]] || fail "Info.plist not found: $INFO_PLIST"
 [[ -x "$EXECUTABLE" ]] || fail "Executable not found: $EXECUTABLE"
+[[ -f "$AUTOSTART_AGENT" ]] || fail "Autostart LaunchAgent not found: $AUTOSTART_AGENT"
 
 note "Installed app"
 INSTALLED_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")
@@ -95,6 +99,7 @@ echo "$LIPO_INFO"
 if [[ "$(uname -m)" == "x86_64" ]]; then
   [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Installed executable does not contain x86_64"
 fi
+plutil -lint "$AUTOSTART_AGENT"
 
 note "Code signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -106,15 +111,25 @@ TEAM_ID=$(echo "$CODESIGN_DETAILS" | awk -F= '/^TeamIdentifier=/{print $2; exit}
 note "Gatekeeper assessment"
 spctl -a -vv -t execute "$APP_PATH"
 
-note "Background Item registration"
-BTM_MATCH=$(sfltool dumpbtm | grep -A 12 -B 4 "$BUNDLE_ID" || true)
-[[ -n "$BTM_MATCH" ]] || fail "No Background Item found for $BUNDLE_ID"
-echo "$BTM_MATCH"
-echo "$BTM_MATCH" | grep -q "enabled" || fail "Background Item for $BUNDLE_ID is not enabled"
+note "Autostart registration"
+AGENT_MATCH=$(launchctl print "gui/$(id -u)/$AUTOSTART_AGENT_LABEL" 2>/dev/null || true)
+if [[ -n "$AGENT_MATCH" ]]; then
+  echo "$AGENT_MATCH" | sed -n '1,80p'
+else
+  BTM_MATCH=$(sfltool dumpbtm 2>/dev/null | grep -A 12 -B 4 "$BUNDLE_ID" || true)
+  [[ -n "$BTM_MATCH" ]] || fail "No LaunchAgent or Background Item found for $BUNDLE_ID"
+  echo "$BTM_MATCH"
+  echo "$BTM_MATCH" | grep -q "enabled" || fail "Background Item for $BUNDLE_ID is not enabled"
+fi
 
 note "Running process"
-if pgrep -x "$PROCESS_NAME" >/dev/null; then
-  pgrep -ax "$PROCESS_NAME"
+PIDS=$(pgrep -x "$PROCESS_NAME" || true)
+if [[ -n "$PIDS" ]]; then
+  for pid in $PIDS; do
+    PROCESS_STATE=$(ps -p "$pid" -o stat= | awk '{print $1}')
+    ps -p "$pid" -o pid,ppid,lstart,etime,stat,command
+    [[ "$PROCESS_STATE" != *T* ]] || fail "$PROCESS_NAME pid $pid is stopped/suspended"
+  done
 else
   print_recent_startup_log
   fail "$PROCESS_NAME is not running. If you just installed the app, log out/in or reboot, then run this verifier again."
