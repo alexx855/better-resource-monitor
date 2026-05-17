@@ -42,10 +42,6 @@ print_recent_startup_log() {
 }
 
 verify_expected_build_commit() {
-  if [[ -z "$EXPECTED_BUILD_COMMIT" ]]; then
-    return
-  fi
-
   local found=0
   local log_paths=(
     "$HOME/Library/Logs/Better Resource Monitor/autostart.log"
@@ -61,9 +57,17 @@ verify_expected_build_commit() {
   [[ "$found" -eq 1 ]] || fail "Expected startup log to contain build_commit=$EXPECTED_BUILD_COMMIT"
 }
 
+validate_expected_build_commit() {
+  if [[ ! "$EXPECTED_BUILD_COMMIT" =~ ^[0-9a-f]{12}$ ]]; then
+    fail "EXPECTED_BUILD_COMMIT must be the 12-character lowercase git commit prefix"
+  fi
+}
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
   fail "This verifier must run on macOS"
 fi
+
+validate_expected_build_commit
 
 if [[ ! -d "$APP_PATH" ]]; then
   fail "App bundle not found: $APP_PATH"

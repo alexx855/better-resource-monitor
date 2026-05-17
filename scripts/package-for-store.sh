@@ -14,6 +14,14 @@ cd "$PROJECT_ROOT"
 VERSION=$(jq -r '.version' "$PROJECT_ROOT/src-tauri/tauri.conf.json")
 BRM_BUILD_COMMIT="${BRM_BUILD_COMMIT:-$(git -C "$PROJECT_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)}"
 export BRM_BUILD_COMMIT
+case "$BRM_BUILD_COMMIT" in
+  [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+    ;;
+  *)
+    echo "Error: BRM_BUILD_COMMIT must be the 12-character lowercase git commit prefix, got '$BRM_BUILD_COMMIT'"
+    exit 1
+    ;;
+esac
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Error: .env file not found at $ENV_FILE"

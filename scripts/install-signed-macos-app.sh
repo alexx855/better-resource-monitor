@@ -21,12 +21,14 @@ note() {
 }
 
 verify_executable_contains_build_commit() {
-  if [[ -z "$EXPECTED_BUILD_COMMIT" ]]; then
-    return
-  fi
-
   if ! strings -a "$EXECUTABLE" | grep -Fq "$EXPECTED_BUILD_COMMIT"; then
     fail "Artifact executable does not contain expected build commit $EXPECTED_BUILD_COMMIT"
+  fi
+}
+
+validate_expected_build_commit() {
+  if [[ ! "$EXPECTED_BUILD_COMMIT" =~ ^[0-9a-f]{12}$ ]]; then
+    fail "EXPECTED_BUILD_COMMIT must be the 12-character lowercase git commit prefix"
   fi
 }
 
@@ -44,6 +46,8 @@ EOF
 if [[ "$(uname -s)" != "Darwin" ]]; then
   fail "This installer must run on macOS"
 fi
+
+validate_expected_build_commit
 
 if [[ -z "$ZIP_PATH" ]]; then
   usage
