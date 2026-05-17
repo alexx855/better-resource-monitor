@@ -33,6 +33,20 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
@@ -41,3 +55,11 @@ jobs:
 
       - name: Check Intel macOS target
         run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
+
+      - name: Verify macOS app bundle layout
+        run: |
+          pnpm tauri build --bundles app --target x86_64-apple-darwin
+          APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
+          AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
+          test -f "$AUTOSTART_AGENT"
+          plutil -lint "$AUTOSTART_AGENT"
