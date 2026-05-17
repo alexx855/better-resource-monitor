@@ -141,7 +141,7 @@ spctl -a -vv -t install "$APP_PATH"
 
 note "Installed. Log out and back in, then run:"
 if [[ -n "$EXPECTED_BUILD_COMMIT" ]]; then
-  echo "EXPECTED_VERSION=$EXPECTED_VERSION EXPECTED_BUILD_COMMIT=$EXPECTED_BUILD_COMMIT scripts/verify-macos-autostart.sh"
+  echo "EXPECTED_VERSION=$EXPECTED_VERSION EXPECTED_BUILD_COMMIT=$EXPECTED_BUILD_COMMIT \"$SCRIPT_DIR/verify-macos-autostart.sh\""
 else
-  echo "EXPECTED_VERSION=$EXPECTED_VERSION scripts/verify-macos-autostart.sh"
+  echo "EXPECTED_VERSION=$EXPECTED_VERSION \"$SCRIPT_DIR/verify-macos-autostart.sh\""
 fi
