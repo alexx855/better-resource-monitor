@@ -57,6 +57,12 @@ verify_expected_build_commit() {
   [[ "$found" -eq 1 ]] || fail "Expected startup log to contain build_commit=$EXPECTED_BUILD_COMMIT"
 }
 
+verify_executable_contains_build_commit() {
+  if ! strings -a "$EXECUTABLE" | grep -Fq "$EXPECTED_BUILD_COMMIT"; then
+    fail "Installed executable does not contain expected build commit $EXPECTED_BUILD_COMMIT"
+  fi
+}
+
 validate_expected_build_commit() {
   if [[ ! "$EXPECTED_BUILD_COMMIT" =~ ^[0-9a-f]{12}$ ]]; then
     fail "EXPECTED_BUILD_COMMIT must be the 12-character lowercase git commit prefix"
@@ -104,6 +110,7 @@ echo "$LIPO_INFO"
 if [[ "$(uname -m)" == "x86_64" ]]; then
   [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Installed executable does not contain x86_64"
 fi
+verify_executable_contains_build_commit
 "$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT"
 
 note "Code signature"
@@ -132,7 +139,9 @@ PIDS=$(pgrep -x "$PROCESS_NAME" || true)
 if [[ -n "$PIDS" ]]; then
   for pid in $PIDS; do
     PROCESS_STATE=$(ps -p "$pid" -o stat= | awk '{print $1}')
+    PROCESS_COMMAND=$(ps -p "$pid" -o command=)
     ps -p "$pid" -o pid,ppid,lstart,etime,stat,command
+    [[ "$PROCESS_COMMAND" == "$EXECUTABLE"* ]] || fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
     [[ "$PROCESS_STATE" != *T* ]] || fail "$PROCESS_NAME pid $pid is stopped/suspended"
   done
 else
