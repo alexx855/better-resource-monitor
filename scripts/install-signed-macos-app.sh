@@ -9,6 +9,7 @@ EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
 AUTOSTART_AGENT_PLIST="${AUTOSTART_AGENT_PLIST:-dev.alexpedersen.better-resource-monitor.autostart.plist}"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 fail() {
   echo "FAIL: $*" >&2
@@ -102,7 +103,7 @@ echo "bundle_id=$ARTIFACT_BUNDLE_ID"
 echo "version=$ARTIFACT_VERSION"
 LIPO_INFO=$(lipo -info "$EXECUTABLE")
 echo "$LIPO_INFO"
-scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
+"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT"
 
 [[ "$ARTIFACT_BUNDLE_ID" == "$BUNDLE_ID" ]] || fail "Expected bundle id $BUNDLE_ID, got $ARTIFACT_BUNDLE_ID"
 [[ "$ARTIFACT_VERSION" == "$EXPECTED_VERSION" ]] || fail "Expected version $EXPECTED_VERSION, got $ARTIFACT_VERSION"
