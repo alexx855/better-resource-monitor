@@ -107,7 +107,7 @@ if [ ! -f "$AUTOSTART_AGENT_PATH" ]; then
   echo "Check that 'files' config in tauri.appstore.conf.json is correct"
   exit 1
 fi
-plutil -lint "$AUTOSTART_AGENT_PATH"
+"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT_PATH"
 echo "Autostart LaunchAgent embedded successfully"
 
 APP_PLIST="$APP_PATH/Contents/Info.plist"
