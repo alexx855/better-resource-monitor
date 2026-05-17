@@ -10,6 +10,7 @@ EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
 AUTOSTART_AGENT_LABEL="${AUTOSTART_AGENT_LABEL:-dev.alexpedersen.better-resource-monitor.autostart}"
 AUTOSTART_AGENT_PLIST="${AUTOSTART_AGENT_PLIST:-dev.alexpedersen.better-resource-monitor.autostart.plist}"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 fail() {
   echo "FAIL: $*" >&2
@@ -99,7 +100,7 @@ echo "$LIPO_INFO"
 if [[ "$(uname -m)" == "x86_64" ]]; then
   [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Installed executable does not contain x86_64"
 fi
-scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
+"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT"
 
 note "Code signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
