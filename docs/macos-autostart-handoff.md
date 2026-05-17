@@ -77,9 +77,10 @@ EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=<signed-build-short-commit> scripts
 ```
 
 The verifier requires the installed app to be signed by team `G76YQZM2FU`, the
-autostart LaunchAgent or Background Item to be registered, the process to be
-running and not stopped/suspended, and the startup log to contain the expected
-build commit.
+installed executable to embed the expected build commit, the autostart
+LaunchAgent or Background Item to be registered, the running process to come
+from the installed `/Applications` bundle and not be stopped/suspended, and the
+startup log to contain the expected build commit.
 
 The fix is not proven by local unsigned bundles or green source CI alone. The
 acceptance gate is the real signed app installed at
