@@ -47,6 +47,16 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Verify macOS autostart scripts
+        run: |
+          bash -n \
+            scripts/package-for-store.sh \
+            scripts/install-signed-macos-app.sh \
+            scripts/verify-macos-autostart.sh \
+            scripts/verify-macos-autostart-agent-plist.sh
+          scripts/verify-macos-autostart-agent-plist.sh \
+            src-tauri/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist
+
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
