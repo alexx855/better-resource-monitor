@@ -21,7 +21,7 @@ note() {
 }
 
 verify_executable_contains_build_commit() {
-  if ! strings -a "$EXECUTABLE" | grep -Fq "$EXPECTED_BUILD_COMMIT"; then
+  if ! strings -a "$EXECUTABLE" | awk -v needle="$EXPECTED_BUILD_COMMIT" 'index($0, needle) { found = 1 } END { exit found ? 0 : 1 }'; then
     fail "Artifact executable does not contain expected build commit $EXPECTED_BUILD_COMMIT"
   fi
 }
