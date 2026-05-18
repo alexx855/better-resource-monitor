@@ -1,0 +1,95 @@
+name: Signed macOS Build
+
+# Required secrets:
+# - APPLE_CERTIFICATE: Base64-encoded .p12 certificate
+# - APPLE_CERTIFICATE_PASSWORD: Certificate password
+# - APPLE_ID: Apple Developer account email
+# - APPLE_PASSWORD: App-specific password for notarization
+# - APPLE_TEAM_ID: Team ID for notarization
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-intel:
+    name: Signed Intel build
+    runs-on: macos-15-intel
+    env:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set build metadata
+        run: echo "BRM_BUILD_COMMIT=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build signed Intel app
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          args: --bundles app --target x86_64-apple-darwin
+
+      - name: Verify signed Intel app
+        run: |
+          APP_PATH=$(find src-tauri/target -path '*/release/bundle/macos/*.app' -type d -print -quit)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "No macOS app bundle found"
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -dv --verbose=4 "$APP_PATH"
+          strings -a "$APP_PATH/Contents/MacOS/better-resource-monitor" | awk -v needle="$BRM_BUILD_COMMIT" 'index($0, needle) { found = 1 } END { exit found ? 0 : 1 }'
+          scripts/verify-macos-autostart-agent-plist.sh "$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
+          spctl -a -vv -t install "$APP_PATH"
+
+          mkdir -p artifacts
+          ditto -c -k --keepParent "$APP_PATH" artifacts/Better-Resource-Monitor-x86_64.app.zip
+          (cd artifacts && shasum -a 256 Better-Resource-Monitor-x86_64.app.zip > Better-Resource-Monitor-x86_64.app.zip.sha256)
+
+      - name: Upload signed Intel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-macos-intel
+          path: |
+            artifacts/Better-Resource-Monitor-x86_64.app.zip
+            artifacts/Better-Resource-Monitor-x86_64.app.zip.sha256
+          if-no-files-found: error

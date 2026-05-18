@@ -2,13 +2,26 @@
 set -e
 
 # Builds, signs, packages, and uploads a universal macOS binary to App Store Connect.
-# Build number auto-increments from scripts/.build-number on each run.
+# Build number can be set with BUILD_NUMBER, otherwise it auto-increments from
+# scripts/.build-number while never falling below a timestamp-scale value.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 
+cd "$PROJECT_ROOT"
+
 VERSION=$(jq -r '.version' "$PROJECT_ROOT/src-tauri/tauri.conf.json")
+BRM_BUILD_COMMIT="${BRM_BUILD_COMMIT:-$(git -C "$PROJECT_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)}"
+export BRM_BUILD_COMMIT
+case "$BRM_BUILD_COMMIT" in
+  [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+    ;;
+  *)
+    echo "Error: BRM_BUILD_COMMIT must be the 12-character lowercase git commit prefix, got '$BRM_BUILD_COMMIT'"
+    exit 1
+    ;;
+esac
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Error: .env file not found at $ENV_FILE"
@@ -28,15 +41,36 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-# Auto-increment build number
+# Auto-increment build number. The timestamp floor avoids accidentally creating
+# a build lower than an already-distributed TestFlight/App Store build when the
+# ignored local counter file is missing or stale.
 BUILD_NUMBER_FILE="$SCRIPT_DIR/.build-number"
-BUILD_NUMBER=$(cat "$BUILD_NUMBER_FILE" 2>/dev/null || echo 0)
-BUILD_NUMBER=$((BUILD_NUMBER + 1))
+if [ -n "${BUILD_NUMBER:-}" ]; then
+  case "$BUILD_NUMBER" in
+    ''|*[!0-9]*)
+      echo "Error: BUILD_NUMBER must be numeric, got '$BUILD_NUMBER'"
+      exit 1
+      ;;
+  esac
+else
+  CURRENT_BUILD_NUMBER=$(cat "$BUILD_NUMBER_FILE" 2>/dev/null || echo 0)
+  case "$CURRENT_BUILD_NUMBER" in
+    ''|*[!0-9]*)
+      CURRENT_BUILD_NUMBER=0
+      ;;
+  esac
+  TIMESTAMP_BUILD_NUMBER=$(date -u +%Y%m%d%H%M)
+  BUILD_NUMBER=$((CURRENT_BUILD_NUMBER + 1))
+  if [ "$BUILD_NUMBER" -lt "$TIMESTAMP_BUILD_NUMBER" ]; then
+    BUILD_NUMBER="$TIMESTAMP_BUILD_NUMBER"
+  fi
+fi
 echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 
 echo "=== App Store Packaging Script ==="
 echo "Version: $VERSION"
 echo "Build: $BUILD_NUMBER"
+echo "Commit: $BRM_BUILD_COMMIT"
 echo ""
 
 APP_NAME="Better Resource Monitor"
@@ -68,12 +102,28 @@ fi
 
 echo "App bundle found at: $APP_PATH"
 
+APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
+if ! strings -a "$APP_EXECUTABLE" | awk -v needle="$BRM_BUILD_COMMIT" 'index($0, needle) { found = 1 } END { exit found ? 0 : 1 }'; then
+  echo "Error: App executable does not contain expected build commit $BRM_BUILD_COMMIT"
+  exit 1
+fi
+echo "Build commit embedded successfully"
+
 if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
   echo "Error: Provisioning profile was not embedded by Tauri"
   echo "Check that 'files' config in tauri.appstore.conf.json is correct"
   exit 1
 fi
 echo "Provisioning profile embedded successfully"
+
+AUTOSTART_AGENT_PATH="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
+if [ ! -f "$AUTOSTART_AGENT_PATH" ]; then
+  echo "Error: Autostart LaunchAgent was not embedded by Tauri"
+  echo "Check that 'files' config in tauri.appstore.conf.json is correct"
+  exit 1
+fi
+"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT_PATH"
+echo "Autostart LaunchAgent embedded successfully"
 
 APP_PLIST="$APP_PATH/Contents/Info.plist"
 echo "Setting CFBundleVersion to $BUILD_NUMBER"
@@ -92,7 +142,29 @@ echo "Signature verified."
 
 echo ""
 echo "Embedded entitlements:"
-codesign -d --entitlements :- "$APP_PATH" 2>/dev/null | head -20
+ENTITLEMENTS_OUT="$(mktemp "${TMPDIR:-/tmp}/brm-entitlements.XXXXXX.plist")"
+trap 'rm -f "$ENTITLEMENTS_OUT"' EXIT
+codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_OUT" 2>/dev/null
+cat "$ENTITLEMENTS_OUT" | head -20
+
+SANDBOX_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+APP_IDENTIFIER_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.application-identifier' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+TEAM_IDENTIFIER_ENTITLEMENT=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$ENTITLEMENTS_OUT" 2>/dev/null || true)
+
+if [ "$SANDBOX_ENTITLEMENT" != "true" ]; then
+  echo "Error: Signed app is missing com.apple.security.app-sandbox=true"
+  exit 1
+fi
+
+if [ "$APP_IDENTIFIER_ENTITLEMENT" != "$APPLE_TEAM_ID.dev.alexpedersen.better-resource-monitor" ]; then
+  echo "Error: Signed app has unexpected application identifier entitlement: $APP_IDENTIFIER_ENTITLEMENT"
+  exit 1
+fi
+
+if [ "$TEAM_IDENTIFIER_ENTITLEMENT" != "$APPLE_TEAM_ID" ]; then
+  echo "Error: Signed app has unexpected team identifier entitlement: $TEAM_IDENTIFIER_ENTITLEMENT"
+  exit 1
+fi
 
 echo ""
 echo "Creating installer package with: $APPLE_INSTALLER_IDENTITY"

@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'fix/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust checks
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Verify macOS autostart scripts
+        run: |
+          bash -n \
+            scripts/package-for-store.sh \
+            scripts/install-signed-macos-app.sh \
+            scripts/verify-macos-autostart.sh \
+            scripts/verify-macos-autostart-agent-plist.sh
+          scripts/verify-macos-autostart-agent-plist.sh \
+            src-tauri/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Run tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Check Intel macOS target
+        run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
+
+      - name: Verify macOS app bundle layout
+        run: |
+          pnpm tauri build --bundles app --target x86_64-apple-darwin
+          APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
+          AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
+          test -f "$AUTOSTART_AGENT"
+          scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
