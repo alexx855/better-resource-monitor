@@ -1,8 +1,8 @@
 {
-  "title": "FAQ - Better Resource Monitor",
-  "description": "How GPU monitoring works, resource usage, privacy, and how it compares to Stats and iStat Menus.",
+  "title": "Better Resource Monitor FAQ | GPU, Privacy, Stats/iStat",
+  "description": "Answers about Better Resource Monitor on macOS: GPU monitoring, CPU and memory use, privacy, battery impact, and comparisons with Stats and iStat Menus.",
   "ogImage": "/images/og-faq-en.png",
-  "heading": "FAQ",
+  "heading": "Better Resource Monitor FAQ",
   "items": [
     {
       "question": "What is Better Resource Monitor?",
@@ -29,8 +29,8 @@
       "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. The source code is on GitHub if you want to verify that yourself."
     },
     {
-      "question": "How does it compare to iStat Menus and Stats?",
-      "answer": "All three show system metrics in the menu bar. Better Resource Monitor is the focused option: CPU, memory, GPU, and network usage at a glance, about 15 MB of RAM, under 0.1% CPU on Apple Silicon, and free. Stats and iStat Menus go deeper into extra sensors, but they also carry more overhead. See the [Stats comparison page]({{vsStatsUrl}}) and [iStat Menus comparison page]({{vsIstatMenusUrl}}) for details."
+      "question": "Is Better Resource Monitor a Stats or iStat Menus alternative?",
+      "answer": "Yes, if you want a simpler macOS menu bar monitor focused on CPU, memory, GPU, and network usage. Stats and iStat Menus go deeper into sensors. Better Resource Monitor stays lighter, free, and fully available from the Mac App Store. See the [Stats comparison]({{vsStatsUrl}}) and [iStat Menus comparison]({{vsIstatMenusUrl}})."
     },
     {
       "question": "Does it drain MacBook battery?",
