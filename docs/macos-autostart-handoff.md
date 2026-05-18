@@ -6,6 +6,15 @@ The reproduced failure was a login-started process stuck in `T` state before app
 setup ran; reopening the app or sending `SIGCONT` resumed it and made the tray
 appear.
 
+On the current affected machine, the installed TestFlight app also reproduces a
+stale preference/system-state split: the app container settings contain
+`"autostart": true`, while macOS has no durable Better Resource Monitor
+LaunchAgent or Background Task Management entry. That installed app still lacks:
+
+```text
+Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist
+```
+
 ## Current Fix Shape
 
 The current implementation uses a bundled `SMAppService` LaunchAgent instead of
