@@ -103,7 +103,7 @@ fi
 echo "App bundle found at: $APP_PATH"
 
 APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
-if ! strings -a "$APP_EXECUTABLE" | grep -Fq "$BRM_BUILD_COMMIT"; then
+if ! strings -a "$APP_EXECUTABLE" | awk -v needle="$BRM_BUILD_COMMIT" 'index($0, needle) { found = 1 } END { exit found ? 0 : 1 }'; then
   echo "Error: App executable does not contain expected build commit $BRM_BUILD_COMMIT"
   exit 1
 fi
