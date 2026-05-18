@@ -15,6 +15,16 @@ LaunchAgent or Background Task Management entry. That installed app still lacks:
 Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist
 ```
 
+The currently installed `/Applications` app is a valid old TestFlight build, not
+the fixed build:
+
+```text
+CFBundleVersion=202605151931
+TeamIdentifier=G76YQZM2FU
+Gatekeeper source=Testflight
+embedded build marker=1c51c4a61981
+```
+
 ## Current Fix Shape
 
 The current implementation uses a bundled `SMAppService` LaunchAgent instead of
