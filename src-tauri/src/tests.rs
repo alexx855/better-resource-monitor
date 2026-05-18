@@ -64,6 +64,21 @@ fn test_normalize_metric_flags_enables_cpu_when_all_metrics_disabled() {
 }
 
 #[test]
+fn test_should_repair_macos_autostart_when_saved_setting_enabled() {
+    assert!(should_repair_macos_autostart(true, false));
+}
+
+#[test]
+fn test_should_repair_macos_autostart_when_system_status_enabled() {
+    assert!(should_repair_macos_autostart(false, true));
+}
+
+#[test]
+fn test_should_not_repair_macos_autostart_when_disabled_everywhere() {
+    assert!(!should_repair_macos_autostart(false, false));
+}
+
+#[test]
 fn test_format_speed() {
     // KB range (0.0 - 999.5)
     assert_eq!(format_speed(0.0), "0.0 KB");
