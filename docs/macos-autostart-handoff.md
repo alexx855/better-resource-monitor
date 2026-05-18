@@ -67,6 +67,39 @@ For TestFlight/App Store packaging, `scripts/package-for-store.sh` also asserts
 that the signed app keeps the expected team/application identifier entitlements
 and `com.apple.security.app-sandbox=true` before upload.
 
+## TestFlight Local State
+
+If the fix is shipped through TestFlight, verify that TestFlight actually
+installed the fixed build before using the app as proof. The current TestFlight
+databases store app bundle rows in `ZTFAPPBUNDLEMODEL`:
+
+```bash
+for db in "$HOME/Library/Containers/com.apple.TestFlight/Data/Library/Application Support/TestFlight/TestFlight.sqlite" \
+  "$HOME/Library/Containers/com.apple.TestFlight.ServiceExtension/Data/Library/Application Support/TestFlightServiceExtension/TestFlight.sqlite"; do
+  [ -f "$db" ] || continue
+  echo "db=$db"
+  sqlite3 "$db" <<'SQL'
+select
+  b.ZSHORTVERSION,
+  b.ZBUNDLEVERSION,
+  b.ZINSTALLSTATUSRAW,
+  case
+    when b.ZBUNDLEURL is null or b.ZBUNDLEURL = '' then 'no_url'
+    else 'has_url'
+  end
+from ZTFAPPBUNDLEMODEL b
+left join ZTFAPPMODEL a on b.ZAPP = a.Z_PK
+where b.ZBUNDLEID = 'dev.alexpedersen.better-resource-monitor'
+  or a.ZBUNDLEID = 'dev.alexpedersen.better-resource-monitor'
+order by b.ZBUNDLEVERSION;
+SQL
+done
+```
+
+Only a row for the fixed build with an installed status is useful evidence. A
+newer metadata row without a bundle URL, or an installed row from an older build,
+does not satisfy the acceptance gate.
+
 ## Verify After Login
 
 Enable Start at Login in the app menu, then log out and back in. After the new
