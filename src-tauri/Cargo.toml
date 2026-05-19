@@ -44,6 +44,7 @@ app-store = []
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
+libc = "0.2"
 objc2-foundation = { version = "0.3.2", features = ["NSBundle", "NSString"] }
 objc2-service-management = "0.3.2"
 

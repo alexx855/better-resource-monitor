@@ -78,6 +78,15 @@ fn test_should_not_repair_macos_autostart_when_disabled_everywhere() {
     assert!(!should_repair_macos_autostart(false, false));
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn test_macos_process_lock_path_is_per_user() {
+    assert_eq!(
+        macos_process_lock_path(501),
+        std::path::PathBuf::from("/tmp/dev.alexpedersen.better-resource-monitor.501.lock")
+    );
+}
+
 #[test]
 fn test_format_speed() {
     // KB range (0.0 - 999.5)

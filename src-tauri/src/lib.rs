@@ -29,6 +29,8 @@ use tauri::ActivationPolicy;
 
 #[cfg(target_os = "macos")]
 use std::io::Write;
+#[cfg(target_os = "macos")]
+use std::os::fd::AsRawFd;
 
 #[cfg(target_os = "linux")]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
@@ -172,6 +174,8 @@ const MACOS_TRAY_SETUP_ATTEMPTS: usize = 5;
 const MACOS_TRAY_SETUP_RETRY_MS: u64 = 1_500;
 #[cfg(target_os = "macos")]
 const MACOS_BUNDLE_ID: &str = "dev.alexpedersen.better-resource-monitor";
+#[cfg(target_os = "macos")]
+const MACOS_PROCESS_LOCK_PREFIX: &str = "/tmp/dev.alexpedersen.better-resource-monitor";
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
 const HYSTERESIS_THRESHOLD: f32 = 2.0;
@@ -259,6 +263,65 @@ fn normalize_metric_flags(
 
 fn should_repair_macos_autostart(stored_autostart: bool, system_autostart: bool) -> bool {
     stored_autostart || system_autostart
+}
+
+#[cfg(target_os = "macos")]
+struct MacosProcessLock {
+    _file: std::fs::File,
+}
+
+#[cfg(target_os = "macos")]
+fn macos_process_lock_path(uid: u32) -> std::path::PathBuf {
+    std::path::PathBuf::from(format!("{MACOS_PROCESS_LOCK_PREFIX}.{uid}.lock"))
+}
+
+#[cfg(target_os = "macos")]
+fn acquire_macos_process_lock() -> Option<MacosProcessLock> {
+    let uid = unsafe { libc::geteuid() } as u32;
+    let path = macos_process_lock_path(uid);
+    let file = match std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+    {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("Failed to open macOS process lock {}: {e}", path.display());
+            macos_diag_log(format!(
+                "process_lock open failed path={} error={e}; continuing",
+                path.display()
+            ));
+            return None;
+        }
+    };
+
+    let lock_result = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+
+    if lock_result == 0 {
+        macos_diag_log(format!("process_lock acquired path={}", path.display()));
+        return Some(MacosProcessLock { _file: file });
+    }
+
+    let error = std::io::Error::last_os_error();
+    if error.kind() == std::io::ErrorKind::WouldBlock {
+        macos_diag_log(format!(
+            "process_lock already held path={}; exiting duplicate",
+            path.display()
+        ));
+        std::process::exit(0);
+    }
+
+    eprintln!(
+        "Failed to acquire macOS process lock {}: {error}",
+        path.display()
+    );
+    macos_diag_log(format!(
+        "process_lock acquire failed path={} error={error}; continuing",
+        path.display()
+    ));
+    None
 }
 
 #[cfg(target_os = "macos")]
@@ -923,6 +986,9 @@ fn start_monitoring(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "macos")]
+    let _macos_process_lock = acquire_macos_process_lock();
+
     #[cfg(target_os = "linux")]
     if let Err(e) = ensure_display_available() {
         eprintln!("{e}");
