@@ -1,5 +1,5 @@
 {
-  "title": "Better Resource Monitor vs iStat Menus",
+  "title": "macOS iStat Menus 替代选择 | Better Resource Monitor",
   "description": "iStat Menus 是一套更完整的系统工具。如果你主要只是想在菜单栏里看到 CPU、内存、GPU 和网络，Better Resource Monitor 会是更简单、更轻量的选择。",
   "ogImage": "/images/og-vs-istat-menus-zh-cn.png",
   "competitorName": "iStat Menus",

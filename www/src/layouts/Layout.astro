@@ -285,6 +285,14 @@ const siteUrl = new URL("/", Astro.site).href;
                     scale 0.1s var(--ease-out);
       }
 
+      p a:not(:has(img)),
+      li a:not(:has(img)),
+      dd a:not(:has(img)) {
+        text-decoration: underline;
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.18em;
+      }
+
       a:active {
         scale: 0.97;
       }
@@ -376,6 +384,10 @@ const siteUrl = new URL("/", Astro.site).href;
         background: transparent;
         padding: 0;
         color: var(--c-text);
+      }
+
+      pre.astro-code span[style*="6A737D" i] {
+        color: #b7c0ca !important;
       }
 
       /* Inline code */

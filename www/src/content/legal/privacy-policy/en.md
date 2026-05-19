@@ -1,6 +1,6 @@
 ---
-title: "Privacy Policy"
-description: "Privacy Policy for Better Resource Monitor"
+title: "Privacy Policy | Better Resource Monitor"
+description: "Read how Better Resource Monitor handles privacy: no personal data collection, no analytics, no telemetry, and local-only system monitoring."
 ogImage: "/images/og-privacy-en.png"
 ---
 

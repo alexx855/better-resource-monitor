@@ -1,6 +1,6 @@
 ---
-title: "Términos y condiciones"
-description: "Términos y condiciones de Better Resource Monitor"
+title: "Términos y condiciones | Better Resource Monitor"
+description: "Consulta los términos de Better Resource Monitor: licencia MIT, exención de garantías, responsabilidades y condiciones de uso."
 ogImage: "/images/og-terms-es.png"
 ---
 
