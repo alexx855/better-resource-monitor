@@ -150,13 +150,21 @@ fi
 note "Running process"
 PIDS=$(pgrep -x "$PROCESS_NAME" || true)
 if [[ -n "$PIDS" ]]; then
+  INSTALLED_PROCESS_COUNT=0
   for pid in $PIDS; do
     PROCESS_STATE=$(ps -p "$pid" -o stat= | awk '{print $1}')
     PROCESS_COMMAND=$(ps -p "$pid" -o command=)
     ps -p "$pid" -o pid,ppid,lstart,etime,stat,command
-    process_uses_installed_executable "$pid" "$PROCESS_COMMAND" || fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
+    if process_uses_installed_executable "$pid" "$PROCESS_COMMAND"; then
+      ((INSTALLED_PROCESS_COUNT += 1))
+    else
+      fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
+    fi
     [[ "$PROCESS_STATE" != *T* ]] || fail "$PROCESS_NAME pid $pid is stopped/suspended"
   done
+  if [[ "$INSTALLED_PROCESS_COUNT" -gt 1 ]]; then
+    fail "Expected one $PROCESS_NAME process from installed app path $EXECUTABLE, found $INSTALLED_PROCESS_COUNT"
+  fi
 else
   print_recent_startup_log
   fail "$PROCESS_NAME is not running. If you just installed the app, log out/in or reboot, then run this verifier again."

@@ -246,6 +246,7 @@ dependencies = [
  "core-foundation 0.10.1",
  "font-kit",
  "image",
+ "libc",
  "nvml-wrapper",
  "objc2-foundation",
  "objc2-service-management",
