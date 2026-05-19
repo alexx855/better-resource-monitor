@@ -63,6 +63,19 @@ verify_executable_contains_build_commit() {
   fi
 }
 
+process_uses_installed_executable() {
+  local pid="$1"
+  local command="$2"
+
+  if [[ "$command" == "$EXECUTABLE"* ]]; then
+    return 0
+  fi
+
+  lsof -p "$pid" -a -d txt -Fn 2>/dev/null \
+    | sed -n 's/^n//p' \
+    | grep -Fxq "$EXECUTABLE"
+}
+
 validate_expected_build_commit() {
   if [[ ! "$EXPECTED_BUILD_COMMIT" =~ ^[0-9a-f]{12}$ ]]; then
     fail "EXPECTED_BUILD_COMMIT must be the 12-character lowercase git commit prefix"
@@ -141,7 +154,7 @@ if [[ -n "$PIDS" ]]; then
     PROCESS_STATE=$(ps -p "$pid" -o stat= | awk '{print $1}')
     PROCESS_COMMAND=$(ps -p "$pid" -o command=)
     ps -p "$pid" -o pid,ppid,lstart,etime,stat,command
-    [[ "$PROCESS_COMMAND" == "$EXECUTABLE"* ]] || fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
+    process_uses_installed_executable "$pid" "$PROCESS_COMMAND" || fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
     [[ "$PROCESS_STATE" != *T* ]] || fail "$PROCESS_NAME pid $pid is stopped/suspended"
   done
 else
