@@ -1,6 +1,6 @@
 ---
-title: "Política de Privacidade"
-description: "Política de Privacidade para o Better Resource Monitor"
+title: "Política de Privacidade | Better Resource Monitor"
+description: "Veja como o Better Resource Monitor protege sua privacidade: sem coleta de dados pessoais, analytics ou telemetria."
 ogImage: "/images/og-privacy-pt-br.png"
 ---
 

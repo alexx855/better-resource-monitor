@@ -1,6 +1,6 @@
 ---
-title: "条款与条件"
-description: "Better Resource Monitor 的条款与条件"
+title: "条款与条件 | Better Resource Monitor"
+description: "查看 Better Resource Monitor 的使用条款，包括 MIT 许可证、免责声明、用户责任和使用条件。"
 ogImage: "/images/og-terms-zh-cn.png"
 ---
 

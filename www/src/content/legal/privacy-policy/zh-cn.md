@@ -1,6 +1,6 @@
 ---
-title: "隐私政策"
-description: "Better Resource Monitor 的隐私政策"
+title: "隐私政策 | Better Resource Monitor"
+description: "了解 Better Resource Monitor 如何保护隐私：不收集个人数据，不使用分析或遥测，系统监控只在本机完成。"
 ogImage: "/images/og-privacy-zh-cn.png"
 ---
 
