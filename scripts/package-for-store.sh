@@ -116,14 +116,10 @@ if [ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]; then
 fi
 echo "Provisioning profile embedded successfully"
 
-AUTOSTART_AGENT_PATH="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
-if [ ! -f "$AUTOSTART_AGENT_PATH" ]; then
-  echo "Error: Autostart LaunchAgent was not embedded by Tauri"
-  echo "Check that 'files' config in tauri.appstore.conf.json is correct"
+if [ -d "$APP_PATH/Contents/Library/LaunchAgents" ]; then
+  echo "Error: App bundle must not embed LaunchAgents"
   exit 1
 fi
-"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT_PATH"
-echo "Autostart LaunchAgent embedded successfully"
 
 APP_PLIST="$APP_PATH/Contents/Info.plist"
 echo "Setting CFBundleVersion to $BUILD_NUMBER"

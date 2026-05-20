@@ -28,6 +28,8 @@ use tauri_plugin_store::StoreExt;
 use tauri::ActivationPolicy;
 
 #[cfg(target_os = "macos")]
+use objc2_foundation::NSBundle;
+#[cfg(target_os = "macos")]
 use std::io::Write;
 #[cfg(target_os = "macos")]
 use std::os::fd::AsRawFd;
@@ -175,6 +177,9 @@ const MACOS_TRAY_SETUP_RETRY_MS: u64 = 1_500;
 #[cfg(target_os = "macos")]
 const MACOS_BUNDLE_ID: &str = "dev.alexpedersen.better-resource-monitor";
 #[cfg(target_os = "macos")]
+const MACOS_SUPPORTED_EXECUTABLE_PATH: &str =
+    "/Applications/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor";
+#[cfg(target_os = "macos")]
 const MACOS_PROCESS_LOCK_PREFIX: &str = "/tmp/dev.alexpedersen.better-resource-monitor";
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
@@ -261,13 +266,72 @@ fn normalize_metric_flags(
     }
 }
 
-fn should_repair_macos_autostart(stored_autostart: bool, system_autostart: bool) -> bool {
-    stored_autostart || system_autostart
-}
-
 #[cfg(target_os = "macos")]
 struct MacosProcessLock {
     _file: std::fs::File,
+}
+
+#[cfg(target_os = "macos")]
+fn should_exit_unsupported_macos_bundle(
+    bundle_id: Option<&str>,
+    executable_path: &std::path::Path,
+    has_app_store_receipt: bool,
+) -> bool {
+    bundle_id == Some(MACOS_BUNDLE_ID)
+        && (executable_path != std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH)
+            || !has_app_store_receipt)
+}
+
+#[cfg(target_os = "macos")]
+fn macos_receipt_path_for_executable(
+    executable_path: &std::path::Path,
+) -> Option<std::path::PathBuf> {
+    Some(
+        executable_path
+            .parent()?
+            .parent()?
+            .join("_MASReceipt")
+            .join("receipt"),
+    )
+}
+
+#[cfg(target_os = "macos")]
+fn current_macos_bundle_id() -> Option<String> {
+    NSBundle::mainBundle()
+        .bundleIdentifier()
+        .map(|id| id.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn enforce_supported_macos_runtime() {
+    let bundle_id = current_macos_bundle_id();
+    let executable_path = std::env::current_exe().ok();
+    let receipt_path = executable_path
+        .as_deref()
+        .and_then(macos_receipt_path_for_executable);
+    let has_app_store_receipt = receipt_path.as_deref().is_some_and(|path| path.is_file());
+    let should_exit = executable_path
+        .as_deref()
+        .map(|path| {
+            should_exit_unsupported_macos_bundle(bundle_id.as_deref(), path, has_app_store_receipt)
+        })
+        .unwrap_or(bundle_id.as_deref() == Some(MACOS_BUNDLE_ID));
+
+    if should_exit {
+        macos_diag_log(format!(
+            "unsupported_runtime bundle_id={} executable={} receipt={}; exiting",
+            bundle_id.as_deref().unwrap_or("<unknown>"),
+            executable_path
+                .as_deref()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "<unknown>".to_string()),
+            receipt_path
+                .as_deref()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "<unknown>".to_string())
+        ));
+        std::process::exit(0);
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -404,38 +468,9 @@ fn setup_tray(
     #[cfg(target_os = "macos")]
     {
         macos_diag_log(format!(
-            "setup_tray autostart_requested={is_autostart_enabled} status_before={}",
+            "setup_tray autostart_requested={is_autostart_enabled} status={}",
             macos_autostart::status_label()
         ));
-        if is_autostart_enabled {
-            match macos_autostart::repair() {
-                Ok(()) => macos_diag_log(format!(
-                    "autostart repair ok status_after={}",
-                    macos_autostart::status_label()
-                )),
-                Err(e) => {
-                    eprintln!("Failed to repair autostart registration: {e}");
-                    macos_diag_log(format!(
-                        "autostart repair failed status_after={} error={e}",
-                        macos_autostart::status_label()
-                    ));
-                }
-            }
-        } else {
-            match macos_autostart::disable() {
-                Ok(()) => macos_diag_log(format!(
-                    "autostart disable ok status_after={}",
-                    macos_autostart::status_label()
-                )),
-                Err(e) => {
-                    eprintln!("Failed to disable autostart: {e}");
-                    macos_diag_log(format!(
-                        "autostart disable failed status_after={} error={e}",
-                        macos_autostart::status_label()
-                    ));
-                }
-            }
-        }
     }
     #[cfg(target_os = "linux")]
     {
@@ -750,28 +785,10 @@ fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_av
             macos_diag_log("second_instance activation_policy ok");
         }
 
-        let (_, _, _, _, _, stored_autostart) = load_settings(app);
-        let autostart =
-            should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
         macos_diag_log(format!(
-            "second_instance stored_autostart={stored_autostart} effective_autostart={autostart} status_before={}",
+            "second_instance status={}",
             macos_autostart::status_label()
         ));
-        if autostart {
-            match macos_autostart::repair() {
-                Ok(()) => macos_diag_log(format!(
-                    "second_instance autostart repair ok status_after={}",
-                    macos_autostart::status_label()
-                )),
-                Err(e) => {
-                    eprintln!("Failed to repair autostart registration on second launch: {e}");
-                    macos_diag_log(format!(
-                        "second_instance autostart repair failed status_after={} error={e}",
-                        macos_autostart::status_label()
-                    ));
-                }
-            }
-        }
 
         if let Some(tray) = app.tray_by_id(TRAY_ID) {
             if let Err(e) = tray.set_visible(true) {
@@ -791,6 +808,7 @@ fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_av
             metrics.show_alerts.store(alerts, Relaxed);
 
             let translations = i18n::detect_language().translations();
+            let autostart = macos_autostart::is_enabled();
             if let Err(e) = setup_initial_tray(app, metrics, gpu_available, autostart, translations)
             {
                 eprintln!("Failed to restore tray icon on second launch: {e}");
@@ -987,6 +1005,9 @@ fn start_monitoring(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "macos")]
+    enforce_supported_macos_runtime();
+
+    #[cfg(target_os = "macos")]
     let _macos_process_lock = acquire_macos_process_lock();
 
     #[cfg(target_os = "linux")]
@@ -1044,13 +1065,13 @@ pub fn run() {
             let (cpu, mem, gpu, net, alerts, stored_autostart) = load_settings(app.handle());
             let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
             #[cfg(target_os = "macos")]
-            let autostart =
-                should_repair_macos_autostart(stored_autostart, macos_autostart::is_enabled());
+            // The macOS menu reflects live SMAppService state only.
+            let autostart = macos_autostart::is_enabled();
             #[cfg(not(target_os = "macos"))]
             let autostart = stored_autostart;
             #[cfg(target_os = "macos")]
             macos_diag_log(format!(
-                "settings loaded stored_autostart={stored_autostart} effective_autostart={autostart} metrics cpu={cpu} mem={mem} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
+                "settings loaded stored_autostart={stored_autostart} system_autostart={autostart} metrics cpu={cpu} mem={mem} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
             ));
             tray_metrics.show_cpu.store(cpu, Relaxed);
             tray_metrics.show_mem.store(mem, Relaxed);
