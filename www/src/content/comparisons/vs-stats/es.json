@@ -64,5 +64,5 @@
       "body": "El enfoque sin contraseña de administrador y sin procesos auxiliares con permisos root no es la razón principal para elegir Better Resource Monitor, pero sí ayuda a explicar el producto. Se instala como una app normal de Mac, funciona en sandbox y usa APIs públicas para los datos de GPU. Para la mayoría, eso se traduce en menos fricción y menos sorpresas."
     }
   ],
-  "cta": "Stats sigue siendo una buena opción si quieres una suite de sensores más amplia. Si tu objetivo es más simple —vigilar tu Mac, detectar cargas inusuales antes y mantener bajo el consumo— [Better Resource Monitor está en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) y el código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."
+  "cta": "Stats sigue siendo una buena opción si quieres una suite de sensores más amplia. Si sobre todo quieres vigilar tu Mac, detectar cargas inusuales antes y mantener bajo el consumo, [Better Resource Monitor está en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) y el código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."
 }

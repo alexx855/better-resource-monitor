@@ -76,9 +76,9 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
     <tr>
       <th width="20%">功能</th>
       <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-istat-menus/">iStat Menus</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-istat-menus/">iStat Menus</a></th>
     </tr>
   </thead>
   <tbody>

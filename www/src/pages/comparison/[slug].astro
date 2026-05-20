@@ -1,0 +1,15 @@
+---
+import ComparisonPage from "../../components/pages/ComparisonPage.astro";
+import { comparisonPageKeys, isComparisonPageKey } from "../../lib/site";
+
+export function getStaticPaths() {
+  return comparisonPageKeys.map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug || !isComparisonPageKey(slug)) {
+  throw new Error(`Unsupported comparison page: ${slug}`);
+}
+---
+
+<ComparisonPage locale="en" pageKey={slug} />

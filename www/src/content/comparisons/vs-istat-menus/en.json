@@ -68,5 +68,5 @@
       "body": "Better Resource Monitor makes zero network requests. No analytics, no telemetry. Everything stays on your machine. If you want a monitor that quietly does its job and keeps to itself, that part is straightforward."
     }
   ],
-  "cta": "If you want the broader suite, iStat Menus is still the bigger tool. If you want the simpler one, [Better Resource Monitor is free on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and the source is on [GitHub](https://github.com/alexx855/better-resource-monitor)."
+  "cta": "If you want more sensors and controls, iStat Menus is still the bigger tool. If you want the smaller menu bar monitor, [Better Resource Monitor is free on the Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) and the source is on [GitHub](https://github.com/alexx855/better-resource-monitor)."
 }

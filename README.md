@@ -81,9 +81,9 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
     <tr>
       <th width="20%">Feature</th>
       <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-istat-menus/">iStat Menus</a></th>
     </tr>
   </thead>
   <tbody>
@@ -102,8 +102,6 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 </table>
 
 > Third-party numbers are rough estimates. Your mileage may vary.
-
-For more detail, read the <a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats comparison</a> or the <a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus comparison</a>.
 
 ## Credits
 

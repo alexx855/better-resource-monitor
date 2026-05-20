@@ -2,8 +2,11 @@
 import { getEntry } from "astro:content";
 import ComparisonSchema from "../ComparisonSchema.astro";
 import ComparisonTable from "../ComparisonTable.astro";
+import FaqSection from "../FaqSection.astro";
+import HomeLink from "../HomeLink.astro";
 import Layout from "../../layouts/Layout.astro";
 import { getLocalizedPath, renderInlineLinks, replaceContentTokens, type ComparisonPageKey, type SupportedLocale } from "../../lib/site";
+import { comparisonFaqHeadings, getComparisonFaqItems, pickFaqItems } from "../../lib/embedded-faqs";
 
 interface Props {
   locale: SupportedLocale;
@@ -13,7 +16,8 @@ interface Props {
 const { locale, pageKey } = Astro.props;
 const uiEntry = await getEntry("ui", locale);
 const compEntry = await getEntry("comparisons", `${pageKey}/${locale}`);
-if (!uiEntry || !compEntry) throw new Error(`Missing content for ${pageKey}/${locale}`);
+const faqEntry = await getEntry("faq", locale);
+if (!uiEntry || !compEntry || !faqEntry) throw new Error(`Missing content for ${pageKey}/${locale}`);
 const ui = uiEntry.data;
 const page = compEntry.data;
 const introHtml = renderInlineLinks(replaceContentTokens(page.intro, locale));
@@ -22,15 +26,18 @@ const sections = page.sections.map((section) => ({
   html: renderInlineLinks(replaceContentTokens(section.body, locale)),
 }));
 const ctaHtml = renderInlineLinks(replaceContentTokens(page.cta, locale));
+const faqItems = [
+  ...pickFaqItems(faqEntry.data.items, "comparisonPage"),
+  ...getComparisonFaqItems(pageKey, locale),
+  ...(page.faqItems ?? []),
+];
+const pageSlug = `comparison/${pageKey}`;
 ---
 
-<Layout title={page.title} description={page.description} locale={locale} slug={pageKey} ogImage={page.ogImage}>
+<Layout title={page.title} description={page.description} locale={locale} slug={pageSlug} ogImage={page.ogImage}>
   <main class="content-page">
     <div class="container">
-      <a href={getLocalizedPath(locale)} class="back-link" aria-label={ui.backToHome}>
-        <span class="back-link__arrow" aria-hidden="true">&larr;</span>
-        <span class="site-title-link">Better Resource Monitor</span>
-      </a>
+      <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
 
       <h1>{page.heading}</h1>
       <Fragment set:html={introHtml} />
@@ -54,11 +61,13 @@ const ctaHtml = renderInlineLinks(replaceContentTokens(page.cta, locale));
 
       <Fragment set:html={ctaHtml} />
 
+      <FaqSection locale={locale} heading={comparisonFaqHeadings[locale]} items={faqItems} />
+
       <ComparisonSchema
         title={page.title}
         description={page.description}
         locale={locale}
-        slug={pageKey}
+        slug={pageSlug}
         competitorName={page.competitorName}
         competitorPrice={page.competitorPrice}
       />

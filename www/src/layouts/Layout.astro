@@ -162,6 +162,7 @@ const siteUrl = new URL("/", Astro.site).href;
         /* Transitions */
         --transition-fast: 0.15s var(--ease-out);
         --transition-normal: 0.2s var(--ease-out);
+        --transition-hover: 0.18s ease;
       }
 
       /* Base reset */
@@ -204,8 +205,8 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       ::selection {
-        background: var(--c-brand);
-        color: #1a0f09;
+        background: var(--c-text);
+        color: var(--c-bg);
       }
 
       @media (min-width: 700px) {
@@ -275,13 +276,15 @@ const siteUrl = new URL("/", Astro.site).href;
       a {
         color: var(--c-on-brand);
         background-color: var(--c-brand);
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+          linear-gradient(var(--c-brand), var(--c-brand));
+        background-position: 0 100%, 0 0;
+        background-repeat: no-repeat;
+        background-size: 100% 0, 100% 100%;
         text-decoration: none;
         padding: 2px 4px;
         margin: 0 -4px;
-        transition: background-color var(--transition-fast),
-                    color var(--transition-fast),
-                    translate var(--transition-fast),
-                    scale 0.1s var(--ease-out);
       }
 
       p a:not(:has(img)),
@@ -291,28 +294,20 @@ const siteUrl = new URL("/", Astro.site).href;
         text-underline-offset: 0.18em;
       }
 
-      a:active {
-        scale: 0.97;
-      }
-
       a:has(img) {
         padding: 0;
         margin: 0;
         background-color: transparent;
-        transition: filter var(--transition-fast),
-                    translate var(--transition-fast),
-                    scale 0.1s var(--ease-out);
+        background-image: none;
       }
 
       @media (hover: hover) and (pointer: fine) {
         a:hover {
-          background-color: color-mix(in srgb, var(--c-brand), #000 15%);
-          translate: 0 -1px;
+          background-size: 100% 0, 100% 100%;
         }
 
         a:has(img):hover {
           background-color: transparent;
-          filter: brightness(1.08) contrast(1.02);
         }
       }
 
@@ -333,55 +328,39 @@ const siteUrl = new URL("/", Astro.site).href;
         border: 0;
       }
 
-      .back-link {
+      .home-link {
+        font-weight:bold;
         display: inline-flex;
         align-items: center;
         gap: var(--space-3);
-        min-height: var(--touch-target);
         width: fit-content;
-        color: var(--c-text);
-        background: transparent;
-        padding: 0;
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+          linear-gradient(var(--c-brand), var(--c-brand));
+        background-position: 0 100%, 0 0;
+        background-repeat: no-repeat;
+        background-size: 100% 0, 100% 100%;
+        padding: 2px 4px;
         margin: 0 0 var(--space-6);
-        letter-spacing: -0.04em;
       }
 
-      .back-link__arrow {
-        color: var(--c-brand);
-        font-size: var(--fs-sm);
-        translate: 0 -0.04em;
-        transition: translate var(--transition-fast);
-      }
-
-      .site-title-link,
-      .home-title-link {
-        color: var(--c-text);
+      .home-link__title {
+        color: inherit;
         background: transparent;
+        background-image: none;
         padding: 0;
         margin: 0;
         text-decoration: none;
         view-transition-name: site-title;
-      }
-
-      .site-title-link {
         font-size: clamp(1.15rem, 4vw, 1.6rem);
         line-height: 1;
       }
 
-      .home-title-link {
-        display: inline-block;
-      }
-
       @media (hover: hover) and (pointer: fine) {
-        .back-link:hover,
-        .home-title-link:hover {
-          background: transparent;
-          color: var(--c-brand);
-          translate: 0;
-        }
-
-        .back-link:hover .back-link__arrow {
-          translate: -0.2em -0.04em;
+        .home-link:hover {
+          background-size: 100% 0, 100% 100%;
         }
       }
 
@@ -508,10 +487,9 @@ const siteUrl = new URL("/", Astro.site).href;
 
       /* Blockquotes */
       blockquote {
-        border-left: 22px solid var(--c-brand);
-        padding: var(--space-3) var(--space-5);
-        margin: var(--space-5) 0;
-        background: var(--c-surface);
+        padding: var(--space-3) var(--space-4);
+        margin: var(--space-4) 0;
+        background: color-mix(in srgb, var(--c-brand) 8%, var(--c-surface));
       }
 
       blockquote p {
@@ -546,9 +524,12 @@ const siteUrl = new URL("/", Astro.site).href;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: var(--touch-target);
         color: var(--c-text-dim);
         background: transparent;
+        background-image: linear-gradient(var(--c-brand), var(--c-brand));
+        background-position: 0 calc(100% - 0.18em);
+        background-repeat: no-repeat;
+        background-size: 0 var(--border-width);
         padding: 0 var(--space-1);
         margin: 0;
         font-size: var(--fs-sm);
@@ -563,10 +544,10 @@ const siteUrl = new URL("/", Astro.site).href;
 
       @media (hover: hover) and (pointer: fine) {
         .site-footer nav a:hover {
-          color: var(--c-text);
+          color: var(--c-text-dim);
           background: transparent;
-          text-decoration-color: var(--c-brand);
-          translate: 0;
+          background-size: 0 var(--border-width);
+          text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
         }
       }
 
@@ -621,6 +602,7 @@ const siteUrl = new URL("/", Astro.site).href;
           transition-duration: 0.01ms !important;
           scroll-behavior: auto !important;
         }
+
       }
     </style>
   </head>
@@ -631,7 +613,6 @@ const siteUrl = new URL("/", Astro.site).href;
     <footer class="site-footer">
       <div class="container">
         <nav aria-label={labels.footer.navigation}>
-          <a href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
           <a href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
           <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
           <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>

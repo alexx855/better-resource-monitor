@@ -1,0 +1,13 @@
+---
+interface Props {
+  href: string;
+  label: string;
+}
+
+const { href, label } = Astro.props;
+---
+
+<a href={href} class="home-link" aria-label={label}>
+  <span class="home-link__arrow" aria-hidden="true">&larr;</span>
+  <span class="home-link__title">{label}</span>
+</a>
