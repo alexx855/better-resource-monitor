@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>在菜单栏里直接看到你的 Mac 正在做什么。</strong>
+  <strong>在 Mac 菜单栏查看 CPU、内存、GPU 和网络使用情况。</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -35,35 +35,6 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
 
 技术上的选择是为了支撑这种体验：无需管理员密码步骤、无需 root 辅助工具、不使用私有 API、没有 Dock 图标、运行在沙盒中，并且以完整功能上架 Mac App Store。
-
-## 对比
-
-<table>
-  <thead>
-    <tr>
-      <th width="20%">功能</th>
-      <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-istat-menus/">iStat Menus</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><th scope="row">Mac App Store</th><td align="center">是 (功能完整)</td><td align="center">否</td><td align="center">受限</td><td align="center">受限</td></tr>
-    <tr><th scope="row">管理员密码 / 权限</th><td align="center">无需 (沙盒)</td><td align="center">需要 root 辅助工具</td><td align="center">无需</td><td align="center">需要 root 辅助工具</td></tr>
-    <tr><th scope="row">GPU API 稳定性</th><td align="center">公开 API</td><td align="center">私有 API</td><td align="center">私有 API</td><td align="center">专有</td></tr>
-    <tr><th scope="row">内存占用</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
-    <tr><th scope="row">CPU / 能源影响</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">高 (M 系列)</td><td align="center">~1%</td></tr>
-    <tr><th scope="row">应用大小</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
-    <tr><th scope="row">隐私/遥测</th><td align="center">100% 离线</td><td align="center">离线</td><td align="center">离线</td><td align="center">包含分析</td></tr>
-    <tr><th scope="row">状态</th><td align="center">活跃</td><td align="center">活跃</td><td align="center">停止维护</td><td align="center">活跃</td></tr>
-    <tr><th scope="row">语言</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
-    <tr><th scope="row">价格</th><td align="center">免费</td><td align="center">免费</td><td align="center">免费</td><td align="center">$14.99</td></tr>
-    <tr><th scope="row">许可证</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">专有</td></tr>
-  </tbody>
-</table>
-
-> 第三方数据为粗略估算。实际情况可能有所不同。
 
 ## 安装
 
@@ -97,6 +68,35 @@ cd src-tauri && cargo test
 cargo install cargo-llvm-cov
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
+
+## 对比
+
+<table>
+  <thead>
+    <tr>
+      <th width="20%">功能</th>
+      <th width="20%">Better Resource Monitor</th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/zh-cn/vs-istat-menus/">iStat Menus</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Mac App Store</th><td align="center">是 (功能完整)</td><td align="center">否</td><td align="center">受限</td><td align="center">受限</td></tr>
+    <tr><th scope="row">管理员密码 / 权限</th><td align="center">无需 (沙盒)</td><td align="center">需要 root 辅助工具</td><td align="center">无需</td><td align="center">需要 root 辅助工具</td></tr>
+    <tr><th scope="row">GPU API 稳定性</th><td align="center">公开 API</td><td align="center">私有 API</td><td align="center">私有 API</td><td align="center">专有</td></tr>
+    <tr><th scope="row">内存占用</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
+    <tr><th scope="row">CPU / 能源影响</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">高 (M 系列)</td><td align="center">~1%</td></tr>
+    <tr><th scope="row">应用大小</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
+    <tr><th scope="row">隐私/遥测</th><td align="center">100% 离线</td><td align="center">离线</td><td align="center">离线</td><td align="center">包含分析</td></tr>
+    <tr><th scope="row">状态</th><td align="center">活跃</td><td align="center">活跃</td><td align="center">停止维护</td><td align="center">活跃</td></tr>
+    <tr><th scope="row">语言</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
+    <tr><th scope="row">价格</th><td align="center">免费</td><td align="center">免费</td><td align="center">免费</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">许可证</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">专有</td></tr>
+  </tbody>
+</table>
+
+> 第三方数据为粗略估算。实际情况可能有所不同。
 
 ## 致谢
 

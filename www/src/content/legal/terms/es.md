@@ -10,7 +10,7 @@ ogImage: "/images/og-terms-es.png"
 
 ## Aceptación de los términos
 
-Al descargar, instalar o utilizar Better Resource Monitor ("la Aplicación"), aceptas estar sujeto a estos Términos y condiciones.
+Al descargar, instalar o utilizar Better Resource Monitor ("la App"), aceptas estos Términos y condiciones.
 
 ## Licencia
 
@@ -24,9 +24,9 @@ Sujeto a las condiciones de la Licencia MIT, que requiere la preservación de lo
 
 ## Exención de garantías
 
-LA APLICACIÓN SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
+LA APP SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUIDAS, ENTRE OTRAS, LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
 
-La Aplicación está diseñada para mostrar información de recursos del sistema. Aunque nos esforzamos por lograr la precisión, las métricas del sistema pueden variar según:
+La App está diseñada para mostrar información de recursos del sistema. Aunque nos esforzamos por ofrecer precisión, las métricas del sistema pueden variar según:
 - La versión del sistema operativo
 - La configuración del hardware
 - La carga del sistema
@@ -34,14 +34,14 @@ La Aplicación está diseñada para mostrar información de recursos del sistema
 
 ## Limitación de responsabilidad
 
-EN NINGÚN CASO LOS AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN RESPONSABLES POR CUALQUIER RECLAMO, DAÑO U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRO TIPO, QUE SURJA DE, FUERA DE O EN CONEXIÓN CON LA APLICACIÓN O EL USO U OTROS TRATOS EN LA APLICACIÓN.
+EN NINGÚN CASO LOS AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN RESPONSABLES DE CUALQUIER RECLAMACIÓN, DAÑO U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRO TIPO, QUE SURJA DE LA APP, DE SU USO O DE OTRAS OPERACIONES CON LA APP, O QUE ESTÉ RELACIONADA CON ELLO.
 
 ## Responsabilidades del usuario
 
 Eres responsable de:
-- Asegurarte de que la Aplicación sea compatible con tu sistema
-- Entender que el monitoreo del sistema puede tener un impacto mínimo en el rendimiento
-- Mantener tu sistema y la Aplicación actualizados
+- Asegurarte de que la App sea compatible con tu sistema
+- Entender que la supervisión del sistema puede tener un impacto mínimo en el rendimiento
+- Mantener tu sistema y la App actualizados
 
 ## Modificaciones
 
@@ -53,4 +53,4 @@ Estos términos se regirán e interpretarán de acuerdo con las leyes aplicables
 
 ## Contacto
 
-Para preguntas sobre estos términos, por favor abre un issue en nuestro [repositorio de GitHub](https://github.com/alexx855/better-resource-monitor/issues/new).
+Para preguntas sobre estos términos, abre una incidencia en nuestro [repositorio de GitHub](https://github.com/alexx855/better-resource-monitor/issues/new).

@@ -5,19 +5,19 @@
   "competitorName": "Eul",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Eul",
-  "intro": "A mucha gente le gustaba Eul porque era pequeño, simple y fácil de dejar en la barra de menús. Better Resource Monitor apunta a esa misma utilidad cotidiana, pero con mantenimiento activo, soporte para Macs actuales y menor consumo en Apple Silicon.",
+  "intro": "A mucha gente le gustaba Eul porque era pequeño, simple y fácil de dejar en la barra de menús. Better Resource Monitor busca esa misma utilidad cotidiana, pero con mantenimiento activo, soporte para Mac actuales y menor consumo en Apple Silicon.",
   "table": {
     "featureLabel": "Característica",
     "productLabel": "Better Resource Monitor",
     "competitorLabel": "Eul",
     "features": [
       "Mac App Store",
-      "Contraseña de admin / Privilegios",
+      "Contraseña de administrador / privilegios",
       "Estabilidad de API de GPU",
       "Uso de memoria",
-      "Impacto en CPU / Energía",
+      "Impacto en CPU / energía",
       "Tamaño de la app",
-      "Privacidad / Telemetría",
+      "Privacidad / telemetría",
       "Estado",
       "Lenguaje",
       "Precio",
@@ -25,12 +25,12 @@
     ],
     "productValues": [
       "Funciones completas",
-      "Ninguno (Sandboxed)",
+      "Ninguno (sandbox)",
       "API pública",
       "~15 MB",
-      "< 0.1%",
+      "< 0,1%",
       "< 7 MB",
-      "100% Offline",
+      "100% sin conexión",
       "Activo",
       "Rust",
       "Gratis",
@@ -41,9 +41,9 @@
       "Ninguno",
       "API privada",
       "~40 MB",
-      "Alto (Serie M)",
+      "Alto (serie M)",
       "~5 MB",
-      "Offline",
+      "Sin conexión",
       "Sin mantenimiento",
       "Swift",
       "Gratis",
@@ -56,8 +56,8 @@
       "body": "Eul sigue teniendo una sensación minimalista agradable, pero ya no se mantiene activamente. Eso importa más en un monitor de sistema que en la mayoría de apps, porque macOS sigue cambiando las APIs y los detalles de hardware de los que dependen estas herramientas."
     },
     {
-      "heading": "Mejor encaje para Macs nuevas",
-      "body": "En Apple Silicon, Better Resource Monitor se mantiene por debajo del 0.1% de CPU y usa alrededor de 15 MB de memoria. Eso hace que sea más fácil dejarlo abierto todo el día, que al final es el punto de un monitor de barra de menús."
+      "heading": "Mejor encaje para Mac más recientes",
+      "body": "En Apple Silicon, Better Resource Monitor se mantiene por debajo del 0,1% de CPU y usa alrededor de 15 MB de memoria. Eso hace que sea más fácil dejarlo abierto todo el día, que al final es el punto de un monitor de barra de menús."
     },
     {
       "heading": "Detalles técnicos, resultado práctico",

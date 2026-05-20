@@ -29,12 +29,12 @@ const ENGLISH: Translations = Translations {
 };
 
 const SPANISH: Translations = Translations {
-    start_at_login: "Iniciar con el sistema",
+    start_at_login: "Abrir al iniciar sesión",
     show_memory: "Mostrar memoria",
     show_cpu: "Mostrar CPU",
     show_gpu: "Mostrar GPU",
-    show_network: "Mostrar red",
-    show_alert_colors: "Mostrar alertas de color",
+    show_network: "Mostrar uso de red",
+    show_alert_colors: "Mostrar colores de alerta",
     quit: "Salir",
     system_monitor: "Monitor del sistema",
 };

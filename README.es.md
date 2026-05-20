@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Ve lo que está haciendo tu Mac desde la barra de menús.</strong>
+  <strong>Supervisa CPU, memoria, GPU y red desde la barra de menús de tu Mac.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -28,50 +28,21 @@
 
 ## Por qué
 
-Better Resource Monitor es para quienes solo quieren una forma simple de vigilar su Mac.
+Better Resource Monitor es para quienes solo quieren una forma rápida y discreta de vigilar su Mac.
 
-Muestra el uso de CPU, memoria, GPU y red directamente en la barra de menús, para que puedas detectar carga inusual rápido sin abrir el Monitor de Actividad ni meterte en herramientas del sistema.
+Mantiene el uso de CPU, memoria, GPU y red directamente en la barra de menús, para que puedas detectar cargas inusuales sin interrumpir lo que haces ni abrir el Monitor de Actividad.
 
-También está diseñado para ser ligero, para que el monitor no termine siendo parte del problema.
+Está pensado para quedarse abierto todo el día sin convertirse en parte del problema: menos del 0,1% de CPU en Apple Silicon, unos 15 MB de memoria y cero solicitudes de red.
 
-La parte técnica está ahí para respaldar esa experiencia: sin paso de contraseña de administrador, sin helper root, sin APIs privadas, sin icono en el Dock, con sandbox y disponible en la Mac App Store con todas sus funciones.
-
-## Comparación
-
-<table>
-  <thead>
-    <tr>
-      <th width="20%">Característica</th>
-      <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-istat-menus/">iStat Menus</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><th scope="row">Mac App Store</th><td align="center">Sí (funciones completas)</td><td align="center">No</td><td align="center">Limitado</td><td align="center">Limitado</td></tr>
-    <tr><th scope="row">Contraseña de admin / Privilegios</th><td align="center">Ninguno (sandboxed)</td><td align="center">Requiere helper root</td><td align="center">Ninguno</td><td align="center">Requiere helper root</td></tr>
-    <tr><th scope="row">Estabilidad de API de GPU</th><td align="center">API pública</td><td align="center">API privada</td><td align="center">API privada</td><td align="center">Propietario</td></tr>
-    <tr><th scope="row">Uso de memoria</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
-    <tr><th scope="row">Impacto en CPU / Energía</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">Alto (serie M)</td><td align="center">~1%</td></tr>
-    <tr><th scope="row">Tamaño de la app</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
-    <tr><th scope="row">Privacidad/Telemetría</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analíticas</td></tr>
-    <tr><th scope="row">Estado</th><td align="center">Activo</td><td align="center">Activo</td><td align="center">Sin mantenimiento</td><td align="center">Activo</td></tr>
-    <tr><th scope="row">Lenguaje</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
-    <tr><th scope="row">Precio</th><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">$14.99</td></tr>
-    <tr><th scope="row">Licencia</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Propietario</td></tr>
-  </tbody>
-</table>
-
-> Los números de terceros son estimaciones aproximadas. Tu experiencia puede variar.
+La parte técnica está ahí para respaldar esa experiencia. Se instala como una app normal de Mac, funciona en sandbox, está disponible en la Mac App Store con todas sus funciones y evita pedir contraseña de administrador o usar procesos auxiliares con permisos root.
 
 ## Instalación
 
-Consíguelo en la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Descárgalo desde la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
 
 ### Compatibilidad
 
-Funciona en Macs Intel y Apple Silicon con macOS Ventura 13 o posterior.
+Funciona en Mac con Intel y Apple Silicon con macOS Ventura 13 o posterior.
 
 ### Compilar desde el código fuente
 
@@ -98,8 +69,37 @@ cargo install cargo-llvm-cov
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
+## Comparación
+
+<table>
+  <thead>
+    <tr>
+      <th width="20%">Característica</th>
+      <th width="20%">Better Resource Monitor</th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/es/vs-istat-menus/">iStat Menus</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Mac App Store</th><td align="center">Sí (funciones completas)</td><td align="center">No</td><td align="center">Limitado</td><td align="center">Limitado</td></tr>
+    <tr><th scope="row">Contraseña de administrador / privilegios</th><td align="center">Ninguno (sandbox)</td><td align="center">Requiere helper con permisos root</td><td align="center">Ninguno</td><td align="center">Requiere helper con permisos root</td></tr>
+    <tr><th scope="row">Estabilidad de API de GPU</th><td align="center">API pública</td><td align="center">API privada</td><td align="center">API privada</td><td align="center">Propietario</td></tr>
+    <tr><th scope="row">Uso de memoria</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
+    <tr><th scope="row">Impacto en CPU / energía</th><td align="center">&lt; 0,1%</td><td align="center">~1%</td><td align="center">Alto (serie M)</td><td align="center">~1%</td></tr>
+    <tr><th scope="row">Tamaño de la app</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
+    <tr><th scope="row">Privacidad/telemetría</th><td align="center">100% sin conexión</td><td align="center">Sin conexión</td><td align="center">Sin conexión</td><td align="center">Analíticas</td></tr>
+    <tr><th scope="row">Estado</th><td align="center">Activo</td><td align="center">Activo</td><td align="center">Sin mantenimiento</td><td align="center">Activo</td></tr>
+    <tr><th scope="row">Lenguaje</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
+    <tr><th scope="row">Precio</th><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">Gratis</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">Licencia</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Propietario</td></tr>
+  </tbody>
+</table>
+
+> Los números de terceros son estimaciones aproximadas. Tu experiencia puede variar.
+
 ## Créditos
 
 
-- <a href="https://github.com/phosphor-icons" target="_blank">Phosphor Icons</a> - Conjunto de iconos utilizado en la bandeja
-- <a href="https://alexpedersen.dev/" target="_blank">Alex Pedersen</a> - Mantenedor
+- <a href="https://github.com/phosphor-icons" target="_blank">Phosphor Icons</a> - Conjunto de iconos usado en la bandeja
+- <a href="https://alexpedersen.dev/" target="_blank">Alex Pedersen</a> - Responsable del mantenimiento
