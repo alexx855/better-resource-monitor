@@ -27,7 +27,10 @@ const ctaHtml = renderInlineLinks(replaceContentTokens(page.cta, locale));
 <Layout title={page.title} description={page.description} locale={locale} slug={pageKey} ogImage={page.ogImage}>
   <main class="content-page">
     <div class="container">
-      <a href={getLocalizedPath(locale)} class="back-link">&larr; {ui.backToHome}</a>
+      <a href={getLocalizedPath(locale)} class="back-link" aria-label={ui.backToHome}>
+        <span class="back-link__arrow" aria-hidden="true">&larr;</span>
+        <span class="site-title-link">Better Resource Monitor</span>
+      </a>
 
       <h1>{page.heading}</h1>
       <Fragment set:html={introHtml} />

@@ -51,7 +51,7 @@ const faqSchema = faq.items.map((item) => ({
 
     @media (hover: hover) and (pointer: fine) {
       .faq-item:hover {
-        border-color: var(--c-alert-bg);
+        border-color: var(--c-brand);
       }
     }
 
@@ -81,7 +81,10 @@ const faqSchema = faq.items.map((item) => ({
 
   <main class="content-page">
     <div class="container">
-      <a href={getLocalizedPath(locale)} class="back-link">&larr; {ui.backToHome}</a>
+      <a href={getLocalizedPath(locale)} class="back-link" aria-label={ui.backToHome}>
+        <span class="back-link__arrow" aria-hidden="true">&larr;</span>
+        <span class="site-title-link">Better Resource Monitor</span>
+      </a>
       <section class="faq">
         <h1>{faq.heading}</h1>
         <dl class="faq-list">

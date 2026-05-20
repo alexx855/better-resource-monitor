@@ -8,7 +8,7 @@ export const colors = {
   bg: "#181818",
   surface: "#202020",
   surfaceAlt: "#242424",
-  accent: "#D14715",
+  brand: "#D14715",
   text: "#ffffff",
   textDim: "#c5c5c5",
   border: "#3a3a3a",

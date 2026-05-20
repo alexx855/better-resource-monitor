@@ -74,7 +74,7 @@ export const GET: APIRoute = async ({ props }) => {
           fontSize: st(60),
           fontWeight: 700,
           color: colors.text,
-          backgroundColor: colors.accent,
+          backgroundColor: colors.brand,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
           marginBottom: st(48),
