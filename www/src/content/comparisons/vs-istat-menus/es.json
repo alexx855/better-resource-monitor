@@ -5,19 +5,19 @@
   "competitorName": "iStat Menus",
   "competitorPrice": "14.99",
   "heading": "Better Resource Monitor vs iStat Menus",
-  "intro": "iStat Menus y Better Resource Monitor están pensados para trabajos distintos. iStat Menus es una utilidad de sistema más grande, con más sensores, controles y detalle extra. Better Resource Monitor va al caso más simple: mantener CPU, memoria, GPU y red visibles desde la barra de menús para que puedas detectar carga inusual rápido sin añadir mucha sobrecarga.",
+  "intro": "iStat Menus y Better Resource Monitor están pensados para trabajos distintos. iStat Menus es una utilidad de sistema más amplia, con más sensores, controles y detalles extra. Better Resource Monitor cubre el caso más simple: mantener CPU, memoria, GPU y red visibles desde la barra de menús para que puedas detectar cargas inusuales rápido sin añadir mucha sobrecarga.",
   "table": {
     "featureLabel": "Característica",
     "productLabel": "Better Resource Monitor",
     "competitorLabel": "iStat Menus 7",
     "features": [
       "Mac App Store",
-      "Contraseña de admin / Privilegios",
+      "Contraseña de administrador / privilegios",
       "Estabilidad de API de GPU",
       "Uso de memoria",
-      "Impacto en CPU / Energía",
+      "Impacto en CPU / energía",
       "Tamaño de la app",
-      "Privacidad / Telemetría",
+      "Privacidad / telemetría",
       "Estado",
       "Lenguaje",
       "Precio",
@@ -25,12 +25,12 @@
     ],
     "productValues": [
       "Funciones completas",
-      "Ninguno (Sandboxed)",
+      "Ninguno (sandbox)",
       "API pública",
       "~15 MB",
-      "< 0.1%",
+      "< 0,1%",
       "< 7 MB",
-      "100% Offline",
+      "100% sin conexión",
       "Activo",
       "Rust",
       "Gratis",
@@ -38,7 +38,7 @@
     ],
     "competitorValues": [
       "Limitado",
-      "Requiere helper root",
+      "Requiere helper con permisos root",
       "Propietario",
       "~100+ MB",
       "~1%",
@@ -57,15 +57,15 @@
     },
     {
       "heading": "Por qué Better Resource Monitor se mantiene más ligero",
-      "body": "Better Resource Monitor usa menos del 0.1% de CPU en Apple Silicon y alrededor de 15 MB de memoria. Ese menor consumo viene de mantener el conjunto de funciones más ajustado y saltarse el sondeo constante de sensores en el que se apoyan las apps de monitoreo más pesadas. Está hecho para quedarse abierto todo el día sin sentirse como otra carga para tu Mac."
+      "body": "Better Resource Monitor usa menos del 0,1% de CPU en Apple Silicon y alrededor de 15 MB de memoria. Ese menor consumo viene de mantener un conjunto de funciones más ajustado y evitar la consulta constante de sensores en la que se apoyan las apps de supervisión más pesadas. Está hecho para quedarse abierto todo el día sin sentirse como otra carga para tu Mac."
     },
     {
       "heading": "Menos fricción también importa",
-      "body": "Better Resource Monitor se instala como una app normal de Mac. Sin paso de contraseña de administrador, sin helper root, sin APIs privadas. La mayoría no va a elegir una app solo por esos detalles, pero sí hacen que la experiencia sea más simple y más fácil de confiar."
+      "body": "Better Resource Monitor se instala como una app normal de Mac. Sin paso de contraseña de administrador, sin procesos auxiliares con permisos root y sin APIs privadas. La mayoría no va a elegir una app solo por esos detalles, pero sí hacen que la experiencia sea más simple y más fácil de confiar."
     },
     {
       "heading": "Privacidad",
-      "body": "Better Resource Monitor hace cero solicitudes de red. Sin analíticas, sin telemetría. Todo se queda en tu máquina. Si quieres un monitor que haga su trabajo en silencio y no se meta en más, esa parte es directa."
+      "body": "Better Resource Monitor no hace solicitudes de red. Sin analíticas, sin telemetría. Todo se queda en tu máquina. Si quieres un monitor que haga su trabajo en silencio y no se meta en más, esa parte es directa."
     }
   ],
   "cta": "Si quieres la suite más amplia, iStat Menus sigue siendo la herramienta más grande. Si quieres la más simple, [Better Resource Monitor está gratis en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) y el código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."
