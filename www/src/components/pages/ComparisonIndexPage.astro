@@ -91,7 +91,10 @@ const faqItems = [
           <a class="comparison-card" href={comparison.href}>
             <span class="card-title">{comparison.title}</span>
             <span class="card-description">{comparison.description}</span>
-            <span class="card-link">{copy.cardLabel} &rarr;</span>
+            <span class="card-link">
+              <span>{copy.cardLabel}</span>
+              <span style="display: flex; align-items: center;"><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </span>
           </a>
         ))}
       </div>
@@ -203,6 +206,10 @@ const faqItems = [
     margin-top: auto;
     padding: 2px 4px;
     width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    line-height: 1;
   }
 
   @media (max-width: 900px) {
