@@ -3,24 +3,21 @@ import { localeMeta, siteMarketingLocales, type SiteMarketingLocale } from "./tr
 export const locales = siteMarketingLocales;
 export type SupportedLocale = SiteMarketingLocale;
 export const localizedLocales = locales.filter((locale) => locale !== "en");
-export type ComparisonPageKey = "vs-stats" | "vs-eul" | "vs-istat-menus";
+export const comparisonPageKeys = ["vs-stats", "vs-eul", "vs-istat-menus"] as const;
+export type ComparisonPageKey = (typeof comparisonPageKeys)[number];
 
-export const internalSlugs = ["faq", "comparison", "vs-stats", "vs-eul", "vs-istat-menus", "privacy-policy", "terms"] as const;
+export const internalSlugs = ["faq", "comparison", "privacy-policy", "terms"] as const;
 
 export type InternalSlug = (typeof internalSlugs)[number];
 
 export type LocalizedPageDescriptor =
   | { kind: "faq" }
   | { kind: "comparison-index" }
-  | { kind: "comparison"; pageKey: ComparisonPageKey }
   | { kind: "legal"; slug: "privacy-policy" | "terms" };
 
 const localizedPageMap: Record<InternalSlug, LocalizedPageDescriptor> = {
   faq: { kind: "faq" },
   comparison: { kind: "comparison-index" },
-  "vs-stats": { kind: "comparison", pageKey: "vs-stats" },
-  "vs-eul": { kind: "comparison", pageKey: "vs-eul" },
-  "vs-istat-menus": { kind: "comparison", pageKey: "vs-istat-menus" },
   "privacy-policy": { kind: "legal", slug: "privacy-policy" },
   terms: { kind: "legal", slug: "terms" },
 };
@@ -53,6 +50,10 @@ export function getLocalizedPath(locale: SupportedLocale, slug = "") {
   return slug ? `/${locale}/${slug}/` : `/${locale}/`;
 }
 
+export function getComparisonPath(locale: SupportedLocale, pageKey: ComparisonPageKey) {
+  return getLocalizedPath(locale, `comparison/${pageKey}`);
+}
+
 export function getAlternateLinks(slug = "") {
   return locales.map((locale) => ({
     locale,
@@ -66,9 +67,9 @@ export function getLocalizedInternalLinks(locale: SupportedLocale) {
     homeUrl: getLocalizedPath(locale),
     faqUrl: getLocalizedPath(locale, "faq"),
     comparisonUrl: getLocalizedPath(locale, "comparison"),
-    vsStatsUrl: getLocalizedPath(locale, "vs-stats"),
-    vsEulUrl: getLocalizedPath(locale, "vs-eul"),
-    vsIstatMenusUrl: getLocalizedPath(locale, "vs-istat-menus"),
+    vsStatsUrl: getComparisonPath(locale, "vs-stats"),
+    vsEulUrl: getComparisonPath(locale, "vs-eul"),
+    vsIstatMenusUrl: getComparisonPath(locale, "vs-istat-menus"),
     privacyPolicyUrl: getLocalizedPath(locale, "privacy-policy"),
     termsUrl: getLocalizedPath(locale, "terms"),
   };
@@ -92,6 +93,10 @@ export function isSupportedLocale(value: string): value is SupportedLocale {
 
 export function isInternalSlug(value: string): value is InternalSlug {
   return internalSlugs.includes(value as InternalSlug);
+}
+
+export function isComparisonPageKey(value: string): value is ComparisonPageKey {
+  return comparisonPageKeys.includes(value as ComparisonPageKey);
 }
 
 export function getLocalizedPageDescriptor(slug: InternalSlug) {

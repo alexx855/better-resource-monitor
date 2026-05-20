@@ -1,7 +1,5 @@
 ---
-import ComparisonPage from "../../components/pages/ComparisonPage.astro";
 import ComparisonIndexPage from "../../components/pages/ComparisonIndexPage.astro";
-import FaqPage from "../../components/pages/FaqPage.astro";
 import MarkdownPage from "../../components/pages/MarkdownPage.astro";
 import { getLocalizedPageDescriptor, internalSlugs, isInternalSlug, isSupportedLocale, localizedLocales } from "../../lib/site";
 
@@ -21,7 +19,5 @@ if (!slug || !isInternalSlug(slug)) {
 const page = getLocalizedPageDescriptor(slug);
 ---
 
-{page.kind === "faq" && <FaqPage locale={locale} />}
 {page.kind === "comparison-index" && <ComparisonIndexPage locale={locale} />}
-{page.kind === "comparison" && <ComparisonPage locale={locale} pageKey={page.pageKey} />}
 {page.kind === "legal" && <MarkdownPage locale={locale} slug={page.slug} />}

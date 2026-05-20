@@ -14,7 +14,7 @@
     },
     {
       "question": "它是免费的吗？",
-      "answer": "是的。采用 MIT 许可证，无付费层级，无应用内购买。Mac App Store 版本和 GitHub 版本是完全相同的应用。"
+      "answer": "是的。采用 MIT 许可证并且是免费应用。Mac App Store 版本和 GitHub 版本是完全相同的应用。"
     },
     {
       "question": "它的 CPU 和内存占用如何？",

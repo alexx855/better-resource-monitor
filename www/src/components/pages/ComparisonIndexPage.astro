@@ -1,13 +1,20 @@
 ---
 import { getEntry } from "astro:content";
+import FaqSection from "../FaqSection.astro";
+import HomeLink from "../HomeLink.astro";
 import Layout from "../../layouts/Layout.astro";
-import { getLocalizedPath, type ComparisonPageKey, type SupportedLocale } from "../../lib/site";
+import { getComparisonPath, getLocalizedPath, type ComparisonPageKey, type SupportedLocale } from "../../lib/site";
+import { embeddedFaqHeadings, getComparisonIndexFaqItems, pickFaqItems } from "../../lib/embedded-faqs";
 
 interface Props {
   locale: SupportedLocale;
 }
 
 const { locale } = Astro.props;
+const uiEntry = await getEntry("ui", locale);
+const faqEntry = await getEntry("faq", locale);
+if (!uiEntry || !faqEntry) throw new Error(`Missing content for ${locale}`);
+const ui = uiEntry.data;
 
 const pageCopy = {
   en: {
@@ -16,7 +23,6 @@ const pageCopy = {
     heading: "System monitor comparisons",
     intro:
       "Compare Better Resource Monitor against other macOS menu bar monitors. These pages cover resource use, privacy, pricing, App Store availability, and the tradeoffs that matter for daily monitoring.",
-    kicker: "Comparison guide",
     cardLabel: "Read comparison",
   },
   es: {
@@ -25,7 +31,6 @@ const pageCopy = {
     heading: "Comparaciones de monitores de sistema",
     intro:
       "Compara Better Resource Monitor con otros monitores para la barra de menús de macOS. Estas páginas cubren uso de recursos, privacidad, precio, disponibilidad en App Store y las diferencias importantes para el uso diario.",
-    kicker: "Guía comparativa",
     cardLabel: "Leer comparación",
   },
   "pt-br": {
@@ -34,7 +39,6 @@ const pageCopy = {
     heading: "Comparações de monitores de sistema",
     intro:
       "Compare o Better Resource Monitor com outros monitores para a barra de menus do macOS. Estas páginas cobrem uso de recursos, privacidade, preço, disponibilidade na App Store e os pontos mais importantes para o uso diário.",
-    kicker: "Guia de comparação",
     cardLabel: "Ler comparação",
   },
   "zh-cn": {
@@ -43,7 +47,6 @@ const pageCopy = {
     heading: "系统监视器对比",
     intro:
       "将 Better Resource Monitor 与其他 macOS 菜单栏监视器进行对比。这些页面涵盖资源占用、隐私、价格、App Store 可用性，以及日常监控中真正重要的取舍。",
-    kicker: "对比指南",
     cardLabel: "阅读对比",
   },
 } satisfies Record<SupportedLocale, {
@@ -51,7 +54,6 @@ const pageCopy = {
   description: string;
   heading: string;
   intro: string;
-  kicker: string;
   cardLabel: string;
 }>;
 
@@ -65,17 +67,22 @@ const comparisons = await Promise.all(
       key,
       title: entry.data.heading,
       description: entry.data.description,
-      href: getLocalizedPath(locale, key),
+      href: getComparisonPath(locale, key),
     };
   }),
 );
 const copy = pageCopy[locale];
+const faqItems = [
+  ...pickFaqItems(faqEntry.data.items, "comparisonIndex"),
+  ...getComparisonIndexFaqItems(locale),
+];
 ---
 
 <Layout title={copy.title} description={copy.description} locale={locale} slug="comparison">
-  <main class="comparison-index">
+  <main class="content-page comparison-index">
     <div class="container">
-      <p class="eyebrow">{copy.kicker}</p>
+      <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
+
       <h1>{copy.heading}</h1>
       <p class="intro">{copy.intro}</p>
 
@@ -88,24 +95,13 @@ const copy = pageCopy[locale];
           </a>
         ))}
       </div>
+
+      <FaqSection locale={locale} heading={embeddedFaqHeadings.comparisonIndex[locale]} items={faqItems} />
     </div>
   </main>
 </Layout>
 
 <style>
-  .comparison-index {
-    padding: var(--space-10) 0;
-  }
-
-  .eyebrow {
-    color: var(--c-brand);
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    margin: 0 0 var(--space-3);
-    text-transform: uppercase;
-  }
-
   .comparison-index h1 {
     margin-bottom: var(--space-4);
     max-width: 760px;
@@ -135,13 +131,47 @@ const copy = pageCopy[locale];
     gap: var(--space-3);
     min-height: 240px;
     padding: var(--space-5);
+    position: relative;
     text-decoration: none;
-    transition: border-color 160ms ease, transform 160ms ease;
+    transition: transform var(--transition-fast),
+                scale 0.1s var(--ease-out);
+  }
+
+  .comparison-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid color-mix(in srgb, var(--c-brand) 80%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.985);
+    transform-origin: center;
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast);
   }
 
   .comparison-card:hover {
-    border-color: var(--c-brand);
+    translate: 0;
     transform: translateY(-2px);
+  }
+
+  .comparison-card:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .comparison-card:hover .card-link {
+    translate: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .comparison-card:hover {
+      border-color: var(--c-border);
+    }
+
+    .comparison-card:hover::before {
+      opacity: 0;
+    }
   }
 
   .comparison-card:focus-visible {
@@ -161,9 +191,18 @@ const copy = pageCopy[locale];
   }
 
   .card-link {
-    color: var(--c-brand);
+    color: var(--c-on-brand);
+    background-color: var(--c-brand);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+      linear-gradient(var(--c-brand), var(--c-brand));
+    background-position: 0 100%, 0 0;
+    background-repeat: no-repeat;
+    background-size: 100% 0, 100% 100%;
     font-weight: 700;
     margin-top: auto;
+    padding: 2px 4px;
+    width: fit-content;
   }
 
   @media (max-width: 900px) {

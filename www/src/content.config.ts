@@ -65,8 +65,6 @@ const homeBody = defineCollection({
       for (const locale of siteMarketingLocales) {
         const filename = locale === "en" ? "README.md" : `README.${locale}.md`;
         const raw = await readFile(resolve(rootDir, filename), "utf-8");
-        const homeUrl = locale === "en" ? "/" : `/${locale}/`;
-
         const body = raw
           .replace(/<!-- README-LANG-START -->\n?/s, "")
           .replace(/\n?<!-- README-LANG-END -->\n*/s, "")
@@ -90,10 +88,6 @@ const homeBody = defineCollection({
           .replace(
             '<img src="/better-resource-monitor.png"',
             '<img src="/better-resource-monitor.png" fetchpriority="high" decoding="async"',
-          )
-          .replace(
-            '<h1 align="center">Better Resource Monitor</h1>',
-            `<h1 align="center"><a class="home-title-link" href="${homeUrl}" aria-current="page">Better Resource Monitor</a></h1>`,
           );
         assertNoExecutableHtml(html, filename);
         store.set({ id: locale, data: {}, rendered: { html } });
@@ -102,6 +96,13 @@ const homeBody = defineCollection({
   },
 });
 
+const faqItems = z.array(
+  z.object({
+    question: z.string(),
+    answer: z.string(),
+  }),
+);
+
 const faq = defineCollection({
   loader: glob({ pattern: "*.json", base: "./src/content/faq" }),
   schema: z.object({
@@ -109,12 +110,7 @@ const faq = defineCollection({
     description: z.string(),
     ogImage: z.string(),
     heading: z.string(),
-    items: z.array(
-      z.object({
-        question: z.string(),
-        answer: z.string(),
-      }),
-    ),
+    items: faqItems,
   }),
 });
 
@@ -145,6 +141,7 @@ const comparisons = defineCollection({
       }),
     ),
     cta: z.string(),
+    faqItems: faqItems.optional(),
   }),
 });
 

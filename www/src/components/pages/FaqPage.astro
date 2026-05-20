@@ -1,7 +1,9 @@
 ---
 import { getEntry } from "astro:content";
+import FaqSection from "../FaqSection.astro";
+import HomeLink from "../HomeLink.astro";
 import Layout from "../../layouts/Layout.astro";
-import { getLocaleMeta, getLocalizedPath, renderInlineLinks, replaceContentTokens, type SupportedLocale } from "../../lib/site";
+import { getLocalizedPath, type SupportedLocale } from "../../lib/site";
 
 interface Props {
   locale: SupportedLocale;
@@ -13,65 +15,10 @@ const faqEntry = await getEntry("faq", locale);
 if (!uiEntry || !faqEntry) throw new Error(`Missing content for ${locale}`);
 const ui = uiEntry.data;
 const faq = faqEntry.data;
-const langTag = getLocaleMeta(locale).langTag;
-const renderedItems = faq.items.map((item) => ({
-  ...item,
-  html: renderInlineLinks(replaceContentTokens(item.answer, locale)),
-}));
-const faqSchema = faq.items.map((item) => ({
-  "@type": "Question",
-  name: item.question,
-  acceptedAnswer: {
-    "@type": "Answer",
-    text: replaceContentTokens(item.answer, locale)
-      .replace(/\[(.*?)\]\((.*?)\)/g, "$1: $2")
-      .replace(/`/g, ""),
-  },
-}));
 ---
 
 <Layout title={faq.title} description={faq.description} locale={locale} slug="faq" ogImage={faq.ogImage}>
   <style is:global>
-    .faq h2 {
-      scroll-margin-top: var(--space-5);
-    }
-
-    .faq-list {
-      margin: 0;
-      padding: 0;
-    }
-
-    .faq-item {
-      border: var(--border-width) solid var(--c-border);
-      background: var(--c-surface);
-      padding: var(--space-5);
-      margin-bottom: var(--space-5);
-      transition: border-color var(--transition-fast);
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-      .faq-item:hover {
-        border-color: var(--c-brand);
-      }
-    }
-
-    .faq-item dt {
-      font-weight: 600;
-      color: var(--c-text);
-      font-size: var(--fs-md);
-      margin-bottom: var(--space-3);
-    }
-
-    .faq-item dd {
-      margin: 0;
-      color: var(--c-text-dim);
-      line-height: 1.6;
-    }
-
-    .faq-item dd p:last-child {
-      margin-bottom: 0;
-    }
-
     @media (max-width: 600px) {
       .container {
         padding: 0 var(--space-5);
@@ -81,28 +28,8 @@ const faqSchema = faq.items.map((item) => ({
 
   <main class="content-page">
     <div class="container">
-      <a href={getLocalizedPath(locale)} class="back-link" aria-label={ui.backToHome}>
-        <span class="back-link__arrow" aria-hidden="true">&larr;</span>
-        <span class="site-title-link">Better Resource Monitor</span>
-      </a>
-      <section class="faq">
-        <h1>{faq.heading}</h1>
-        <dl class="faq-list">
-          {renderedItems.map((item) => (
-            <div class="faq-item">
-              <dt>{item.question}</dt>
-              <dd><Fragment set:html={item.html} /></dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <script is:inline type="application/ld+json" set:html={JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        inLanguage: langTag,
-        mainEntity: faqSchema,
-      })} />
+      <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
+      <FaqSection locale={locale} heading={faq.heading} headingLevel="h1" items={faq.items} />
     </div>
   </main>
 </Layout>
