@@ -63,27 +63,66 @@ fn test_normalize_metric_flags_enables_cpu_when_all_metrics_disabled() {
     );
 }
 
-#[test]
-fn test_should_repair_macos_autostart_when_saved_setting_enabled() {
-    assert!(should_repair_macos_autostart(true, false));
-}
-
-#[test]
-fn test_should_repair_macos_autostart_when_system_status_enabled() {
-    assert!(should_repair_macos_autostart(false, true));
-}
-
-#[test]
-fn test_should_not_repair_macos_autostart_when_disabled_everywhere() {
-    assert!(!should_repair_macos_autostart(false, false));
-}
-
 #[cfg(target_os = "macos")]
 #[test]
 fn test_macos_process_lock_path_is_per_user() {
     assert_eq!(
         macos_process_lock_path(501),
         std::path::PathBuf::from("/tmp/dev.alexpedersen.better-resource-monitor.501.lock")
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_supported_macos_bundle_runtime_allows_applications_binary() {
+    assert!(!should_exit_unsupported_macos_bundle(
+        Some(MACOS_BUNDLE_ID),
+        std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH),
+        true
+    ));
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_supported_macos_bundle_runtime_rejects_stale_bundle_copy() {
+    assert!(should_exit_unsupported_macos_bundle(
+        Some(MACOS_BUNDLE_ID),
+        std::path::Path::new(
+            "/Users/xeliapedersen/.Trash/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor"
+        ),
+        true
+    ));
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_supported_macos_bundle_runtime_rejects_applications_binary_without_receipt() {
+    assert!(should_exit_unsupported_macos_bundle(
+        Some(MACOS_BUNDLE_ID),
+        std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH),
+        false
+    ));
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_supported_macos_bundle_runtime_allows_development_binary() {
+    assert!(!should_exit_unsupported_macos_bundle(
+        None,
+        std::path::Path::new("/tmp/better-resource-monitor"),
+        false
+    ));
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_macos_receipt_path_for_executable_uses_bundle_contents() {
+    assert_eq!(
+        macos_receipt_path_for_executable(std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH))
+            .as_deref(),
+        Some(std::path::Path::new(
+            "/Applications/Better Resource Monitor.app/Contents/_MASReceipt/receipt"
+        ))
     );
 }
 

@@ -7,10 +7,8 @@ EXPECTED_VERSION="${EXPECTED_VERSION:-}"
 EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 EXPECTED_BUILD_COMMIT="${EXPECTED_BUILD_COMMIT:-}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-G76YQZM2FU}"
+EXPECTED_SIGNATURE_AUTHORITIES="${EXPECTED_SIGNATURE_AUTHORITIES:-TestFlight Beta Distribution|Apple Mac OS Application Signing}"
 PROCESS_NAME="${PROCESS_NAME:-better-resource-monitor}"
-AUTOSTART_AGENT_LABEL="${AUTOSTART_AGENT_LABEL:-dev.alexpedersen.better-resource-monitor.autostart}"
-AUTOSTART_AGENT_PLIST="${AUTOSTART_AGENT_PLIST:-dev.alexpedersen.better-resource-monitor.autostart.plist}"
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 fail() {
   echo "FAIL: $*" >&2
@@ -65,15 +63,36 @@ verify_executable_contains_build_commit() {
 
 process_uses_installed_executable() {
   local pid="$1"
-  local command="$2"
-
-  if [[ "$command" == "$EXECUTABLE"* ]]; then
-    return 0
-  fi
 
   lsof -p "$pid" -a -d txt -Fn 2>/dev/null \
     | sed -n 's/^n//p' \
     | grep -Fxq "$EXECUTABLE"
+}
+
+verify_signature_authority() {
+  local authority
+  local found=0
+
+  IFS='|' read -ra authority_list <<< "$EXPECTED_SIGNATURE_AUTHORITIES"
+  for authority in "${authority_list[@]}"; do
+    if echo "$CODESIGN_DETAILS" | grep -Fxq "Authority=$authority"; then
+      found=1
+    fi
+  done
+
+  [[ "$found" -eq 1 ]] || fail "Expected one code signature authority from: $EXPECTED_SIGNATURE_AUTHORITIES"
+}
+
+verify_main_app_background_item_enabled() {
+  local match
+
+  match=$(sfltool dumpbtm 2>/dev/null | grep -A 16 -B 6 "$BUNDLE_ID" || true)
+  if [[ -z "$match" ]]; then
+    fail "No Background Item found for $BUNDLE_ID; enable Start at Login and log in again"
+  fi
+
+  echo "$match"
+  echo "$match" | grep -qi "enabled" || fail "Background Item for $BUNDLE_ID is not enabled"
 }
 
 validate_expected_build_commit() {
@@ -94,10 +113,12 @@ fi
 
 INFO_PLIST="$APP_PATH/Contents/Info.plist"
 EXECUTABLE="$APP_PATH/Contents/MacOS/$PROCESS_NAME"
-AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/$AUTOSTART_AGENT_PLIST"
+APP_STORE_RECEIPT="$APP_PATH/Contents/_MASReceipt/receipt"
 
 [[ -f "$INFO_PLIST" ]] || fail "Info.plist not found: $INFO_PLIST"
 [[ -x "$EXECUTABLE" ]] || fail "Executable not found: $EXECUTABLE"
+[[ ! -d "$APP_PATH/Contents/Library/LaunchAgents" ]] || fail "Installed app must not embed LaunchAgents"
+[[ -f "$APP_STORE_RECEIPT" ]] || fail "Installed app must have an App Store/TestFlight receipt: $APP_STORE_RECEIPT"
 
 note "Installed app"
 INSTALLED_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")
@@ -123,8 +144,6 @@ if [[ "$(uname -m)" == "x86_64" ]]; then
   [[ "$LIPO_INFO" == *"x86_64"* ]] || fail "Installed executable does not contain x86_64"
 fi
 verify_executable_contains_build_commit
-[[ -f "$AUTOSTART_AGENT" ]] || fail "Autostart LaunchAgent not found: $AUTOSTART_AGENT"
-"$SCRIPT_DIR/verify-macos-autostart-agent-plist.sh" "$AUTOSTART_AGENT"
 
 note "Code signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -132,20 +151,13 @@ CODESIGN_DETAILS=$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)
 echo "$CODESIGN_DETAILS" | sed -n '/^Identifier=/p;/^Authority=/p;/^TeamIdentifier=/p'
 TEAM_ID=$(echo "$CODESIGN_DETAILS" | awk -F= '/^TeamIdentifier=/{print $2; exit}')
 [[ "$TEAM_ID" == "$EXPECTED_TEAM_ID" ]] || fail "Expected TeamIdentifier $EXPECTED_TEAM_ID, got ${TEAM_ID:-<missing>}"
+verify_signature_authority
 
 note "Gatekeeper assessment"
 spctl -a -vv -t execute "$APP_PATH"
 
-note "Autostart registration"
-AGENT_MATCH=$(launchctl print "gui/$(id -u)/$AUTOSTART_AGENT_LABEL" 2>/dev/null || true)
-if [[ -n "$AGENT_MATCH" ]]; then
-  echo "$AGENT_MATCH" | sed -n '1,80p'
-else
-  BTM_MATCH=$(sfltool dumpbtm 2>/dev/null | grep -A 12 -B 4 "$BUNDLE_ID" || true)
-  [[ -n "$BTM_MATCH" ]] || fail "No LaunchAgent or Background Item found for $BUNDLE_ID"
-  echo "$BTM_MATCH"
-  echo "$BTM_MATCH" | grep -q "enabled" || fail "Background Item for $BUNDLE_ID is not enabled"
-fi
+note "Main app Background Item"
+verify_main_app_background_item_enabled
 
 note "Running process"
 PIDS=$(pgrep -x "$PROCESS_NAME" || true)
@@ -153,17 +165,16 @@ if [[ -n "$PIDS" ]]; then
   INSTALLED_PROCESS_COUNT=0
   for pid in $PIDS; do
     PROCESS_STATE=$(ps -p "$pid" -o stat= | awk '{print $1}')
-    PROCESS_COMMAND=$(ps -p "$pid" -o command=)
     ps -p "$pid" -o pid,ppid,lstart,etime,stat,command
-    if process_uses_installed_executable "$pid" "$PROCESS_COMMAND"; then
+    if process_uses_installed_executable "$pid"; then
       ((INSTALLED_PROCESS_COUNT += 1))
     else
       fail "$PROCESS_NAME pid $pid is not running from installed app path $EXECUTABLE"
     fi
     [[ "$PROCESS_STATE" != *T* ]] || fail "$PROCESS_NAME pid $pid is stopped/suspended"
   done
-  if [[ "$INSTALLED_PROCESS_COUNT" -gt 1 ]]; then
-    fail "Expected one $PROCESS_NAME process from installed app path $EXECUTABLE, found $INSTALLED_PROCESS_COUNT"
+  if [[ "$INSTALLED_PROCESS_COUNT" -ne 1 ]]; then
+    fail "Expected exactly one $PROCESS_NAME process from installed app path $EXECUTABLE, found $INSTALLED_PROCESS_COUNT"
   fi
 else
   print_recent_startup_log

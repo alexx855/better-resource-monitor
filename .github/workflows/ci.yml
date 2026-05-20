@@ -51,11 +51,7 @@ jobs:
         run: |
           bash -n \
             scripts/package-for-store.sh \
-            scripts/install-signed-macos-app.sh \
-            scripts/verify-macos-autostart.sh \
-            scripts/verify-macos-autostart-agent-plist.sh
-          scripts/verify-macos-autostart-agent-plist.sh \
-            src-tauri/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist
+            scripts/verify-macos-autostart.sh
 
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
@@ -70,6 +66,4 @@ jobs:
         run: |
           pnpm tauri build --bundles app --target x86_64-apple-darwin
           APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
-          AUTOSTART_AGENT="$APP_PATH/Contents/Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist"
-          test -f "$AUTOSTART_AGENT"
-          scripts/verify-macos-autostart-agent-plist.sh "$AUTOSTART_AGENT"
+          test ! -d "$APP_PATH/Contents/Library/LaunchAgents"

@@ -3,7 +3,6 @@
     "macOS": {
       "entitlements": "Entitlements.appstore.plist",
       "files": {
-        "Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist": "Library/LaunchAgents/dev.alexpedersen.better-resource-monitor.autostart.plist",
         "embedded.provisionprofile": "embedded.provisionprofile"
       }
     }
