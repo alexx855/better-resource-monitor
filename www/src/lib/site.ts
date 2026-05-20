@@ -5,17 +5,19 @@ export type SupportedLocale = SiteMarketingLocale;
 export const localizedLocales = locales.filter((locale) => locale !== "en");
 export type ComparisonPageKey = "vs-stats" | "vs-eul" | "vs-istat-menus";
 
-export const internalSlugs = ["faq", "vs-stats", "vs-eul", "vs-istat-menus", "privacy-policy", "terms"] as const;
+export const internalSlugs = ["faq", "comparison", "vs-stats", "vs-eul", "vs-istat-menus", "privacy-policy", "terms"] as const;
 
 export type InternalSlug = (typeof internalSlugs)[number];
 
 export type LocalizedPageDescriptor =
   | { kind: "faq" }
+  | { kind: "comparison-index" }
   | { kind: "comparison"; pageKey: ComparisonPageKey }
   | { kind: "legal"; slug: "privacy-policy" | "terms" };
 
 const localizedPageMap: Record<InternalSlug, LocalizedPageDescriptor> = {
   faq: { kind: "faq" },
+  comparison: { kind: "comparison-index" },
   "vs-stats": { kind: "comparison", pageKey: "vs-stats" },
   "vs-eul": { kind: "comparison", pageKey: "vs-eul" },
   "vs-istat-menus": { kind: "comparison", pageKey: "vs-istat-menus" },
@@ -63,6 +65,7 @@ export function getLocalizedInternalLinks(locale: SupportedLocale) {
   return {
     homeUrl: getLocalizedPath(locale),
     faqUrl: getLocalizedPath(locale, "faq"),
+    comparisonUrl: getLocalizedPath(locale, "comparison"),
     vsStatsUrl: getLocalizedPath(locale, "vs-stats"),
     vsEulUrl: getLocalizedPath(locale, "vs-eul"),
     vsIstatMenusUrl: getLocalizedPath(locale, "vs-istat-menus"),

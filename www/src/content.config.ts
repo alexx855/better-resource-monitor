@@ -22,10 +22,10 @@ function assertNoExecutableHtml(html: string, source: string) {
 }
 
 const homeComparisonCaptions = {
-  en: "System monitor comparison",
-  es: "Comparación de monitores de sistema",
-  "pt-br": "Comparação de monitores de sistema",
-  "zh-cn": "系统监视器对比",
+  en: "Menu bar monitor comparison",
+  es: "Comparación de monitores para la barra de menús",
+  "pt-br": "Comparação de monitores de barra de menus",
+  "zh-cn": "菜单栏监视器对比",
 } satisfies Record<SiteMarketingLocale, string>;
 
 const ui = defineCollection({
@@ -36,6 +36,7 @@ const ui = defineCollection({
     footer: z.object({
       navigation: z.string(),
       faq: z.string(),
+      comparison: z.string(),
       privacyPolicy: z.string(),
       terms: z.string(),
       license: z.string(),
@@ -64,6 +65,7 @@ const homeBody = defineCollection({
       for (const locale of siteMarketingLocales) {
         const filename = locale === "en" ? "README.md" : `README.${locale}.md`;
         const raw = await readFile(resolve(rootDir, filename), "utf-8");
+        const homeUrl = locale === "en" ? "/" : `/${locale}/`;
 
         const body = raw
           .replace(/<!-- README-LANG-START -->\n?/s, "")
@@ -88,6 +90,10 @@ const homeBody = defineCollection({
           .replace(
             '<img src="/better-resource-monitor.png"',
             '<img src="/better-resource-monitor.png" fetchpriority="high" decoding="async"',
+          )
+          .replace(
+            '<h1 align="center">Better Resource Monitor</h1>',
+            `<h1 align="center"><a class="home-title-link" href="${homeUrl}" aria-current="page">Better Resource Monitor</a></h1>`,
           );
         assertNoExecutableHtml(html, filename);
         store.set({ id: locale, data: {}, rendered: { html } });

@@ -14,7 +14,7 @@ export default defineConfig({
   },
   markdown: {
     shikiConfig: {
-      theme: 'github-dark',
+      theme: 'monokai',
     },
   },
   site: 'https://better-resource-monitor.alexpedersen.dev',

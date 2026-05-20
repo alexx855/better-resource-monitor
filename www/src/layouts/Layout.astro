@@ -1,5 +1,6 @@
 ---
 import { getEntry } from "astro:content";
+import { ClientRouter } from "astro:transitions";
 import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
 
 
@@ -82,6 +83,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />
     <meta name="robots" content={robots} />
     <title>{title}</title>
+    <ClientRouter />
 
     <!-- Structured Data -->
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
@@ -92,7 +94,7 @@ const siteUrl = new URL("/", Astro.site).href;
       "url": siteUrl,
       "inLanguage": localeMeta.langTag,
       "applicationCategory": "UtilitiesApplication",
-      "applicationSubCategory": "System Monitor",
+      "applicationSubCategory": "Menu Bar Monitor",
       "operatingSystem": "macOS",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
@@ -120,11 +122,8 @@ const siteUrl = new URL("/", Astro.site).href;
         --c-surface: #211914;
         --c-surface-alt: #2a211c;
         --c-border: #4a382e;
-        --c-alert-bg: #a93a12;
-        --c-alert-hover: #822d0e;
-        --c-focus: #ff8a4c;
-        --c-alert-fg: #ffffff;
-        --c-accent: var(--c-alert-bg);
+        --c-brand: #D14715;
+        --c-on-brand: #ffffff;
         --c-text: #fff8f2;
         --c-text-dim: #dcc9bc;
 
@@ -192,8 +191,8 @@ const siteUrl = new URL("/", Astro.site).href;
       body {
         font: 400 16px/1.6 var(--font-mono);
         background:
-          radial-gradient(circle at 12% -10%, rgba(169, 58, 18, 0.22), transparent 32rem),
-          radial-gradient(circle at 85% 12%, rgba(255, 138, 76, 0.10), transparent 26rem),
+          radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--c-brand) 22%, transparent), transparent 32rem),
+          radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--c-brand) 10%, transparent), transparent 26rem),
           linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 18px),
           var(--c-bg);
         color: var(--c-text);
@@ -205,7 +204,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       ::selection {
-        background: var(--c-focus);
+        background: var(--c-brand);
         color: #1a0f09;
       }
 
@@ -272,10 +271,10 @@ const siteUrl = new URL("/", Astro.site).href;
         color: inherit;
       }
 
-      /* Links — orange pill default */
+      /* Links */
       a {
-        color: var(--c-alert-fg);
-        background-color: var(--c-alert-bg);
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
         text-decoration: none;
         padding: 2px 4px;
         margin: 0 -4px;
@@ -288,7 +287,6 @@ const siteUrl = new URL("/", Astro.site).href;
       p a:not(:has(img)),
       li a:not(:has(img)),
       dd a:not(:has(img)) {
-        text-decoration: underline;
         text-decoration-thickness: 0.08em;
         text-underline-offset: 0.18em;
       }
@@ -308,7 +306,7 @@ const siteUrl = new URL("/", Astro.site).href;
 
       @media (hover: hover) and (pointer: fine) {
         a:hover {
-          background-color: var(--c-alert-hover);
+          background-color: color-mix(in srgb, var(--c-brand), #000 15%);
           translate: 0 -1px;
         }
 
@@ -319,7 +317,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       *:focus-visible {
-        outline: var(--border-width-thick) solid var(--c-focus);
+        outline: var(--border-width-thick) solid var(--c-brand);
         outline-offset: 2px;
       }
 
@@ -338,9 +336,53 @@ const siteUrl = new URL("/", Astro.site).href;
       .back-link {
         display: inline-flex;
         align-items: center;
+        gap: var(--space-3);
         min-height: var(--touch-target);
+        width: fit-content;
+        color: var(--c-text);
+        background: transparent;
+        padding: 0;
+        margin: 0 0 var(--space-6);
+        letter-spacing: -0.04em;
+      }
+
+      .back-link__arrow {
+        color: var(--c-brand);
         font-size: var(--fs-sm);
-        margin-bottom: var(--space-4);
+        translate: 0 -0.04em;
+        transition: translate var(--transition-fast);
+      }
+
+      .site-title-link,
+      .home-title-link {
+        color: var(--c-text);
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        text-decoration: none;
+        view-transition-name: site-title;
+      }
+
+      .site-title-link {
+        font-size: clamp(1.15rem, 4vw, 1.6rem);
+        line-height: 1;
+      }
+
+      .home-title-link {
+        display: inline-block;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .back-link:hover,
+        .home-title-link:hover {
+          background: transparent;
+          color: var(--c-brand);
+          translate: 0;
+        }
+
+        .back-link:hover .back-link__arrow {
+          translate: -0.2em -0.04em;
+        }
       }
 
       /* Container */
@@ -378,6 +420,8 @@ const siteUrl = new URL("/", Astro.site).href;
         overflow-x: auto;
         margin: 0 0 var(--space-5);
         border: var(--border-width) solid var(--c-border);
+        border-left: 4px solid var(--c-brand);
+        color: var(--c-text);
       }
 
       pre code {
@@ -387,7 +431,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       pre.astro-code span[style*="6A737D" i] {
-        color: #b7c0ca !important;
+        color: #ffad75 !important;
       }
 
       /* Inline code */
@@ -464,7 +508,7 @@ const siteUrl = new URL("/", Astro.site).href;
 
       /* Blockquotes */
       blockquote {
-        border-left: 22px solid var(--c-alert-bg);
+        border-left: 22px solid var(--c-brand);
         padding: var(--space-3) var(--space-5);
         margin: var(--space-5) 0;
         background: var(--c-surface);
@@ -481,15 +525,21 @@ const siteUrl = new URL("/", Astro.site).href;
       /* Footer */
       .site-footer {
         border-top: var(--border-width) solid var(--c-border);
+        background: transparent;
         margin-top: auto;
-        text-align: center;
+      }
+
+      .site-footer .container {
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-6);
       }
 
       .site-footer nav {
         display: flex;
         flex-wrap: wrap;
-        justify-content: space-between;
-        gap: var(--space-5);
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2) clamp(var(--space-4), 4vw, var(--space-6));
       }
 
       .site-footer nav a {
@@ -497,9 +547,32 @@ const siteUrl = new URL("/", Astro.site).href;
         align-items: center;
         justify-content: center;
         min-height: var(--touch-target);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-size: var(--fs-xs);
+        color: var(--c-text-dim);
+        background: transparent;
+        padding: 0 var(--space-1);
+        margin: 0;
+        font-size: var(--fs-sm);
+        line-height: 1.35;
+        text-align: center;
+        text-decoration-line: underline;
+        text-decoration-thickness: var(--border-width);
+        text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
+        text-underline-offset: 0.28em;
+        overflow-wrap: anywhere;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .site-footer nav a:hover {
+          color: var(--c-text);
+          background: transparent;
+          text-decoration-color: var(--c-brand);
+          translate: 0;
+        }
+      }
+
+      .site-footer nav a:focus-visible {
+        color: var(--c-text);
+        text-decoration-color: var(--c-brand);
       }
 
       /* Responsive */
@@ -528,8 +601,16 @@ const siteUrl = new URL("/", Astro.site).href;
 
       @media (max-width: 600px) {
         .site-footer nav {
-          flex-direction: column;
-          gap: var(--space-3);
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          justify-content: flex-start;
+          text-align: left;
+          gap: var(--space-2) var(--space-3);
+        }
+
+        .site-footer nav a {
+          justify-content: flex-start;
+          text-align: left;
         }
       }
 
@@ -551,6 +632,7 @@ const siteUrl = new URL("/", Astro.site).href;
       <div class="container">
         <nav aria-label={labels.footer.navigation}>
           <a href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
+          <a href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
           <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
           <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
           <a
