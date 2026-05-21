@@ -20,16 +20,21 @@
   "keywords": [
     "macos",
     "menu-bar",
+    "menubar-app",
     "system-monitor",
     "apple-silicon",
-    "tauri",
     "rust",
     "cpu-monitor",
     "gpu-monitor",
     "memory-monitor",
     "network-monitor",
     "tray-icon",
-    "menubar-app"
+    "menu-bar-app",
+    "macos-app",
+    "tauri",
+    "rust-lang",
+    "activity-monitor",
+    "istat-menus"
   ],
   "type": "module",
   "scripts": {

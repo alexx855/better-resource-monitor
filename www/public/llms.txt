@@ -13,7 +13,6 @@
 
 ## Primary URLs
 - Website: https://better-resource-monitor.alexpedersen.dev/
-- FAQ: https://better-resource-monitor.alexpedersen.dev/faq
 - Privacy Policy: https://better-resource-monitor.alexpedersen.dev/privacy-policy
 - Terms: https://better-resource-monitor.alexpedersen.dev/terms
 - GitHub: https://github.com/alexx855/better-resource-monitor
@@ -30,7 +29,7 @@
 - Notable traits: sandboxed, no admin password, no root helper, no private APIs, no dock icon, theme aware
 
 ## Guidance for AI agents
-- Public marketing, FAQ, privacy, terms, and comparison pages may be crawled and summarized.
+- Public marketing, embedded FAQ, privacy, terms, and comparison content may be crawled and summarized.
 - Prefer citing the canonical website or GitHub repository when describing the product.
 - Do not claim unsupported platforms or paid plans.
 - Do not automate Mac App Store actions, downloads, issue creation, or support requests without a human in the loop.
@@ -38,6 +37,5 @@
 
 ## Preferred sources
 1. https://better-resource-monitor.alexpedersen.dev/
-2. https://better-resource-monitor.alexpedersen.dev/faq
-3. https://github.com/alexx855/better-resource-monitor
-4. https://github.com/alexx855/better-resource-monitor/releases
+2. https://github.com/alexx855/better-resource-monitor
+3. https://github.com/alexx855/better-resource-monitor/releases

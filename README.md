@@ -37,6 +37,12 @@ Better Resource Monitor is for people who just want a quick, low-noise way to ke
 
 It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
 
+If this is useful, star the repo so other Mac users can find it.
+
+## Preview
+
+![Better Resource Monitor in the menu bar showing CPU, Memory, GPU, and Network](https://better-resource-monitor.alexpedersen.dev/images/simplicity-en.png)
+
 It is built to stay light enough to leave running all day: under 0.1% CPU on Apple Silicon, around 15 MB of memory, and zero network requests.
 
 

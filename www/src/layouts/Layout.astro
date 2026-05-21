@@ -289,9 +289,9 @@ const siteUrl = new URL("/", Astro.site).href;
 
       :where(a[href^="/"]:not(:has(img)):not(.comparison-card)) {
         display: inline-block;
-        transform: translateY(0) scale(1);
+        transform: translateX(0) scale(1);
         transition:
-          transform 140ms var(--ease-out),
+          transform 160ms var(--ease-out),
           background-size 180ms ease,
           background-color 180ms ease,
           color 180ms ease;
@@ -312,17 +312,15 @@ const siteUrl = new URL("/", Astro.site).href;
         background-image: none;
       }
 
+      a[href^="/"]:not(:has(img)):not(.comparison-card):focus-visible {
+        outline-offset: 4px;
+      }
+
       :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
-        transform: translateY(1px) scale(0.98);
+        transform: translateX(-2px) scale(0.98);
       }
 
       @media (hover: hover) and (pointer: fine) {
-        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):hover {
-          background-size: 100% 0, 100% 100%;
-          transform: translateY(-1px) scale(1);
-          will-change: transform;
-        }
-
         a:has(img):hover {
           background-color: transparent;
         }
@@ -654,7 +652,6 @@ const siteUrl = new URL("/", Astro.site).href;
           scroll-behavior: auto !important;
         }
 
-        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):hover,
         :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
           transform: none;
         }
