@@ -136,7 +136,7 @@ const faqItems = [
     padding: var(--space-5);
     position: relative;
     text-decoration: none;
-    transform: translateY(0) scale(1);
+    transform: translateX(0) scale(1);
     transition: transform var(--transition-fast);
   }
 
@@ -153,29 +153,23 @@ const faqItems = [
                 transform var(--transition-fast);
   }
 
-  .comparison-card:hover {
-    transform: translateY(-2px);
-    will-change: transform;
-  }
-
   .comparison-card:active {
-    transform: translateY(0) scale(0.99);
+    transform: translateX(-2px) scale(0.99);
   }
 
-  .comparison-card:hover::before {
+  .comparison-card:focus-visible::before {
     opacity: 1;
     transform: scale(1);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .comparison-card:hover,
     .comparison-card:active {
       border-color: var(--c-border);
       transform: none;
     }
 
-    .comparison-card:hover::before {
-      opacity: 0;
+    .comparison-card:focus-visible::before {
+      transform: none;
     }
   }
 
