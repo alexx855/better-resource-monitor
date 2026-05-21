@@ -1,7 +1,8 @@
 {
   "backToHome": "Volver al inicio",
   "footer": {
-    "navigation": "Navegación del pie de página",
+    "internalNavigation": "Enlaces del sitio del pie de página",
+    "externalNavigation": "Enlaces de recursos del pie de página",
     "faq": "Preguntas frecuentes",
     "comparison": "Comparaciones",
     "privacyPolicy": "Política de privacidad",

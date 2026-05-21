@@ -34,11 +34,10 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 
 它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
 
-技术上的选择是为了支撑这种体验：无需管理员密码步骤、无需 root 辅助工具、不使用私有 API、没有 Dock 图标、运行在沙盒中，并且以完整功能上架 Mac App Store。
 
 ## 安装
 
-从 <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> 获取（包含自动更新），或从 <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> 下载 `.dmg` 文件。
+从 <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> 获取（包含自动更新），或从 <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> 下载 `.dmg` 文件（不含自动更新；每个版本需手动下载更新）。
 
 ### 兼容性
 

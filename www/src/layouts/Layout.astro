@@ -193,7 +193,7 @@ const siteUrl = new URL("/", Astro.site).href;
         font: 400 16px/1.6 var(--font-mono);
         background:
           radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--c-brand) 22%, transparent), transparent 32rem),
-          radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--c-brand) 10%, transparent), transparent 26rem),
+          radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--c-brand) 10%, transparent), transparent 26rem),
           linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 18px),
           var(--c-bg);
         color: var(--c-text);
@@ -287,6 +287,17 @@ const siteUrl = new URL("/", Astro.site).href;
         margin: 0 -4px;
       }
 
+      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)) {
+        display: inline-block;
+        transform: translateY(0) scale(1);
+        transition:
+          transform 140ms var(--ease-out),
+          background-size 180ms ease,
+          background-color 180ms ease,
+          color 180ms ease;
+        vertical-align: baseline;
+      }
+
       p a:not(:has(img)),
       li a:not(:has(img)),
       dd a:not(:has(img)) {
@@ -301,9 +312,15 @@ const siteUrl = new URL("/", Astro.site).href;
         background-image: none;
       }
 
+      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
+        transform: translateY(1px) scale(0.98);
+      }
+
       @media (hover: hover) and (pointer: fine) {
-        a:hover {
+        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):hover {
           background-size: 100% 0, 100% 100%;
+          transform: translateY(-1px) scale(1);
+          will-change: transform;
         }
 
         a:has(img):hover {
@@ -329,7 +346,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       .home-link {
-        font-weight:bold;
+        font-weight: bold;
         display: inline-flex;
         align-items: center;
         gap: var(--space-3);
@@ -508,51 +525,79 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       .site-footer .container {
-        padding-top: var(--space-6);
-        padding-bottom: var(--space-6);
-      }
-
-      .site-footer nav {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
         gap: var(--space-2) clamp(var(--space-4), 4vw, var(--space-6));
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-6);
       }
 
-      .site-footer nav a {
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2) var(--space-3);
+      }
+
+      .footer-link {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--c-text-dim);
-        background: transparent;
-        background-image: linear-gradient(var(--c-brand), var(--c-brand));
-        background-position: 0 calc(100% - 0.18em);
-        background-repeat: no-repeat;
-        background-size: 0 var(--border-width);
-        padding: 0 var(--space-1);
-        margin: 0;
         font-size: var(--fs-sm);
         line-height: 1.35;
         text-align: center;
+      }
+
+      .footer-link--internal {
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image: none;
+        padding: 2px 4px;
+        margin: 0 -4px;
+        text-decoration: none;
+      }
+
+      .footer-link--external {
+        color: var(--c-text-dim);
+        background: transparent;
+        background-image: none;
+        padding: 0 var(--space-1);
+        margin: 0;
         text-decoration-line: underline;
-        text-decoration-thickness: var(--border-width);
+        text-decoration-thickness: calc(var(--border-width) * 1.5);
         text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
-        text-underline-offset: 0.28em;
+        text-underline-offset: 0.4em;
         overflow-wrap: anywhere;
       }
 
       @media (hover: hover) and (pointer: fine) {
-        .site-footer nav a:hover {
+        .footer-link--internal:hover {
+          color: var(--c-on-brand);
+          background-color: var(--c-brand);
+          background-image: none;
+        }
+
+        .footer-link--external:hover {
           color: var(--c-text-dim);
           background: transparent;
-          background-size: 0 var(--border-width);
+          background-image: none;
           text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
         }
       }
 
-      .site-footer nav a:focus-visible {
+      .footer-link--internal:focus-visible {
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image: none;
+      }
+
+      .footer-link--external:focus-visible {
         color: var(--c-text);
+        background: transparent;
+        background-image: none;
         text-decoration-color: var(--c-brand);
       }
 
@@ -581,7 +626,13 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       @media (max-width: 600px) {
-        .site-footer nav {
+        .site-footer .container {
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
+        }
+
+        .footer-links {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           justify-content: flex-start;
@@ -589,7 +640,7 @@ const siteUrl = new URL("/", Astro.site).href;
           gap: var(--space-2) var(--space-3);
         }
 
-        .site-footer nav a {
+        .footer-link {
           justify-content: flex-start;
           text-align: left;
         }
@@ -603,6 +654,10 @@ const siteUrl = new URL("/", Astro.site).href;
           scroll-behavior: auto !important;
         }
 
+        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):hover,
+        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
+          transform: none;
+        }
       }
     </style>
   </head>
@@ -612,21 +667,26 @@ const siteUrl = new URL("/", Astro.site).href;
     </div>
     <footer class="site-footer">
       <div class="container">
-        <nav aria-label={labels.footer.navigation}>
-          <a href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
-          <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
-          <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
+        <nav class="footer-links" aria-label={labels.footer.internalNavigation}>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
+        </nav>
+        <nav class="footer-links" aria-label={labels.footer.externalNavigation}>
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.license}</a
           >
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor/issues/new"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.support}</a
           >
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.github}</a

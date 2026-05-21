@@ -1,7 +1,8 @@
 {
-  "backToHome": "Back home",
+  "backToHome": "BRM",
   "footer": {
-    "navigation": "Footer navigation",
+    "internalNavigation": "Footer site links",
+    "externalNavigation": "Footer resource links",
     "faq": "FAQ",
     "comparison": "Comparisons",
     "privacyPolicy": "Privacy Policy",

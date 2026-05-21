@@ -34,7 +34,8 @@ const ui = defineCollection({
     backToHome: z.string(),
 
     footer: z.object({
-      navigation: z.string(),
+      internalNavigation: z.string(),
+      externalNavigation: z.string(),
       faq: z.string(),
       comparison: z.string(),
       privacyPolicy: z.string(),

@@ -34,11 +34,10 @@ Mantiene el uso de CPU, memoria, GPU y red directamente en la barra de menús, p
 
 Está pensado para quedarse abierto todo el día sin convertirse en parte del problema: menos del 0,1% de CPU en Apple Silicon, unos 15 MB de memoria y cero solicitudes de red.
 
-La parte técnica está ahí para respaldar esa experiencia. Se instala como una app normal de Mac, funciona en sandbox, está disponible en la Mac App Store con todas sus funciones y evita pedir contraseña de administrador o usar procesos auxiliares con permisos root.
 
 ## Instalación
 
-Descárgalo desde la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Descárgalo desde la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (sin actualizaciones automáticas; descarga e instala manualmente cada nueva versión).
 
 ### Compatibilidad
 
