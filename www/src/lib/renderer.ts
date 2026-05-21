@@ -14,6 +14,12 @@ export const colors = {
   border: "#3a3a3a",
 };
 
+export const imageBackgroundStyle = {
+  backgroundColor: colors.bg,
+  backgroundImage:
+    "radial-gradient(circle at 12% -10%, rgba(209, 71, 21, 0.22), rgba(209, 71, 21, 0) 56%), radial-gradient(circle at 50% 12%, rgba(209, 71, 21, 0.1), rgba(209, 71, 21, 0) 48%), linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 18px)",
+};
+
 // Font cache — fetched once per build
 let fontData: ArrayBuffer | null = null;
 

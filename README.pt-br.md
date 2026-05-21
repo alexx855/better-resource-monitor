@@ -34,11 +34,10 @@ Ele mostra CPU, memória, GPU e rede direto na barra de menus, para você perceb
 
 Também foi feito para ser leve, para que o próprio monitor não vire parte do problema.
 
-A parte técnica existe para sustentar essa experiência: sem etapa de senha de administrador, sem helper root, sem APIs privadas, sem ícone no Dock, rodando em sandbox e disponível na Mac App Store com todos os recursos.
 
 ## Instalação
 
-Obtenha na <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (inclui atualizações automáticas) ou baixe o `.dmg` no <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Obtenha na <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (inclui atualizações automáticas) ou baixe o `.dmg` no <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (sem atualizações automáticas; baixe e atualize manualmente cada versão).
 
 ### Compatibilidade
 

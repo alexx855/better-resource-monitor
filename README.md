@@ -39,11 +39,10 @@ It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch u
 
 It is built to stay light enough to leave running all day: under 0.1% CPU on Apple Silicon, around 15 MB of memory, and zero network requests.
 
-The technical side is there to support that experience. It installs like a normal Mac app, stays sandboxed, ships on the Mac App Store with full features, and avoids admin-password prompts or background root helpers.
 
 ## Installation
 
-Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (no automatic updates; download and update manually each version).
 
 ### Compatibility
 

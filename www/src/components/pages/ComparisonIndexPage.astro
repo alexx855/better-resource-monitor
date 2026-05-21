@@ -136,8 +136,8 @@ const faqItems = [
     padding: var(--space-5);
     position: relative;
     text-decoration: none;
-    transition: transform var(--transition-fast),
-                scale 0.1s var(--ease-out);
+    transform: translateY(0) scale(1);
+    transition: transform var(--transition-fast);
   }
 
   .comparison-card::before {
@@ -154,8 +154,12 @@ const faqItems = [
   }
 
   .comparison-card:hover {
-    translate: 0;
     transform: translateY(-2px);
+    will-change: transform;
+  }
+
+  .comparison-card:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .comparison-card:hover::before {
@@ -163,13 +167,11 @@ const faqItems = [
     transform: scale(1);
   }
 
-  .comparison-card:hover .card-link {
-    translate: 0;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .comparison-card:hover {
+    .comparison-card:hover,
+    .comparison-card:active {
       border-color: var(--c-border);
+      transform: none;
     }
 
     .comparison-card:hover::before {

@@ -1,5 +1,5 @@
 import type { APIRoute, GetStaticPaths } from "astro";
-import { renderImage, colors, trayIconBase64 } from "../../lib/renderer";
+import { renderImage, colors, imageBackgroundStyle, trayIconBase64 } from "../../lib/renderer";
 import { appStoreScreenshots, supportedLangs, screenshotKeys, siteMarketingLocales, ogTitles, screenshotLangByLocale } from "../../lib/translations";
 import type { SiteMarketingLocale } from "../../lib/translations";
 
@@ -161,7 +161,7 @@ export const GET: APIRoute = async ({ props }) => {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: showAppName ? "center" : "flex-start",
-        backgroundColor: colors.bg,
+        ...imageBackgroundStyle,
         fontFamily: "JetBrains Mono",
         padding: showAppName ? `0 ${s(140)}px` : "0",
       },
