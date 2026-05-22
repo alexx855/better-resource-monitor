@@ -76,7 +76,7 @@ jobs:
           BRM_BUILD_COMMIT: ${{ github.sha }}
         run: |
           export BRM_BUILD_COMMIT="$(printf '%s' "$BRM_BUILD_COMMIT" | cut -c1-12)"
-          TIMESTAMP_BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"
+          TIMESTAMP_BUILD_NUMBER="$(date -u +%Y%m%d%H%M%S)"
           if [ "$BUILD_NUMBER" -lt "$TIMESTAMP_BUILD_NUMBER" ]; then
             export BUILD_NUMBER="$TIMESTAMP_BUILD_NUMBER"
           fi
