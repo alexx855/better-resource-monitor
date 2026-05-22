@@ -25,7 +25,7 @@
 ## Release Notes
 - Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.
 - Hardcoded DMG download links also exist in `README.es.md`, `README.pt-br.md`, and `README.zh-cn.md`; the current release workflow only rewrites `README.md`, so localized READMEs are easy to leave stale.
-- App Store packaging is driven by `scripts/package-for-store.sh` plus `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, `scripts/.env`, and `src-tauri/embedded.provisionprofile`. The script increments `scripts/.build-number` and runs `pnpm tauri build --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json --features app-store`.
+- App Store packaging is driven by GitHub Actions plus `scripts/package-for-store.sh`, `scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, and `src-tauri/embedded.provisionprofile`. `.github/workflows/testflight.yml` uploads build-number-only TestFlight builds without repo version changes; `.github/workflows/release.yml` bumps/tags/uploads and then creates the GitHub release. Local `scripts/.env` packaging remains a fallback only.
 
 ## Trust Code Over Docs
 - Prefer `Cargo.toml`, `tauri*.json`, scripts, and source over prose docs. Current drift: `docs/app-store-guide.md` still shows the old repo feature name `apple-app-store` and macOS `minimumSystemVersion` `11.0`; current executable config uses feature `app-store` and minimum macOS `13.0`.

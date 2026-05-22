@@ -51,6 +51,7 @@ jobs:
         run: |
           bash -n \
             scripts/package-for-store.sh \
+            scripts/setup-appstore-signing.sh \
             scripts/verify-macos-autostart.sh
 
       - name: Check formatting

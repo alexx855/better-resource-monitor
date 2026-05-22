@@ -1,8 +1,7 @@
 name: Release
 
-# Creates a source-only GitHub release. macOS runtime distribution is
-# TestFlight/App Store only; App Store packaging is handled by
-# scripts/package-for-store.sh outside this release workflow.
+# Bumps the marketing version, tags the release, uploads the App Store package,
+# then creates the GitHub release.
 
 on:
   workflow_dispatch:
@@ -16,6 +15,10 @@ on:
           - minor
           - major
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   version-bump:
     runs-on: ubuntu-latest
@@ -28,6 +31,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -121,11 +125,79 @@ jobs:
           git add -A
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "v$NEW_VERSION"
-          git push origin main
+          git push origin HEAD:main
           git push origin "v$NEW_VERSION"
 
-  create-github-release:
+  upload-appstore:
     needs: version-bump
+    runs-on: macos-15
+    permissions:
+      contents: read
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_DISTRIBUTION_IDENTITY: ${{ secrets.APPLE_DISTRIBUTION_IDENTITY }}
+      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+      APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
+      APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+      APPLE_INSTALLER_CERT_P12_BASE64: ${{ secrets.APPLE_INSTALLER_CERT_P12_BASE64 }}
+      APPLE_INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERT_PASSWORD }}
+      APPLE_PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Validate scripts
+        run: |
+          bash -n \
+            scripts/package-for-store.sh \
+            scripts/setup-appstore-signing.sh \
+            scripts/verify-macos-autostart.sh
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Prepare App Store credentials
+        run: bash scripts/setup-appstore-signing.sh
+
+      - name: Upload to App Store Connect
+        run: |
+          export BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"
+          export BRM_BUILD_COMMIT="$(git rev-parse --short=12 HEAD)"
+          bash scripts/package-for-store.sh
+
+  create-github-release:
+    needs:
+      - version-bump
+      - upload-appstore
     runs-on: ubuntu-latest
     permissions:
       contents: write

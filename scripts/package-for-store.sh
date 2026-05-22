@@ -2,7 +2,9 @@
 set -e
 
 # Builds, signs, packages, and uploads a universal macOS binary to App Store Connect.
-# Build number can be set with BUILD_NUMBER, otherwise it auto-increments from
+# Local runs may load Apple credentials from scripts/.env. GitHub Actions should
+# provide the same values as environment variables.
+# Build number can be set with BUILD_NUMBER. Otherwise it auto-increments from
 # scripts/.build-number while never falling below a timestamp-scale value.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,20 +25,21 @@ case "$BRM_BUILD_COMMIT" in
     ;;
 esac
 
-if [ ! -f "$ENV_FILE" ]; then
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+elif [ -z "${CI:-}" ]; then
   echo "Error: .env file not found at $ENV_FILE"
   echo "Create scripts/.env with required variables (see scripts/.env.example)"
+  echo "CI may provide these variables directly in the environment."
   exit 1
 fi
-
-set -a
-source "$ENV_FILE"
-set +a
 
 required_vars=("APPLE_TEAM_ID" "APPLE_DISTRIBUTION_IDENTITY" "APPLE_INSTALLER_IDENTITY" "APPLE_API_KEY_ID" "APPLE_API_ISSUER")
 for var in "${required_vars[@]}"; do
   if [ -z "${!var}" ]; then
-    echo "Error: $var is not set in $ENV_FILE"
+    echo "Error: $var is not set"
     exit 1
   fi
 done
@@ -64,8 +67,8 @@ else
   if [ "$BUILD_NUMBER" -lt "$TIMESTAMP_BUILD_NUMBER" ]; then
     BUILD_NUMBER="$TIMESTAMP_BUILD_NUMBER"
   fi
+  echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 fi
-echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 
 echo "=== App Store Packaging Script ==="
 echo "Version: $VERSION"
