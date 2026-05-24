@@ -15,6 +15,7 @@ release mechanics are owned by the workflow files, scripts, and Tauri config.
 Rust checks run from `src-tauri/` unless a workflow says otherwise:
 
 ```bash
+cd src-tauri
 cargo fmt
 cargo test
 cargo clippy
@@ -22,9 +23,10 @@ cargo clippy
 
 ## Development Workflow
 
-Keep branches focused and short-lived. If you are working from a dirty local
-checkout, create a temporary clone or worktree for the pull request so unrelated
-changes do not leak into the diff.
+Keep branches focused and short-lived. Use an intent prefix such as `docs/`,
+`fix/`, `feat/`, or `chore/` so reviewers can scan the branch purpose. If you
+are working from a dirty local checkout, create a temporary clone or worktree for
+the pull request so unrelated changes do not leak into the diff.
 
 Pull requests should explain:
 
