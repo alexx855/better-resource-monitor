@@ -8,7 +8,7 @@ release mechanics are owned by the workflow files, scripts, and Tauri config.
 
 1. Fork the repository and clone your fork.
 2. Install dependencies with `pnpm install`.
-3. Run the app with `pnpm tauri dev` or `pnpm dev`.
+3. Run the app with `pnpm tauri dev`.
 4. For the website, use `pnpm dev:www`, `pnpm build:www`, and
    `pnpm preview:www` from the repo root.
 
