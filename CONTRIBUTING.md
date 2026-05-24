@@ -1,39 +1,85 @@
 # Contributing to Better Resource Monitor
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
+Thanks for helping improve Better Resource Monitor. This guide is for human
+contributors; agent-specific repo notes live in [AGENTS.md](AGENTS.md), and
+release mechanics are owned by the workflow files, scripts, and Tauri config.
 
 ## Getting Started
 
-1. **Fork the repository** and clone it locally
-2. **Install dependencies**: `npm install`
-3. **Run in development**: `npm run tauri dev`
+1. Fork the repository and clone your fork.
+2. Install dependencies with `pnpm install`.
+3. Run the app with `pnpm tauri dev` or `pnpm dev`.
+4. For the website, use `pnpm dev:www`, `pnpm build:www`, and
+   `pnpm preview:www` from the repo root.
+
+Rust checks run from `src-tauri/` unless a workflow says otherwise:
+
+```bash
+cargo fmt
+cargo test
+cargo clippy
+```
 
 ## Development Workflow
 
-1. Create a new branch for your feature or bugfix
-2. Make your changes with clear, descriptive commits
-3. Test your changes thoroughly
-4. Submit a pull request with a clear description
+Keep branches focused and short-lived. If you are working from a dirty local
+checkout, create a temporary clone or worktree for the pull request so unrelated
+changes do not leak into the diff.
 
-## Code Style
+Pull requests should explain:
 
-- **Rust**: Follow standard Rust conventions, run `cargo fmt` before committing
-- **JavaScript/HTML/CSS**: Use consistent indentation (2 spaces)
+- what changed and why;
+- which user, contributor, or release path is affected;
+- which checks were run, or why a narrower check is enough;
+- follow-up work that is intentionally left out of scope.
+
+## Validation
+
+Docs-only changes still need enough proof for the claims they make. A wording
+fix can usually be reviewed with a focused diff check. A docs change that
+describes Rust/Tauri behavior, release packaging, CI gates, App Store signing,
+Start at Login, GPU sampling, or bundle layout should wait for the relevant CI
+or Rust proof before merge.
+
+For website changes, run `pnpm build:www`. For Rust or app behavior changes,
+run the focused Rust command first, then broaden to the full checks when the
+change touches shared behavior or release packaging.
+
+## Release Workflow Changes
+
+Treat executable files as the source of truth. Release and TestFlight behavior
+is defined by `.github/workflows/release.yml`,
+`.github/workflows/testflight.yml`, `scripts/package-for-store.sh`,
+`scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`,
+`src-tauri/Entitlements.appstore.plist`, and
+`src-tauri/embedded.provisionprofile`.
+
+Release documentation should explain how those files fit together without
+copying long YAML or shell fragments into prose. If a branch temporarily changes
+the intended workflow, describe that in the pull request body or a temporary
+handoff note, then fold only durable guidance into mainline docs.
+
+## Localization And Marketing Copy
+
+When a change affects a user-facing promise, update the related localized and
+marketing surfaces together. This includes supported platforms, install paths,
+release availability, sandboxing/no-root claims, privacy/no-telemetry claims,
+pricing, and comparison language.
+
+Internal contributor wording can usually change in one file. Product positioning
+should either move across the matching README and website surfaces in the same
+pull request or call out the deferred localization follow-up explicitly.
 
 ## Reporting Issues
 
 When reporting bugs, please include:
+
 - macOS version and chip (Intel/Apple Silicon)
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots if applicable
-
-## Pull Request Guidelines
-
-- Keep changes focused and atomic
-- Update documentation if needed
-- Ensure the app builds without errors
+- steps to reproduce
+- expected vs actual behavior
+- screenshots if applicable
 
 ## Questions?
 
-Feel free to open an issue for any questions or discussions.
+Use GitHub Discussions for contributor questions and GitHub Issues for bugs or
+tracked implementation work.
