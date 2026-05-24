@@ -12,7 +12,7 @@ app distributed through TestFlight and the Mac App Store.
 | macOS 13+ | ✅ Shipping | Primary product. The Tauri tray app, App Store configuration, and public docs target macOS first. |
 | Apple Silicon Macs | ✅ Shipping | Supported through the App Store/TestFlight distribution path. |
 | Intel Macs | In Progress | Supported by source checks and App Store packaging work; mark fully shipped only after TestFlight/App Store verification passes on Intel hardware. |
-| Linux | Experimental | Linux-specific code paths and bundle metadata exist, but there is no supported installer, release process, or end-user positioning. |
+| Linux | Experimental | Linux-specific code paths and bundle metadata exist, but there is no supported installer, release process, or end-user positioning. Public Linux releases are paused while the upstream GNOME appindicator/Mutter texture leak tracked in [issue #10](https://github.com/alexx855/better-resource-monitor/issues/10) remains unresolved; see the [Linux release Q&A](https://github.com/alexx855/better-resource-monitor/discussions/19) for user-facing context. |
 | Windows | Not targeted | Tauri can compile cross-platform in theory, but this repo does not ship or document a Windows product. |
 
 ## Current product status
@@ -29,7 +29,7 @@ app distributed through TestFlight and the Mac App Store.
 | Start at Login tied to real macOS Login Items state | In Progress | TestFlight/App Store builds use `SMAppService.mainAppService()` and verify the main-app Background Item after login. |
 | Intel compatibility | In Progress | Keep Intel marked in progress until the signed TestFlight/App Store app passes verification on Intel hardware. |
 | Marketing website | Partial | The repo includes a real Astro marketing site under `www/`, but roadmap and product docs inside the app repo are still fairly lean. |
-| Linux packaging/productization | Experimental | Linux bundle metadata exists in Tauri config, but there is no supported installer, release process, or end-user positioning for Linux yet. |
+| Linux packaging/productization | Experimental | Linux bundle metadata exists in Tauri config, but Linux stays unsupported until the tray stack can avoid the upstream appindicator/Mutter texture leak documented in [issue #10](https://github.com/alexx855/better-resource-monitor/issues/10). |
 | Release automation and packaging polish | Planned | App Store packaging is configured; keep polishing the TestFlight/App Store release path. |
 
 ## Near-term focus
@@ -37,5 +37,5 @@ app distributed through TestFlight and the Mac App Store.
 - Finish validating the native macOS `Start at Login` flow through the TestFlight/App Store path.
 - Mark Intel support as shipped only when signed TestFlight/App Store verification passes on Intel hardware.
 - Keep the tray renderer lean under long-running use.
-- Decide whether Linux stays experimental or gets a real supported release path.
+- Keep Linux experimental unless the upstream tray-icon stack moves away from the leaking appindicator path or another supported release path is proven safe.
 - Continue polishing the TestFlight/App Store packaging workflow without giving up the sandboxed, no-root model.
