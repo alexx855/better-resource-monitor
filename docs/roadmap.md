@@ -12,7 +12,7 @@ app distributed through TestFlight and the Mac App Store.
 | macOS 13+ | ✅ Shipping | Primary product. The Tauri tray app, App Store configuration, and public docs target macOS first. |
 | Apple Silicon Macs | ✅ Shipping | Supported through the App Store/TestFlight distribution path. |
 | Intel Macs | In Progress | Supported by source checks and App Store packaging work; mark fully shipped only after TestFlight/App Store verification passes on Intel hardware. |
-| Linux | Experimental | Linux-specific code paths exist, but there is no supported installer, release process, or end-user positioning. |
+| Linux | [Experimental](#linux-release-pause) | Linux-specific code paths exist, but there is no supported installer, release process, or end-user positioning. |
 | Windows | Not targeted | Tauri can compile cross-platform in theory, but this repo does not ship or document a Windows product. |
 
 ## Current product status
@@ -29,7 +29,7 @@ app distributed through TestFlight and the Mac App Store.
 | Start at Login tied to real macOS Login Items state | In Progress | TestFlight/App Store builds use `SMAppService.mainAppService()` and verify the main-app Background Item after login. |
 | Intel compatibility | In Progress | Keep Intel marked in progress until the signed TestFlight/App Store app passes verification on Intel hardware. |
 | Marketing website | Partial | The repo includes a real Astro marketing site under `www/`, but roadmap and product docs inside the app repo are still fairly lean. |
-| Linux packaging/productization | Experimental | Linux bundle metadata exists in Tauri config, but Linux packaging remains unsupported. |
+| Linux packaging/productization | [Experimental](#linux-release-pause) | Linux bundle metadata exists in Tauri config, but Linux packaging remains unsupported. |
 | Release automation and packaging polish | Planned | App Store packaging is configured; keep polishing the TestFlight/App Store release path. |
 
 ### Linux release pause
