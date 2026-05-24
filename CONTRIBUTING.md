@@ -7,8 +7,8 @@ reviewable, and tied to the macOS menu bar product this repo currently ships.
 
 1. Fork the repository and create a short-lived branch for the change.
 2. Install dependencies with `pnpm install`.
-3. Use `pnpm tauri dev` or `pnpm dev` for the root app.
-4. Run Rust checks from `src-tauri/` when changing app behavior.
+3. Use `pnpm tauri dev` for the root app.
+4. Run `cargo fmt`, `cargo test`, and `cargo clippy` from `src-tauri/` when changing app behavior.
 5. Run site commands through the workspace scripts when changing `www/`.
 
 ## Branch and PR scope
