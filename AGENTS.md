@@ -17,7 +17,7 @@
 - `www/src/lib/renderer.ts` fetches fonts from Google during build. `pnpm build:www` and `pnpm build:screenshots` need network access.
 - `pnpm build:screenshots` first builds `www/`, then copies generated PNGs from `www/dist/images` into `images/appstore/<lang>/`.
 - If you change tray visuals, regenerate marketing tray art from `src-tauri/examples/render_tray_icon.rs`; do not hand-redraw `www/public/better-resource-monitor*.png` separately from the app renderer.
-- macOS App Store builds use the repo Cargo feature `app-store`, which disables GPU sampling in `src-tauri/src/gpu.rs`. `sysinfo` separately enables its dependency feature `apple-app-store` in `Cargo.toml`.
+- macOS App Store builds use `--features app-store`, but GPU sampling must stay enabled through the public IOAccelerator path in `src-tauri/src/gpu.rs`. Do not reintroduce an App Store GPU stub; the old private IOReport workaround is obsolete. `sysinfo` separately enables its dependency feature `apple-app-store` in `Cargo.toml`.
 
 ## Website UX Decisions
 - Do not add a skip-to-content link to the current marketing site by default. Pages start directly with their main content, and the extra localized copy, CSS, focus target, and DOM add complexity without clear value here. Revisit only if persistent navigation or other repeated chrome is added before the content.
@@ -25,7 +25,7 @@
 ## Release Notes
 - Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.
 - Hardcoded DMG download links also exist in `README.es.md`, `README.pt-br.md`, and `README.zh-cn.md`; the current release workflow only rewrites `README.md`, so localized READMEs are easy to leave stale.
-- App Store packaging is driven by GitHub Actions plus `scripts/package-for-store.sh`, `scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, and `src-tauri/embedded.provisionprofile`. `.github/workflows/testflight.yml` uploads build-number-only TestFlight builds without repo version changes; `.github/workflows/release.yml` bumps/tags/uploads and then creates the GitHub release. There is no supported local App Store packaging fallback; keep uploads on GitHub Actions so builds stay tied to a commit, runner log, and passing checks.
+- App Store packaging is driven by GitHub Actions plus `.github/actions/upload-appstore`, `scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, and `src-tauri/embedded.provisionprofile`. `.github/workflows/testflight.yml` is the only App Store upload path and owns `CFBundleVersion`; it uses the GitHub run number with a UTC timestamp floor for same-version monotonicity. `.github/workflows/release.yml` bumps/tags, dispatches TestFlight for the tag, waits for it, then creates the GitHub release. There is no local App Store packaging fallback.
 
 ## Trust Code Over Docs
-- Prefer `src-tauri/Cargo.toml`, `src-tauri/tauri*.json`, `scripts/`, `.github/workflows/`, and `src-tauri/src/` over prose docs when release or packaging guidance conflicts.
+- Prefer `Cargo.toml`, `tauri*.json`, scripts, and source over prose docs. Current drift: `docs/app-store-guide.md` still shows the old repo feature name `apple-app-store` and macOS `minimumSystemVersion` `11.0`; current executable config uses feature `app-store` and minimum macOS `13.0`.

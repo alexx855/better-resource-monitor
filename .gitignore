@@ -28,7 +28,11 @@ dist-ssr
 !.env.example
 scripts/.build-number
 
-# applestoreconnect
+# App Store Connect credentials and provisioning artifacts
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
 src-tauri/embedded.provisionprofile
 private_keys/*.p8
 .agents/skills
