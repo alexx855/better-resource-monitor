@@ -27,6 +27,12 @@ const faqSchema = items.map((item) => ({
       .replace(/`/g, ""),
   },
 }));
+const faqSchemaJson = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  inLanguage: langTag,
+  mainEntity: faqSchema,
+}).replace(/</g, "\\u003c");
 ---
 
 <section class="faq-section" aria-labelledby="faq-section-heading">
@@ -42,12 +48,7 @@ const faqSchema = items.map((item) => ({
 </section>
 
 {includeSchema && (
-  <script is:inline type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    inLanguage: langTag,
-    mainEntity: faqSchema,
-  })} />
+  <script is:inline type="application/ld+json" set:html={faqSchemaJson} />
 )}
 
 <style>
