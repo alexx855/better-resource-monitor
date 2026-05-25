@@ -33,7 +33,7 @@ Install the TestFlight/App Store build, enable Start at Login in the app menu,
 then log out and back in. After the new login session starts, run:
 
 ```bash
-EXPECTED_VERSION=<version> EXPECTED_BUILD_COMMIT=<short-commit> scripts/verify-macos-autostart.sh
+EXPECTED_VERSION="<version>" EXPECTED_BUILD_COMMIT="<short-commit>" scripts/verify-macos-autostart.sh
 ```
 
 The verifier checks the installed `/Applications` app, signature authority,
