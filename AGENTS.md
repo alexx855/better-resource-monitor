@@ -28,4 +28,4 @@
 - App Store packaging is driven by GitHub Actions plus `scripts/package-for-store.sh`, `scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, and `src-tauri/embedded.provisionprofile`. `.github/workflows/testflight.yml` uploads build-number-only TestFlight builds without repo version changes; `.github/workflows/release.yml` bumps/tags/uploads and then creates the GitHub release. There is no supported local App Store packaging fallback; keep uploads on GitHub Actions so builds stay tied to a commit, runner log, and passing checks.
 
 ## Trust Code Over Docs
-- Prefer `Cargo.toml`, `tauri*.json`, scripts, and source over prose docs. Current drift: `docs/app-store-guide.md` still shows the old repo feature name `apple-app-store` and macOS `minimumSystemVersion` `11.0`; current executable config uses feature `app-store` and minimum macOS `13.0`.
+- Prefer `src-tauri/Cargo.toml`, `src-tauri/tauri*.json`, `scripts/`, `.github/workflows/`, and `src-tauri/src/` over prose docs when release or packaging guidance conflicts.
