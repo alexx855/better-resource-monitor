@@ -29,15 +29,31 @@ export const comparisonFaqHeadings = {
   "zh-cn": "对比问题",
 } satisfies Record<SupportedLocale, string>;
 
-const sharedFaqIndexes = {
-  home: [0, 1, 2, 3, 4, 5, 7, 8],
-  comparisonIndex: [0, 3, 4, 5, 6, 7],
-  comparisonPage: [0, 3, 4, 5, 7],
-  legal: [5],
+const sharedFaqIds = {
+  home: [
+    "overview",
+    "macos-support",
+    "pricing",
+    "resource-use",
+    "gpu-monitoring",
+    "privacy",
+    "battery",
+    "activity-monitor",
+  ],
+  comparisonIndex: ["overview", "resource-use", "gpu-monitoring", "privacy", "comparison", "battery"],
+  comparisonPage: ["overview", "resource-use", "gpu-monitoring", "privacy", "battery"],
+  legal: ["privacy"],
 } as const;
 
-export function pickFaqItems(items: FaqItem[], key: keyof typeof sharedFaqIndexes) {
-  return sharedFaqIndexes[key].map((index) => items[index]).filter((item): item is FaqItem => Boolean(item));
+export function pickFaqItems(items: FaqItem[], key: keyof typeof sharedFaqIds) {
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  return sharedFaqIds[key].map((id) => {
+    const item = itemById.get(id);
+    if (!item) {
+      throw new Error(`Missing FAQ item with id "${id}"`);
+    }
+    return item;
+  });
 }
 
 const comparisonOrder: ComparisonPageKey[] = ["vs-stats", "vs-istat-menus", "vs-eul"];

@@ -99,6 +99,7 @@ const homeBody = defineCollection({
 
 const faqItems = z.array(
   z.object({
+    id: z.string().optional(),
     question: z.string(),
     answer: z.string(),
   }),
