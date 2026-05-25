@@ -4,9 +4,17 @@ name: TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Optional numeric CFBundleVersion to use for this upload'
+        required: false
+        type: string
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
   group: testflight-${{ github.ref }}
@@ -31,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -44,12 +52,12 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10.33.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -58,11 +66,7 @@ jobs:
         run: pnpm install
 
       - name: Validate scripts
-        run: |
-          bash -n \
-            scripts/package-for-store.sh \
-            scripts/setup-appstore-signing.sh \
-            scripts/verify-macos-autostart.sh
+        run: bash -n scripts/setup-appstore-signing.sh
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
@@ -70,14 +74,35 @@ jobs:
       - name: Prepare App Store credentials
         run: bash scripts/setup-appstore-signing.sh
 
-      - name: Upload to App Store Connect
+      - name: Resolve build metadata
+        id: build-metadata
         env:
-          BUILD_NUMBER: ${{ github.run_number }}
-          BRM_BUILD_COMMIT: ${{ github.sha }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
-          export BRM_BUILD_COMMIT="$(printf '%s' "$BRM_BUILD_COMMIT" | cut -c1-12)"
-          TIMESTAMP_BUILD_NUMBER="$(date -u +%Y%m%d%H%M%S)"
-          if [ "$BUILD_NUMBER" -lt "$TIMESTAMP_BUILD_NUMBER" ]; then
-            export BUILD_NUMBER="$TIMESTAMP_BUILD_NUMBER"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+          input_build_number="$INPUT_BUILD_NUMBER"
+          if [ -n "$input_build_number" ]; then
+            case "$input_build_number" in
+              ''|*[!0-9]*)
+                echo "Error: build_number input must be numeric, got '$input_build_number'"
+                exit 1
+                ;;
+            esac
+            build_number="$input_build_number"
+          else
+            run_number="$GITHUB_RUN_NUMBER"
+            timestamp_floor="$(date -u +%Y%m%d%H%M%S)"
+            if [ "$run_number" -lt "$timestamp_floor" ]; then
+              build_number="$timestamp_floor"
+            else
+              build_number="$run_number"
+            fi
           fi
-          bash scripts/package-for-store.sh
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to App Store Connect
+        uses: ./.github/actions/upload-appstore
+        with:
+          build-number: ${{ steps.build-metadata.outputs.build_number }}
+          build-commit: ${{ steps.build-metadata.outputs.sha }}

@@ -8,7 +8,7 @@
 // macOS Implementation (Apple Silicon via IOAccelerator)
 // ============================================================================
 
-#[cfg(all(target_os = "macos", not(feature = "app-store")))]
+#[cfg(target_os = "macos")]
 mod macos {
     use std::ffi::c_void;
 
@@ -118,6 +118,9 @@ mod macos {
         service: io_registry_entry_t,
     }
 
+    #[cfg(all(test, feature = "app-store"))]
+    pub const IMPLEMENTATION: &str = "macos_ioaccelerator";
+
     impl GpuSampler {
         pub fn new() -> Option<Self> {
             unsafe {
@@ -166,10 +169,7 @@ mod macos {
     unsafe impl Send for GpuSampler {}
 }
 
-#[cfg(any(
-    not(any(target_os = "macos", target_os = "linux")),
-    all(target_os = "macos", feature = "app-store")
-))]
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 mod unavailable {
     pub struct GpuSampler;
 
@@ -233,14 +233,14 @@ mod linux {
 // Re-export platform-specific implementation
 // ============================================================================
 
-#[cfg(all(target_os = "macos", not(feature = "app-store")))]
+#[cfg(target_os = "macos")]
 pub use macos::GpuSampler;
+
+#[cfg(all(test, target_os = "macos", feature = "app-store"))]
+pub use macos::IMPLEMENTATION;
 
 #[cfg(target_os = "linux")]
 pub use linux::GpuSampler;
 
-#[cfg(any(
-    not(any(target_os = "macos", target_os = "linux")),
-    all(target_os = "macos", feature = "app-store")
-))]
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 pub use unavailable::GpuSampler;
