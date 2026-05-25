@@ -63,6 +63,12 @@ fn test_normalize_metric_flags_enables_cpu_when_all_metrics_disabled() {
     );
 }
 
+#[cfg(all(target_os = "macos", feature = "app-store"))]
+#[test]
+fn test_app_store_feature_uses_macos_gpu_sampler() {
+    assert_eq!(crate::gpu::IMPLEMENTATION, "macos_ioaccelerator");
+}
+
 #[cfg(target_os = "macos")]
 #[test]
 fn test_macos_process_lock_path_is_per_user() {

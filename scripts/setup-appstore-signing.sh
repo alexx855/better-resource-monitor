@@ -2,7 +2,6 @@
 set -euo pipefail
 
 # Prepares App Store signing and upload credentials for hosted CI.
-# Local packaging can still use scripts/.env plus locally installed certificates.
 
 TEMP_DIR="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 KEYCHAIN_PATH="$TEMP_DIR/brm-appstore-signing.keychain-db"
