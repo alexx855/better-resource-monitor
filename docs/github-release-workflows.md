@@ -82,5 +82,5 @@ passing GitHub Actions checks.
 Run the local installed-app verifier after installing from TestFlight:
 
 ```bash
-EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=<short-commit> scripts/verify-macos-autostart.sh
+EXPECTED_VERSION=<version> EXPECTED_BUILD_COMMIT=<short-commit> scripts/verify-macos-autostart.sh
 ```
