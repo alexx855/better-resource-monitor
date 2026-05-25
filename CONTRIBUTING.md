@@ -54,6 +54,8 @@ generated file diff or before/after images for the affected languages or states.
 If renderer logic, tray visuals, marketing copy, fonts, or output paths changed,
 name the source file or command that produced the generated assets. Avoid
 committing generated churn when the source did not intentionally change them.
+Include generated diffs or before/after evidence in the pull request, and state
+explicitly if regeneration is intentionally deferred.
 
 For website changes, run `pnpm build:www`. For Rust or app behavior changes,
 run the focused Rust command first, then broaden to the full checks when the
