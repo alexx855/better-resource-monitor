@@ -75,6 +75,18 @@ home body, `www/src/lib/marketing-copy.json`, and `src-tauri/src/i18n.rs` in
 the same pull request, or call out the deferred localization follow-up
 explicitly.
 
+## Generated Assets And Screenshots
+
+Commit generated App Store screenshots, icons, and metadata only when the source
+change intentionally affects shipped visuals, copy, or assets. For screenshot
+changes, run `pnpm build:screenshots` and include before/after images or the
+generated file diff when renderer, tray, or marketing copy changes need visual
+review.
+
+Avoid generated churn when source files did not intentionally change assets. If
+generated files differ unexpectedly, explain why they changed or leave them out
+of the pull request.
+
 ## Discussions vs Issues
 
 Use [GitHub Discussions](https://github.com/alexx855/better-resource-monitor/discussions)
