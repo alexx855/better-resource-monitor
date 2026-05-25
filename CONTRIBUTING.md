@@ -9,8 +9,8 @@ release mechanics are owned by the workflow files, scripts, and Tauri config.
 1. Fork the repository and clone your fork.
 2. Install dependencies with `pnpm install`.
 3. Run the app with `pnpm tauri dev`.
-4. For the website, use `pnpm dev:www`, `pnpm build:www`, and
-   `pnpm preview:www` from the repo root.
+4. For the website, use `pnpm dev:www`, `pnpm build:www`,
+   `pnpm preview:www`, and `pnpm build:screenshots` from the repo root.
 
 Rust checks run from `src-tauri/` unless a workflow says otherwise:
 
@@ -19,6 +19,7 @@ cd src-tauri
 cargo fmt
 cargo test
 cargo clippy
+cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
 ## Development Workflow
@@ -69,8 +70,10 @@ release availability, sandboxing/no-root claims, privacy/no-telemetry claims,
 pricing, and comparison language.
 
 Internal contributor wording can usually change in one file. Product positioning
-should either move across the matching README and website surfaces in the same
-pull request or call out the deferred localization follow-up explicitly.
+should move across the matching root `README*.md` files, which feed the website
+home body, `www/src/lib/marketing-copy.json`, and `src-tauri/src/i18n.rs` in
+the same pull request, or call out the deferred localization follow-up
+explicitly.
 
 ## Reporting Issues
 
