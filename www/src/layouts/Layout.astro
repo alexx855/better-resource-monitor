@@ -1,5 +1,6 @@
 ---
 import { getEntry } from "astro:content";
+import { ClientRouter } from "astro:transitions";
 import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
 
 
@@ -82,6 +83,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />
     <meta name="robots" content={robots} />
     <title>{title}</title>
+    <ClientRouter />
 
     <!-- Structured Data -->
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
@@ -92,7 +94,7 @@ const siteUrl = new URL("/", Astro.site).href;
       "url": siteUrl,
       "inLanguage": localeMeta.langTag,
       "applicationCategory": "UtilitiesApplication",
-      "applicationSubCategory": "System Monitor",
+      "applicationSubCategory": "Menu Bar Monitor",
       "operatingSystem": "macOS",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
@@ -120,11 +122,8 @@ const siteUrl = new URL("/", Astro.site).href;
         --c-surface: #211914;
         --c-surface-alt: #2a211c;
         --c-border: #4a382e;
-        --c-alert-bg: #a93a12;
-        --c-alert-hover: #822d0e;
-        --c-focus: #ff8a4c;
-        --c-alert-fg: #ffffff;
-        --c-accent: var(--c-alert-bg);
+        --c-brand: #D14715;
+        --c-on-brand: #ffffff;
         --c-text: #fff8f2;
         --c-text-dim: #dcc9bc;
 
@@ -163,6 +162,7 @@ const siteUrl = new URL("/", Astro.site).href;
         /* Transitions */
         --transition-fast: 0.15s var(--ease-out);
         --transition-normal: 0.2s var(--ease-out);
+        --transition-hover: 0.18s ease;
       }
 
       /* Base reset */
@@ -192,8 +192,8 @@ const siteUrl = new URL("/", Astro.site).href;
       body {
         font: 400 16px/1.6 var(--font-mono);
         background:
-          radial-gradient(circle at 12% -10%, rgba(169, 58, 18, 0.22), transparent 32rem),
-          radial-gradient(circle at 85% 12%, rgba(255, 138, 76, 0.10), transparent 26rem),
+          radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--c-brand) 22%, transparent), transparent 32rem),
+          radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--c-brand) 10%, transparent), transparent 26rem),
           linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 18px),
           var(--c-bg);
         color: var(--c-text);
@@ -205,8 +205,8 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       ::selection {
-        background: var(--c-focus);
-        color: #1a0f09;
+        background: var(--c-text);
+        color: var(--c-bg);
       }
 
       @media (min-width: 700px) {
@@ -272,54 +272,62 @@ const siteUrl = new URL("/", Astro.site).href;
         color: inherit;
       }
 
-      /* Links — orange pill default */
+      /* Links */
       a {
-        color: var(--c-alert-fg);
-        background-color: var(--c-alert-bg);
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+          linear-gradient(var(--c-brand), var(--c-brand));
+        background-position: 0 100%, 0 0;
+        background-repeat: no-repeat;
+        background-size: 100% 0, 100% 100%;
         text-decoration: none;
         padding: 2px 4px;
         margin: 0 -4px;
-        transition: background-color var(--transition-fast),
-                    color var(--transition-fast),
-                    translate var(--transition-fast),
-                    scale 0.1s var(--ease-out);
+      }
+
+      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)) {
+        display: inline-block;
+        transform: translateX(0) scale(1);
+        transition:
+          transform 160ms var(--ease-out),
+          background-size 180ms ease,
+          background-color 180ms ease,
+          color 180ms ease;
+        vertical-align: baseline;
       }
 
       p a:not(:has(img)),
       li a:not(:has(img)),
       dd a:not(:has(img)) {
-        text-decoration: underline;
         text-decoration-thickness: 0.08em;
         text-underline-offset: 0.18em;
-      }
-
-      a:active {
-        scale: 0.97;
       }
 
       a:has(img) {
         padding: 0;
         margin: 0;
         background-color: transparent;
-        transition: filter var(--transition-fast),
-                    translate var(--transition-fast),
-                    scale 0.1s var(--ease-out);
+        background-image: none;
+      }
+
+      a[href^="/"]:not(:has(img)):not(.comparison-card):focus-visible {
+        outline-offset: 4px;
+      }
+
+      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
+        transform: translateX(-2px) scale(0.98);
       }
 
       @media (hover: hover) and (pointer: fine) {
-        a:hover {
-          background-color: var(--c-alert-hover);
-          translate: 0 -1px;
-        }
-
         a:has(img):hover {
           background-color: transparent;
-          filter: brightness(1.08) contrast(1.02);
         }
       }
 
       *:focus-visible {
-        outline: var(--border-width-thick) solid var(--c-focus);
+        outline: var(--border-width-thick) solid var(--c-brand);
         outline-offset: 2px;
       }
 
@@ -335,12 +343,40 @@ const siteUrl = new URL("/", Astro.site).href;
         border: 0;
       }
 
-      .back-link {
+      .home-link {
+        font-weight: bold;
         display: inline-flex;
         align-items: center;
-        min-height: var(--touch-target);
-        font-size: var(--fs-sm);
-        margin-bottom: var(--space-4);
+        gap: var(--space-3);
+        width: fit-content;
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+          linear-gradient(var(--c-brand), var(--c-brand));
+        background-position: 0 100%, 0 0;
+        background-repeat: no-repeat;
+        background-size: 100% 0, 100% 100%;
+        padding: 2px 4px;
+        margin: 0 0 var(--space-6);
+      }
+
+      .home-link__title {
+        color: inherit;
+        background: transparent;
+        background-image: none;
+        padding: 0;
+        margin: 0;
+        text-decoration: none;
+        view-transition-name: site-title;
+        font-size: clamp(1.15rem, 4vw, 1.6rem);
+        line-height: 1;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .home-link:hover {
+          background-size: 100% 0, 100% 100%;
+        }
       }
 
       /* Container */
@@ -378,6 +414,8 @@ const siteUrl = new URL("/", Astro.site).href;
         overflow-x: auto;
         margin: 0 0 var(--space-5);
         border: var(--border-width) solid var(--c-border);
+        border-left: 4px solid var(--c-brand);
+        color: var(--c-text);
       }
 
       pre code {
@@ -387,7 +425,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       pre.astro-code span[style*="6A737D" i] {
-        color: #b7c0ca !important;
+        color: #ffad75 !important;
       }
 
       /* Inline code */
@@ -464,10 +502,9 @@ const siteUrl = new URL("/", Astro.site).href;
 
       /* Blockquotes */
       blockquote {
-        border-left: 22px solid var(--c-alert-bg);
-        padding: var(--space-3) var(--space-5);
-        margin: var(--space-5) 0;
-        background: var(--c-surface);
+        padding: var(--space-3) var(--space-4);
+        margin: var(--space-4) 0;
+        background: color-mix(in srgb, var(--c-brand) 8%, var(--c-surface));
       }
 
       blockquote p {
@@ -481,25 +518,85 @@ const siteUrl = new URL("/", Astro.site).href;
       /* Footer */
       .site-footer {
         border-top: var(--border-width) solid var(--c-border);
+        background: transparent;
         margin-top: auto;
-        text-align: center;
       }
 
-      .site-footer nav {
+      .site-footer .container {
         display: flex;
         flex-wrap: wrap;
-        justify-content: space-between;
-        gap: var(--space-5);
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2) clamp(var(--space-4), 4vw, var(--space-6));
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-6);
       }
 
-      .site-footer nav a {
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2) var(--space-3);
+      }
+
+      .footer-link {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: var(--touch-target);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-size: var(--fs-xs);
+        font-size: var(--fs-sm);
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .footer-link--internal {
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image: none;
+        padding: 2px 4px;
+        margin: 0 -4px;
+        text-decoration: none;
+      }
+
+      .footer-link--external {
+        color: var(--c-text-dim);
+        background: transparent;
+        background-image: none;
+        padding: 0 var(--space-1);
+        margin: 0;
+        text-decoration-line: underline;
+        text-decoration-thickness: calc(var(--border-width) * 1.5);
+        text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
+        text-underline-offset: 0.4em;
+        overflow-wrap: anywhere;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .footer-link--internal:hover {
+          color: var(--c-on-brand);
+          background-color: var(--c-brand);
+          background-image: none;
+        }
+
+        .footer-link--external:hover {
+          color: var(--c-text-dim);
+          background: transparent;
+          background-image: none;
+          text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
+        }
+      }
+
+      .footer-link--internal:focus-visible {
+        color: var(--c-on-brand);
+        background-color: var(--c-brand);
+        background-image: none;
+      }
+
+      .footer-link--external:focus-visible {
+        color: var(--c-text);
+        background: transparent;
+        background-image: none;
+        text-decoration-color: var(--c-brand);
       }
 
       /* Responsive */
@@ -527,9 +624,23 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       @media (max-width: 600px) {
-        .site-footer nav {
+        .site-footer .container {
           flex-direction: column;
-          gap: var(--space-3);
+          align-items: stretch;
+          justify-content: flex-start;
+        }
+
+        .footer-links {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          justify-content: flex-start;
+          text-align: left;
+          gap: var(--space-2) var(--space-3);
+        }
+
+        .footer-link {
+          justify-content: flex-start;
+          text-align: left;
         }
       }
 
@@ -540,6 +651,10 @@ const siteUrl = new URL("/", Astro.site).href;
           transition-duration: 0.01ms !important;
           scroll-behavior: auto !important;
         }
+
+        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
+          transform: none;
+        }
       }
     </style>
   </head>
@@ -549,21 +664,26 @@ const siteUrl = new URL("/", Astro.site).href;
     </div>
     <footer class="site-footer">
       <div class="container">
-        <nav aria-label={labels.footer.navigation}>
-          <a href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
-          <a href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
-          <a href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
+        <nav class="footer-links" aria-label={labels.footer.internalNavigation}>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
+        </nav>
+        <nav class="footer-links" aria-label={labels.footer.externalNavigation}>
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.license}</a
           >
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor/issues/new"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.support}</a
           >
           <a
+            class="footer-link footer-link--external"
             href="https://github.com/alexx855/better-resource-monitor"
             target="_blank"
             rel="noopener noreferrer">{labels.footer.github}</a

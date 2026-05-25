@@ -52,6 +52,8 @@ async function loadFonts() {
 }
 
 function buildElement(badge, locale) {
+  const bottomFontSize = badge.name === "appstore" ? 64 : 80;
+
   return {
     type: "div",
     props: {
@@ -80,7 +82,10 @@ function buildElement(badge, locale) {
               },
               {
                 type: "div",
-                props: { style: { fontSize: 80, fontWeight: 700, color: "#fff", lineHeight: 1.3 }, children: badge.bottomText },
+                props: {
+                  style: { fontSize: bottomFontSize, fontWeight: 700, color: "#fff", lineHeight: 1.3, whiteSpace: "nowrap" },
+                  children: badge.bottomText,
+                },
               },
             ],
           },
@@ -130,7 +135,7 @@ async function main() {
 
   for (const [locale, localizedBadges] of Object.entries(localeBadges)) {
     for (const [name, copy] of Object.entries(localizedBadges)) {
-      const badge = { icon: badgeIcons[name], ...copy };
+      const badge = { name, icon: badgeIcons[name], ...copy };
       const svg = await satori(buildElement(badge, locale), { width: WIDTH, height: HEIGHT, fonts });
       const png = new Resvg(svg, { fitTo: { mode: "width", value: WIDTH } }).render().asPng();
       const webp = await sharp(png).webp({ lossless: true }).toBuffer();

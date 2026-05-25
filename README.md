@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>See what your Mac is doing from the menu bar.</strong>
+  <strong>Monitor CPU, memory, GPU, and network from your Mac menu bar.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -27,8 +27,8 @@
 
 <p align="center">
   <a href="#why">Why</a> <span>•</span>
-  <a href="#comparison">Comparison</a> <span>•</span>
-  <a href="#installation">Installation</a>
+  <a href="#installation">Installation</a> <span>•</span>
+  <a href="#comparison">Comparison</a>
 </p>
 
 ## Why
@@ -37,44 +37,18 @@ Better Resource Monitor is for people who just want a quick, low-noise way to ke
 
 It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
 
+If this is useful, star the repo so other Mac users can find it.
+
+## Preview
+
+![Better Resource Monitor in the menu bar showing CPU, Memory, GPU, and Network](https://better-resource-monitor.alexpedersen.dev/images/simplicity-en.png)
+
 It is built to stay light enough to leave running all day: under 0.1% CPU on Apple Silicon, around 15 MB of memory, and zero network requests.
 
-The technical side is there to support that experience. It installs like a normal Mac app, stays sandboxed, ships on the Mac App Store with full features, and avoids admin-password prompts or background root helpers.
-
-## Comparison
-
-<table>
-  <thead>
-    <tr>
-      <th width="20%">Feature</th>
-      <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><th scope="row">Mac App Store</th><td align="center">Yes (full features)</td><td align="center">No</td><td align="center">Limited</td><td align="center">Limited</td></tr>
-    <tr><th scope="row">Admin Password / Privileges</th><td align="center">None (sandboxed)</td><td align="center">Requires root helper</td><td align="center">None</td><td align="center">Requires root helper</td></tr>
-    <tr><th scope="row">GPU API Stability</th><td align="center">Public API</td><td align="center">Private API</td><td align="center">Private API</td><td align="center">Proprietary</td></tr>
-    <tr><th scope="row">Memory Footprint</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
-    <tr><th scope="row">CPU / Energy Impact</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">High (M-series)</td><td align="center">~1%</td></tr>
-    <tr><th scope="row">App Size</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
-    <tr><th scope="row">Privacy/Telemetry</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analytics</td></tr>
-    <tr><th scope="row">Status</th><td align="center">Active</td><td align="center">Active</td><td align="center">Unmaintained</td><td align="center">Active</td></tr>
-    <tr><th scope="row">Language</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
-    <tr><th scope="row">Price</th><td align="center">Free</td><td align="center">Free</td><td align="center">Free</td><td align="center">$14.99</td></tr>
-    <tr><th scope="row">License</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietary</td></tr>
-  </tbody>
-</table>
-
-> Third-party numbers are rough estimates. Your mileage may vary.
-
-For more detail, read the <a href="https://better-resource-monitor.alexpedersen.dev/vs-stats/">Stats comparison</a> or the <a href="https://better-resource-monitor.alexpedersen.dev/vs-istat-menus/">iStat Menus comparison</a>.
 
 ## Installation
 
-Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (no automatic updates; download and update manually each version).
 
 ### Compatibility
 
@@ -104,6 +78,35 @@ cd src-tauri && cargo test
 cargo install cargo-llvm-cov
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
+
+## Comparison
+
+<table>
+  <thead>
+    <tr>
+      <th width="20%">Feature</th>
+      <th width="20%">Better Resource Monitor</th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/comparison/vs-istat-menus/">iStat Menus</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Mac App Store</th><td align="center">Yes (full features)</td><td align="center">No</td><td align="center">Limited</td><td align="center">Limited</td></tr>
+    <tr><th scope="row">Admin Password / Privileges</th><td align="center">None (sandboxed)</td><td align="center">Requires root helper</td><td align="center">None</td><td align="center">Requires root helper</td></tr>
+    <tr><th scope="row">GPU API Stability</th><td align="center">Public API</td><td align="center">Private API</td><td align="center">Private API</td><td align="center">Proprietary</td></tr>
+    <tr><th scope="row">Memory Footprint</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
+    <tr><th scope="row">CPU / Energy Impact</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">High (M-series)</td><td align="center">~1%</td></tr>
+    <tr><th scope="row">App Size</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
+    <tr><th scope="row">Privacy/Telemetry</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analytics</td></tr>
+    <tr><th scope="row">Status</th><td align="center">Active</td><td align="center">Active</td><td align="center">Unmaintained</td><td align="center">Active</td></tr>
+    <tr><th scope="row">Language</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
+    <tr><th scope="row">Price</th><td align="center">Free</td><td align="center">Free</td><td align="center">Free</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">License</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietary</td></tr>
+  </tbody>
+</table>
+
+> Third-party numbers are rough estimates. Your mileage may vary.
 
 ## Credits
 

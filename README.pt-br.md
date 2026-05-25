@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Veja o que seu Mac está fazendo pela barra de menus.</strong>
+  <strong>Monitore CPU, memória, GPU e rede pela barra de menus do Mac.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -34,40 +34,10 @@ Ele mostra CPU, memória, GPU e rede direto na barra de menus, para você perceb
 
 Também foi feito para ser leve, para que o próprio monitor não vire parte do problema.
 
-A parte técnica existe para sustentar essa experiência: sem etapa de senha de administrador, sem helper root, sem APIs privadas, sem ícone no Dock, rodando em sandbox e disponível na Mac App Store com todos os recursos.
-
-## Comparação
-
-<table>
-  <thead>
-    <tr>
-      <th width="20%">Recurso</th>
-      <th width="20%">Better Resource Monitor</th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-stats/">Stats</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-eul/">Eul</a></th>
-      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/vs-istat-menus/">iStat Menus</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><th scope="row">Mac App Store</th><td align="center">Sim (recursos completos)</td><td align="center">Não</td><td align="center">Limitado</td><td align="center">Limitado</td></tr>
-    <tr><th scope="row">Senha de Admin / Privilégios</th><td align="center">Nenhum (sandboxed)</td><td align="center">Requer helper root</td><td align="center">Nenhum</td><td align="center">Requer helper root</td></tr>
-    <tr><th scope="row">Estabilidade da API de GPU</th><td align="center">API Pública</td><td align="center">API Privada</td><td align="center">API Privada</td><td align="center">Proprietário</td></tr>
-    <tr><th scope="row">Consumo de Memória</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
-    <tr><th scope="row">Impacto na CPU / Energia</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">Alto (série M)</td><td align="center">~1%</td></tr>
-    <tr><th scope="row">Tamanho do App</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
-    <tr><th scope="row">Privacidade/Telemetria</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analytics</td></tr>
-    <tr><th scope="row">Status</th><td align="center">Ativo</td><td align="center">Ativo</td><td align="center">Sem manutenção</td><td align="center">Ativo</td></tr>
-    <tr><th scope="row">Linguagem</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
-    <tr><th scope="row">Preço</th><td align="center">Grátis</td><td align="center">Grátis</td><td align="center">Grátis</td><td align="center">$14.99</td></tr>
-    <tr><th scope="row">Licença</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietário</td></tr>
-  </tbody>
-</table>
-
-> Os números de terceiros são estimativas aproximadas. Sua experiência pode variar.
 
 ## Instalação
 
-Obtenha na <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (inclui atualizações automáticas) ou baixe o `.dmg` no <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a>.
+Obtenha na <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (inclui atualizações automáticas) ou baixe o `.dmg` no <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (sem atualizações automáticas; baixe e atualize manualmente cada versão).
 
 ### Compatibilidade
 
@@ -97,6 +67,35 @@ cd src-tauri && cargo test
 cargo install cargo-llvm-cov
 cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
+
+## Comparação
+
+<table>
+  <thead>
+    <tr>
+      <th width="20%">Recurso</th>
+      <th width="20%">Better Resource Monitor</th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-stats/">Stats</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-eul/">Eul</a></th>
+      <th width="20%"><a href="https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-istat-menus/">iStat Menus</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Mac App Store</th><td align="center">Sim (recursos completos)</td><td align="center">Não</td><td align="center">Limitado</td><td align="center">Limitado</td></tr>
+    <tr><th scope="row">Senha de Admin / Privilégios</th><td align="center">Nenhum (sandboxed)</td><td align="center">Requer helper root</td><td align="center">Nenhum</td><td align="center">Requer helper root</td></tr>
+    <tr><th scope="row">Estabilidade da API de GPU</th><td align="center">API Pública</td><td align="center">API Privada</td><td align="center">API Privada</td><td align="center">Proprietário</td></tr>
+    <tr><th scope="row">Consumo de Memória</th><td align="center">~15 MB</td><td align="center">~50 MB</td><td align="center">~40 MB</td><td align="center">~100+ MB</td></tr>
+    <tr><th scope="row">Impacto na CPU / Energia</th><td align="center">&lt; 0.1%</td><td align="center">~1%</td><td align="center">Alto (série M)</td><td align="center">~1%</td></tr>
+    <tr><th scope="row">Tamanho do App</th><td align="center">&lt; 7 MB</td><td align="center">~25 MB</td><td align="center">~5 MB</td><td align="center">~65 MB</td></tr>
+    <tr><th scope="row">Privacidade/Telemetria</th><td align="center">100% offline</td><td align="center">Offline</td><td align="center">Offline</td><td align="center">Analytics</td></tr>
+    <tr><th scope="row">Status</th><td align="center">Ativo</td><td align="center">Ativo</td><td align="center">Sem manutenção</td><td align="center">Ativo</td></tr>
+    <tr><th scope="row">Linguagem</th><td align="center">Rust</td><td align="center">Swift / C++</td><td align="center">Swift</td><td align="center">Obj-C / Swift</td></tr>
+    <tr><th scope="row">Preço</th><td align="center">Grátis</td><td align="center">Grátis</td><td align="center">Grátis</td><td align="center">$14.99</td></tr>
+    <tr><th scope="row">Licença</th><td align="center">MIT</td><td align="center">MIT</td><td align="center">MIT</td><td align="center">Proprietário</td></tr>
+  </tbody>
+</table>
+
+> Os números de terceiros são estimativas aproximadas. Sua experiência pode variar.
 
 ## Créditos
 

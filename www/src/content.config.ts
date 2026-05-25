@@ -22,10 +22,10 @@ function assertNoExecutableHtml(html: string, source: string) {
 }
 
 const homeComparisonCaptions = {
-  en: "System monitor comparison",
-  es: "Comparación de monitores de sistema",
-  "pt-br": "Comparação de monitores de sistema",
-  "zh-cn": "系统监视器对比",
+  en: "Menu bar monitor comparison",
+  es: "Comparación de monitores para la barra de menús",
+  "pt-br": "Comparação de monitores de barra de menus",
+  "zh-cn": "菜单栏监视器对比",
 } satisfies Record<SiteMarketingLocale, string>;
 
 const ui = defineCollection({
@@ -34,8 +34,10 @@ const ui = defineCollection({
     backToHome: z.string(),
 
     footer: z.object({
-      navigation: z.string(),
+      internalNavigation: z.string(),
+      externalNavigation: z.string(),
       faq: z.string(),
+      comparison: z.string(),
       privacyPolicy: z.string(),
       terms: z.string(),
       license: z.string(),
@@ -64,7 +66,6 @@ const homeBody = defineCollection({
       for (const locale of siteMarketingLocales) {
         const filename = locale === "en" ? "README.md" : `README.${locale}.md`;
         const raw = await readFile(resolve(rootDir, filename), "utf-8");
-
         const body = raw
           .replace(/<!-- README-LANG-START -->\n?/s, "")
           .replace(/\n?<!-- README-LANG-END -->\n*/s, "")
@@ -96,6 +97,14 @@ const homeBody = defineCollection({
   },
 });
 
+const faqItems = z.array(
+  z.object({
+    id: z.string().optional(),
+    question: z.string(),
+    answer: z.string(),
+  }),
+);
+
 const faq = defineCollection({
   loader: glob({ pattern: "*.json", base: "./src/content/faq" }),
   schema: z.object({
@@ -103,12 +112,7 @@ const faq = defineCollection({
     description: z.string(),
     ogImage: z.string(),
     heading: z.string(),
-    items: z.array(
-      z.object({
-        question: z.string(),
-        answer: z.string(),
-      }),
-    ),
+    items: faqItems,
   }),
 });
 
@@ -139,6 +143,7 @@ const comparisons = defineCollection({
       }),
     ),
     cta: z.string(),
+    faqItems: faqItems.optional(),
   }),
 });
 

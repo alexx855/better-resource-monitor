@@ -1,8 +1,10 @@
 {
   "backToHome": "返回首页",
   "footer": {
-    "navigation": "页脚导航",
+    "internalNavigation": "页脚站内链接",
+    "externalNavigation": "页脚资源链接",
     "faq": "常见问题",
+    "comparison": "对比",
     "privacyPolicy": "隐私政策",
     "terms": "条款与条件",
     "license": "许可证",

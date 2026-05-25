@@ -1,7 +1,10 @@
 ---
 import { getEntry, render } from "astro:content";
+import FaqSection from "../FaqSection.astro";
+import HomeLink from "../HomeLink.astro";
 import Layout from "../../layouts/Layout.astro";
 import { getLocalizedPath, type SupportedLocale } from "../../lib/site";
+import { embeddedFaqHeadings, pickFaqItems } from "../../lib/embedded-faqs";
 
 interface Props {
   locale: SupportedLocale;
@@ -11,19 +14,24 @@ interface Props {
 const { locale, slug } = Astro.props;
 const uiEntry = await getEntry("ui", locale);
 const pageEntry = await getEntry("legal", `${slug}/${locale}`);
-if (!uiEntry || !pageEntry) throw new Error(`Missing content for ${slug}/${locale}`);
+const faqEntry = await getEntry("faq", locale);
+if (!uiEntry || !pageEntry || !faqEntry) throw new Error(`Missing content for ${slug}/${locale}`);
 const ui = uiEntry.data;
 const page = pageEntry.data;
 const { Content } = await render(pageEntry);
+const legalFaqItems = slug === "privacy-policy" ? pickFaqItems(faqEntry.data.items, "legal") : [];
 ---
 
 <Layout title={page.title} description={page.description} locale={locale} slug={slug} ogImage={page.ogImage}>
   <main class="content-page">
     <div class="container">
-      <a href={getLocalizedPath(locale)} class="back-link">&larr; {ui.backToHome}</a>
+      <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
       <article>
         <Content />
       </article>
+      {legalFaqItems.length > 0 && (
+        <FaqSection locale={locale} heading={embeddedFaqHeadings.legal[locale]} items={legalFaqItems} />
+      )}
     </div>
   </main>
 </Layout>
