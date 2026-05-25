@@ -48,6 +48,13 @@ For website changes, run `pnpm build:www`. For Rust or app behavior changes,
 run the focused Rust command first, then broaden to the full checks when the
 change touches shared behavior or release packaging.
 
+When changing generated screenshots or App Store assets, include the generation
+command, usually `pnpm build:screenshots` for screenshots, the focused
+generated-file diff, and before/after images when the visual result matters.
+Commit generated assets only when the source change intentionally changes
+shipped screenshots, icons, localized copy, or metadata; otherwise explain the
+expected output so maintainers can regenerate without guessing.
+
 ## Release Workflow Changes
 
 Treat executable files as the source of truth. Release and TestFlight behavior
