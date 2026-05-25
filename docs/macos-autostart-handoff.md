@@ -20,11 +20,13 @@ autostart has one supported implementation: the main app registers itself with
 ## Packaging
 
 Use the GitHub Actions release and TestFlight workflows for App Store packaging.
-Both workflows call `scripts/package-for-store.sh`; local runs can still use
-`scripts/.env` as a fallback. The script builds with
-`src-tauri/tauri.appstore.conf.json` and the `app-store` Cargo feature,
-then verifies the expected team/application identifier entitlements,
-`com.apple.security.app-sandbox=true`, and no bundled LaunchAgents.
+Both workflows call `scripts/package-for-store.sh`; local script runs are useful
+for syntax checks, but supported TestFlight/App Store uploads should stay on
+GitHub Actions so the build is tied to a commit, runner log, and passing checks.
+The script builds with `src-tauri/tauri.appstore.conf.json` and the `app-store`
+Cargo feature, then verifies the expected team/application identifier
+entitlements, `com.apple.security.app-sandbox=true`, and no bundled
+LaunchAgents.
 
 ## Verification
 
