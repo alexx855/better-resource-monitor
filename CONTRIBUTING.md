@@ -75,6 +75,18 @@ home body, `www/src/lib/marketing-copy.json`, and `src-tauri/src/i18n.rs` in
 the same pull request, or call out the deferred localization follow-up
 explicitly.
 
+## Discussions vs Issues
+
+Use GitHub Discussions for questions, design tradeoffs, validation policy,
+contributor workflow clarification, and support-style conversations where the
+answer may shape later work. Start uncertain process questions there, then open
+an issue once the desired change is concrete.
+
+Use GitHub Issues for reproducible bugs, accepted implementation tasks, or
+tracked docs/product changes with clear acceptance criteria. If a discussion
+reveals a real defect or durable docs gap, link the follow-up issue back to the
+discussion so the decision trail is easy to find.
+
 ## Reporting Issues
 
 When reporting bugs, please include:
@@ -86,5 +98,4 @@ When reporting bugs, please include:
 
 ## Questions?
 
-Use GitHub Discussions for contributor questions and GitHub Issues for bugs or
-tracked implementation work.
+If you are not sure where something belongs, start with GitHub Discussions.
