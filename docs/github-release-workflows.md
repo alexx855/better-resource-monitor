@@ -41,14 +41,15 @@ as workflow entrypoints and can be syntax-checked locally, but TestFlight and
 release uploads should be dispatched through GitHub Actions so the build is tied
 to a GitHub commit, runner log, and passing checks.
 
-### Which files are the executable source of truth?
+### Which files and workflows govern the release process?
 
 Use `.github/workflows/release.yml` for version bumps, tags, and GitHub
 Releases; `.github/workflows/testflight.yml` for manual App Store Connect
 uploads; `scripts/setup-appstore-signing.sh` for certificate and provisioning
 setup; `scripts/package-for-store.sh` for packaging and upload behavior; and
-`src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`,
-and `src-tauri/embedded.provisionprofile` for App Store bundle inputs.
+`src-tauri/tauri.conf.json`, `src-tauri/tauri.appstore.conf.json`,
+`src-tauri/Entitlements.appstore.plist`, and
+`src-tauri/embedded.provisionprofile` for App Store bundle inputs.
 
 ## Required GitHub Secrets
 
