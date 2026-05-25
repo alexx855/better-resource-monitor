@@ -10,10 +10,10 @@ App Store Connect uploads.
 - `TestFlight` is manually dispatched and uploads a build to App Store Connect
   without changing repository version files. It only sets a unique
   `CFBundleVersion` for the uploaded build.
-- `Release` is manually dispatched with a version bump type. It bumps the
-  marketing version, commits and tags it, dispatches `TestFlight` for that tag,
-  waits for the App Store Connect upload to pass, then creates the GitHub
-  release.
+- `Release` is manually dispatched with a version bump type. It opens and
+  merges a version-bump pull request, tags the merge commit on `main`, dispatches
+  `TestFlight` for that tag, waits for the App Store Connect upload to pass,
+  then creates the GitHub release.
 
 The `TestFlight` workflow uses `.github/actions/upload-appstore` as the shared
 packaging entrypoint, and `Release` dispatches `TestFlight` instead of

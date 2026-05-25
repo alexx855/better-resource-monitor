@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
       release_notes: ${{ steps.notes.outputs.release_notes }}
@@ -122,16 +123,48 @@ jobs:
           cat release_notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Commit and tag
+      - name: Commit version bump, merge release PR, and tag
         id: commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          RELEASE_BRANCH="release/v${NEW_VERSION}-${GITHUB_RUN_ID}"
+
+          git switch -c "$RELEASE_BRANCH"
           rm -f release_notes.md
           git add -A
           git commit -m "chore: bump version to $NEW_VERSION"
-          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          git tag "v$NEW_VERSION"
-          git push origin HEAD:main
+          git push origin "$RELEASE_BRANCH"
+
+          PR_URL="$(gh pr create \
+            --base main \
+            --head "$RELEASE_BRANCH" \
+            --title "chore: bump version to $NEW_VERSION" \
+            --body "Automated version bump for v$NEW_VERSION.")"
+          PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
+
+          for _ in {1..30}; do
+            MERGE_STATE="$(gh pr view "$PR_NUMBER" --json mergeStateStatus -q '.mergeStateStatus')"
+            case "$MERGE_STATE" in
+              CLEAN|HAS_HOOKS|UNSTABLE)
+                break
+                ;;
+            esac
+            sleep 2
+          done
+
+          gh pr merge "$PR_NUMBER" \
+            --squash \
+            --delete-branch \
+            --subject "chore: bump version to $NEW_VERSION" \
+            --body "Automated version bump for v$NEW_VERSION."
+
+          git fetch origin main --tags
+          RELEASE_SHA="$(git rev-parse origin/main)"
+          echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          git tag "v$NEW_VERSION" "$RELEASE_SHA"
           git push origin "v$NEW_VERSION"
 
   dispatch-testflight:
