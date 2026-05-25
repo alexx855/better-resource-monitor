@@ -16,6 +16,41 @@ Both upload workflows use `scripts/package-for-store.sh` as the packaging
 entrypoint. Keep signing, entitlement, provisioning-profile, embedded commit,
 and LaunchAgent checks there instead of duplicating packaging logic in YAML.
 
+## Release Path FAQ
+
+### Which workflow owns version bumping and tagging?
+
+`.github/workflows/release.yml` owns public version bumps. Its `version-bump`
+job updates `package.json`, `src-tauri/tauri.conf.json`, and
+`src-tauri/Cargo.toml`, commits those changes to `main`, and pushes the
+matching `v<version>` tag.
+
+### Which workflow uploads to TestFlight/App Store Connect?
+
+`.github/workflows/testflight.yml` uploads manual validation builds without
+changing repository version files. `.github/workflows/release.yml` also uploads
+the App Store package as part of a public release, after the version bump and tag
+exist. Both paths call `scripts/setup-appstore-signing.sh` and
+`scripts/package-for-store.sh` for signing, packaging, embedded-commit checks,
+and App Store Connect upload behavior.
+
+### Is there a local App Store packaging fallback?
+
+No supported release fallback exists outside GitHub Actions. The scripts are kept
+as workflow entrypoints and can be syntax-checked locally, but TestFlight and
+release uploads should be dispatched through GitHub Actions so the build is tied
+to a GitHub commit, runner log, and passing checks.
+
+### Which files and workflows govern the release process?
+
+Use `.github/workflows/release.yml` for version bumps, tags, and GitHub
+Releases; `.github/workflows/testflight.yml` for manual App Store Connect
+uploads; `scripts/setup-appstore-signing.sh` for certificate and provisioning
+setup; `scripts/package-for-store.sh` for packaging and upload behavior; and
+`src-tauri/tauri.conf.json`, `src-tauri/tauri.appstore.conf.json`,
+`src-tauri/Entitlements.appstore.plist`, and
+`src-tauri/embedded.provisionprofile` for App Store bundle inputs.
+
 ## Required GitHub Secrets
 
 Add these repository secrets before running `TestFlight` or `Release`:
@@ -49,14 +84,3 @@ Run the local installed-app verifier after installing from TestFlight:
 ```bash
 EXPECTED_VERSION=1.1.3 EXPECTED_BUILD_COMMIT=<short-commit> scripts/verify-macos-autostart.sh
 ```
-
-## Local Fallback
-
-Manual packaging remains available for emergency use:
-
-```bash
-BUILD_NUMBER=$(date -u +%Y%m%d%H%M) scripts/package-for-store.sh
-```
-
-Local runs require `scripts/.env`, locally installed Apple signing identities,
-and `src-tauri/embedded.provisionprofile`.
