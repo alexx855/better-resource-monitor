@@ -1,0 +1,108 @@
+---
+import { getLocaleMeta, renderInlineLinks, replaceContentTokens, type SupportedLocale } from "../lib/site";
+import type { FaqItem } from "../lib/faq-types";
+
+interface Props {
+  locale: SupportedLocale;
+  heading: string;
+  items: FaqItem[];
+  headingLevel?: "h1" | "h2";
+  includeSchema?: boolean;
+}
+
+const { locale, heading, items, headingLevel = "h2", includeSchema = true } = Astro.props;
+const HeadingTag = headingLevel;
+const langTag = getLocaleMeta(locale).langTag;
+const renderedItems = items.map((item) => ({
+  ...item,
+  html: renderInlineLinks(replaceContentTokens(item.answer, locale)),
+}));
+const faqSchema = items.map((item) => ({
+  "@type": "Question",
+  name: item.question,
+  acceptedAnswer: {
+    "@type": "Answer",
+    text: replaceContentTokens(item.answer, locale)
+      .replace(/\[(.*?)\]\((.*?)\)/g, "$1: $2")
+      .replace(/`/g, ""),
+  },
+}));
+const faqSchemaJson = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  inLanguage: langTag,
+  mainEntity: faqSchema,
+}).replace(/</g, "\\u003c");
+---
+
+<section class="faq-section" aria-labelledby="faq-section-heading">
+  <HeadingTag id="faq-section-heading">{heading}</HeadingTag>
+  <dl class="faq-list">
+    {renderedItems.map((item) => (
+      <div class="faq-item">
+        <dt>{item.question}</dt>
+        <dd><Fragment set:html={item.html} /></dd>
+      </div>
+    ))}
+  </dl>
+</section>
+
+{includeSchema && (
+  <script is:inline type="application/ld+json" set:html={faqSchemaJson} />
+)}
+
+<style>
+  .faq-section {
+    margin-top: var(--space-10);
+  }
+
+  .faq-section h1,
+  .faq-section h2 {
+    scroll-margin-top: var(--space-5);
+  }
+
+  .faq-list {
+    margin: 0;
+    padding: 0;
+  }
+
+  .faq-item {
+    border: var(--border-width) solid var(--c-border);
+    background: var(--c-surface);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .faq-item::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--c-brand);
+    opacity: 0;
+    transform: scaleY(0.35);
+    transform-origin: top;
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast);
+  }
+
+
+  .faq-item dt {
+    font-weight: 600;
+    color: var(--c-text);
+    font-size: var(--fs-md);
+    margin-bottom: var(--space-3);
+  }
+
+  .faq-item dd {
+    margin: 0;
+    color: var(--c-text-dim);
+    line-height: 1.6;
+  }
+
+  .faq-item dd p:last-child {
+    margin-bottom: 0;
+  }
+</style>

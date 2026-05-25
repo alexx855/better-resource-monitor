@@ -8,7 +8,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
-      "description": "A menu bar monitor for macOS that keeps CPU, memory, GPU, and network usage visible so you can catch unusual load without opening Activity Monitor."
+      "description": "Monitor CPU, memory, GPU, and network from your Mac menu bar."
     },
     "screenshotLang": "en",
     "screenshots": {
@@ -28,7 +28,7 @@
     "badges": {
       "appstore": {
         "topText": "DOWNLOAD FROM",
-        "bottomText": "Mac App Store"
+        "bottomText": "Apple Store for Mac"
       },
       "macos": {
         "topText": "DOWNLOAD FROM",
@@ -48,17 +48,17 @@
       "language": "Neutral Spanish for Latin America"
     },
     "home": {
-      "title": "Better Resource Monitor - Monitor de barra de menús para macOS",
-      "description": "Un monitor simple para la barra de menús de macOS. Mantén visibles CPU, memoria, GPU y red para detectar carga inusual rápidamente."
+      "title": "Better Resource Monitor - Monitor para la barra de menús de macOS",
+      "description": "Supervisa CPU, memoria, GPU y red desde la barra de menús de tu Mac."
     },
     "screenshotLang": "es",
     "screenshots": {
-      "simplicity": "CPU, GPU, Memoria, Red\nen Tu Barra de Menú",
-      "performance": "Siempre Visible\nSin Abrir Ninguna App",
-      "privacy": "Funciona Localmente\nSin Telemetría"
+      "simplicity": "CPU, GPU, memoria, red\nen la barra de menús",
+      "performance": "Siempre visible\nsin abrir otra app",
+      "privacy": "Todo queda local\nsin telemetría"
     },
     "ogTitles": {
-      "index": "Monitor de Barra\npara macOS",
+      "index": "Monitor para la barra\nde menús en macOS",
       "faq": "Preguntas\nFrecuentes",
       "privacy": "Política de\nPrivacidad",
       "terms": "Términos y\nCondiciones",
@@ -69,7 +69,7 @@
     "badges": {
       "appstore": {
         "topText": "DESCARGAR EN",
-        "bottomText": "Mac App Store"
+        "bottomText": "Apple Store para Mac"
       },
       "macos": {
         "topText": "DESCARGAR DESDE",
@@ -90,7 +90,7 @@
     },
     "home": {
       "title": "Better Resource Monitor - Monitor de Barra de Menus para macOS",
-      "description": "Um monitor simples para a barra de menus do macOS. Deixe CPU, memória, GPU e rede sempre visíveis para perceber cargas incomuns mais rápido."
+      "description": "Monitore CPU, memória, GPU e rede pela barra de menus do Mac."
     },
     "screenshotLang": "pt-BR",
     "screenshots": {
@@ -110,7 +110,7 @@
     "badges": {
       "appstore": {
         "topText": "BAIXAR NA",
-        "bottomText": "Mac App Store"
+        "bottomText": "Apple Store para Mac"
       },
       "macos": {
         "topText": "BAIXAR DE",
@@ -130,8 +130,8 @@
       "language": "Simplified Chinese"
     },
     "home": {
-      "title": "Better Resource Monitor - macOS 菜单栏系统监视器",
-      "description": "一款简单的 macOS 菜单栏监视器。让 CPU、内存、GPU 和网络使用情况始终可见，方便你更快发现异常负载。"
+      "title": "Better Resource Monitor - macOS 菜单栏监视器",
+      "description": "在 Mac 菜单栏查看 CPU、内存、GPU 和网络使用情况。"
     },
     "screenshotLang": "zh-Hans",
     "screenshots": {
@@ -151,7 +151,7 @@
     "badges": {
       "appstore": {
         "topText": "下载",
-        "bottomText": "Mac App Store"
+        "bottomText": "Mac 的 Apple Store"
       },
       "macos": {
         "topText": "下载自",

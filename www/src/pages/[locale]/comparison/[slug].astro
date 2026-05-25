@@ -1,0 +1,21 @@
+---
+import ComparisonPage from "../../../components/pages/ComparisonPage.astro";
+import { comparisonPageKeys, isComparisonPageKey, isSupportedLocale, localizedLocales } from "../../../lib/site";
+
+export function getStaticPaths() {
+  return localizedLocales.flatMap((locale) => (
+    comparisonPageKeys.map((slug) => ({ params: { locale, slug } }))
+  ));
+}
+
+const { locale, slug } = Astro.params;
+if (!locale || !isSupportedLocale(locale)) {
+  throw new Error(`Unsupported locale: ${locale}`);
+}
+
+if (!slug || !isComparisonPageKey(slug)) {
+  throw new Error(`Unsupported comparison page: ${slug}`);
+}
+---
+
+<ComparisonPage locale={locale} pageKey={slug} />

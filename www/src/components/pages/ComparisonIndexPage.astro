@@ -1,0 +1,220 @@
+---
+import { getEntry } from "astro:content";
+import FaqSection from "../FaqSection.astro";
+import HomeLink from "../HomeLink.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getComparisonPath, getLocalizedPath, type ComparisonPageKey, type SupportedLocale } from "../../lib/site";
+import { embeddedFaqHeadings, getComparisonIndexFaqItems, pickFaqItems } from "../../lib/embedded-faqs";
+
+interface Props {
+  locale: SupportedLocale;
+}
+
+const { locale } = Astro.props;
+const uiEntry = await getEntry("ui", locale);
+const faqEntry = await getEntry("faq", locale);
+if (!uiEntry || !faqEntry) throw new Error(`Missing content for ${locale}`);
+const ui = uiEntry.data;
+
+const pageCopy = {
+  en: {
+    title: "System Monitor Comparisons | Better Resource Monitor",
+    description: "Compare Better Resource Monitor with Stats, iStat Menus, and Eul for lightweight macOS menu bar monitoring.",
+    heading: "System monitor comparisons",
+    intro:
+      "Compare Better Resource Monitor against other macOS menu bar monitors. These pages cover resource use, privacy, pricing, App Store availability, and the tradeoffs that matter for daily monitoring.",
+    cardLabel: "Read comparison",
+  },
+  es: {
+    title: "Comparaciones de monitores de sistema | Better Resource Monitor",
+    description: "Compara Better Resource Monitor con Stats, iStat Menus y Eul para monitorización ligera en la barra de menús de macOS.",
+    heading: "Comparaciones de monitores de sistema",
+    intro:
+      "Compara Better Resource Monitor con otros monitores para la barra de menús de macOS. Estas páginas cubren uso de recursos, privacidad, precio, disponibilidad en App Store y las diferencias importantes para el uso diario.",
+    cardLabel: "Leer comparación",
+  },
+  "pt-br": {
+    title: "Comparações de monitores de sistema | Better Resource Monitor",
+    description: "Compare o Better Resource Monitor com Stats, iStat Menus e Eul para monitoramento leve na barra de menus do macOS.",
+    heading: "Comparações de monitores de sistema",
+    intro:
+      "Compare o Better Resource Monitor com outros monitores para a barra de menus do macOS. Estas páginas cobrem uso de recursos, privacidade, preço, disponibilidade na App Store e os pontos mais importantes para o uso diário.",
+    cardLabel: "Ler comparação",
+  },
+  "zh-cn": {
+    title: "系统监视器对比 | Better Resource Monitor",
+    description: "将 Better Resource Monitor 与 Stats、iStat Menus 和 Eul 对比，了解轻量级 macOS 菜单栏监控选择。",
+    heading: "系统监视器对比",
+    intro:
+      "将 Better Resource Monitor 与其他 macOS 菜单栏监视器进行对比。这些页面涵盖资源占用、隐私、价格、App Store 可用性，以及日常监控中真正重要的取舍。",
+    cardLabel: "阅读对比",
+  },
+} satisfies Record<SupportedLocale, {
+  title: string;
+  description: string;
+  heading: string;
+  intro: string;
+  cardLabel: string;
+}>;
+
+const comparisonKeys = ["vs-stats", "vs-istat-menus", "vs-eul"] satisfies ComparisonPageKey[];
+const comparisons = await Promise.all(
+  comparisonKeys.map(async (key) => {
+    const entry = await getEntry("comparisons", `${key}/${locale}`);
+    if (!entry) throw new Error(`Missing comparison content for ${key}/${locale}`);
+
+    return {
+      key,
+      title: entry.data.heading,
+      description: entry.data.description,
+      href: getComparisonPath(locale, key),
+    };
+  }),
+);
+const copy = pageCopy[locale];
+const faqItems = [
+  ...pickFaqItems(faqEntry.data.items, "comparisonIndex"),
+  ...getComparisonIndexFaqItems(locale),
+];
+---
+
+<Layout title={copy.title} description={copy.description} locale={locale} slug="comparison">
+  <main class="content-page comparison-index">
+    <div class="container">
+      <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
+
+      <h1>{copy.heading}</h1>
+      <p class="intro">{copy.intro}</p>
+
+      <div class="comparison-grid" aria-label={copy.heading}>
+        {comparisons.map((comparison) => (
+          <a class="comparison-card" href={comparison.href}>
+            <span class="card-title">{comparison.title}</span>
+            <span class="card-description">{comparison.description}</span>
+            <span class="card-link">
+              <span>{copy.cardLabel}</span>
+              <span style="display: flex; align-items: center;"><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <FaqSection locale={locale} heading={embeddedFaqHeadings.comparisonIndex[locale]} items={faqItems} />
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .comparison-index h1 {
+    margin-bottom: var(--space-4);
+    max-width: 760px;
+  }
+
+  .intro {
+    color: var(--c-text-dim);
+    font-size: 1.125rem;
+    line-height: 1.7;
+    margin: 0 0 var(--space-6);
+    max-width: 760px;
+  }
+
+  .comparison-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .comparison-card {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--c-brand) 12%, transparent), rgba(33, 25, 20, 0.95));
+    border: 1px solid var(--c-border);
+    border-radius: 0;
+    color: var(--c-text);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 240px;
+    padding: var(--space-5);
+    position: relative;
+    text-decoration: none;
+    transform: translateX(0) scale(1);
+    transition: transform var(--transition-fast);
+  }
+
+  .comparison-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid color-mix(in srgb, var(--c-brand) 80%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.985);
+    transform-origin: center;
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast);
+  }
+
+  .comparison-card:active {
+    transform: translateX(-2px) scale(0.99);
+  }
+
+  .comparison-card:focus-visible::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .comparison-card:active {
+      border-color: var(--c-border);
+      transform: none;
+    }
+
+    .comparison-card:focus-visible::before {
+      transform: none;
+    }
+  }
+
+  .comparison-card:focus-visible {
+    outline: 3px solid var(--c-brand);
+    outline-offset: 4px;
+  }
+
+  .card-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .card-description {
+    color: var(--c-text-dim);
+    line-height: 1.6;
+  }
+
+  .card-link {
+    color: var(--c-on-brand);
+    background-color: var(--c-brand);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
+      linear-gradient(var(--c-brand), var(--c-brand));
+    background-position: 0 100%, 0 0;
+    background-repeat: no-repeat;
+    background-size: 100% 0, 100% 100%;
+    font-weight: 700;
+    margin-top: auto;
+    padding: 2px 4px;
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    line-height: 1;
+  }
+
+  @media (max-width: 900px) {
+    .comparison-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .comparison-card {
+      min-height: 0;
+    }
+  }
+</style>

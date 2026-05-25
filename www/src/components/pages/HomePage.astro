@@ -1,7 +1,9 @@
 ---
 import { getEntry, render } from "astro:content";
+import FaqSection from "../FaqSection.astro";
 import Layout from "../../layouts/Layout.astro";
 import type { SupportedLocale } from "../../lib/site";
+import { embeddedFaqHeadings, pickFaqItems } from "../../lib/embedded-faqs";
 
 interface Props {
   locale: SupportedLocale;
@@ -10,9 +12,11 @@ interface Props {
 const { locale } = Astro.props;
 const metaEntry = await getEntry("home", locale);
 const bodyEntry = await getEntry("homeBody", locale);
-if (!metaEntry || !bodyEntry) throw new Error(`Missing home content for ${locale}`);
+const faqEntry = await getEntry("faq", locale);
+if (!metaEntry || !bodyEntry || !faqEntry) throw new Error(`Missing home content for ${locale}`);
 const home = metaEntry.data;
 const { Content } = await render(bodyEntry);
+const faqItems = pickFaqItems(faqEntry.data.items, "home");
 ---
 
 <Layout
@@ -78,5 +82,6 @@ const { Content } = await render(bodyEntry);
     <article>
       <Content />
     </article>
+    <FaqSection locale={locale} heading={embeddedFaqHeadings.home[locale]} items={faqItems} />
   </main>
 </Layout>
