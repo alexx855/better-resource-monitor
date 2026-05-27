@@ -39,13 +39,6 @@ It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch u
 
 If this is useful, star the repo so other Mac users can find it.
 
-## Preview
-
-![Better Resource Monitor in the menu bar showing CPU, Memory, GPU, and Network](https://better-resource-monitor.alexpedersen.dev/images/simplicity-en.png)
-
-It is built to stay light enough to leave running all day: under 0.1% CPU on Apple Silicon, around 15 MB of memory, and zero network requests.
-
-
 ## Installation
 
 Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (no automatic updates; download and update manually each version).
