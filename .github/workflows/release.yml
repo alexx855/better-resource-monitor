@@ -83,6 +83,9 @@ jobs:
           # Update Cargo.toml
           sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
 
+          # Update Cargo.lock's local package entry
+          cargo update --manifest-path src-tauri/Cargo.toml --workspace
+
       - name: Generate release notes
         id: notes
         env:
