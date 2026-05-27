@@ -30,11 +30,11 @@ app distributed through TestFlight and the Mac App Store.
 | Intel compatibility | In Progress | Keep Intel marked in progress until the signed TestFlight/App Store app passes verification on Intel hardware. |
 | Marketing website | Partial | The repo includes a real Astro marketing site under `www/`, but roadmap and product docs inside the app repo are still fairly lean. |
 | Linux packaging/productization | Experimental | Linux bundle metadata exists in Tauri config, but there is no supported installer, release process, or end-user positioning for Linux yet. |
-| Release automation and packaging polish | Planned | App Store packaging is configured; keep polishing the TestFlight/App Store release path. |
+| Release automation | ✅ Shipping | GitHub Actions bumps versions, merges the release PR, tags `main`, dispatches TestFlight, waits for the App Store Connect upload, and publishes the GitHub release. |
 
 ## Near-term focus
 
 - Mark Intel support as shipped only when signed TestFlight/App Store verification passes on Intel hardware.
 - Keep the tray renderer lean under long-running use.
 - Decide whether Linux stays experimental or gets a real supported release path.
-- Continue polishing the TestFlight/App Store packaging workflow without giving up the sandboxed, no-root model.
+- Keep release docs aligned with the GitHub Actions TestFlight/App Store upload path.

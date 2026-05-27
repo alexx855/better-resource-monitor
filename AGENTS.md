@@ -23,9 +23,9 @@
 - Do not add a skip-to-content link to the current marketing site by default. Pages start directly with their main content, and the extra localized copy, CSS, focus target, and DOM add complexity without clear value here. Revisit only if persistent navigation or other repeated chrome is added before the content.
 
 ## Release Notes
-- Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.
+- Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.
 - Hardcoded DMG download links also exist in `README.es.md`, `README.pt-br.md`, and `README.zh-cn.md`; the current release workflow only rewrites `README.md`, so localized READMEs are easy to leave stale.
 - App Store packaging is driven by GitHub Actions plus `.github/actions/upload-appstore`, `scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`, `src-tauri/Entitlements.appstore.plist`, and `src-tauri/embedded.provisionprofile`. `.github/workflows/testflight.yml` is the only App Store upload path and owns `CFBundleVersion`; it uses the GitHub run number with a UTC timestamp floor for same-version monotonicity. `.github/workflows/release.yml` opens and merges a version-bump PR, tags the merge commit on `main`, dispatches `TestFlight` for the tag, waits for the App Store Connect upload to pass, then creates the GitHub release. There is no local App Store packaging fallback.
 
 ## Trust Code Over Docs
-- Prefer `Cargo.toml`, `tauri*.json`, scripts, and source over prose docs. Current drift: `docs/app-store-guide.md` still shows the old repo feature name `apple-app-store` and macOS `minimumSystemVersion` `11.0`; current executable config uses feature `app-store` and minimum macOS `13.0`.
+- Prefer `Cargo.toml`, `tauri*.json`, workflows, scripts, and source over prose docs. The current executable config uses the repo feature `app-store`, the sysinfo dependency feature `apple-app-store`, and minimum macOS `13.0`; old notes that blur those names or mention macOS `11.0` are stale.
