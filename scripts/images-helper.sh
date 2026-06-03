@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # App Store Screenshot Helper for Better Resource Monitor
-# Generates localized marketing screenshots for all supported languages.
-# Usage: ./scripts/screenshot-helper.sh
+# Generates tray banners and localized marketing screenshots for all supported languages.
+# Usage: pnpm build:screenshots
 
 set -e
 
@@ -23,6 +23,26 @@ echo "Screenshots: ${SCREENSHOTS[*]}"
 echo "Output: $OUTPUT_DIR"
 echo ""
 
+cd "$PROJECT_DIR"
+
+echo "--> Rendering tray banners..."
+cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
+  --out www/public/better-resource-monitor.png \
+  --preset macos \
+  --scale 0.6666667 \
+  --include-alert-row true
+cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
+  --out www/public/better-resource-monitor-alert.png \
+  --preset macos \
+  --scale 0.6666667 \
+  --cpu 93 \
+  --mem 96 \
+  --storage 92 \
+  --gpu 91 \
+  --down "12 MB" \
+  --up "3.1 MB"
+
+echo ""
 echo "--> Building website (generates all screenshots)..."
 pnpm --filter www build
 
