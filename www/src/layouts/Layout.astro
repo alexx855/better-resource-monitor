@@ -665,6 +665,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <footer class="site-footer">
       <div class="container">
         <nav class="footer-links" aria-label={labels.footer.internalNavigation}>
+          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
