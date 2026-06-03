@@ -3,7 +3,7 @@
   "private": false,
   "version": "1.1.4",
   "packageManager": "pnpm@10.33.2",
-  "description": "A blazing-fast, lightweight menu bar system monitor for macOS. Monitor CPU, Memory, GPU, and Network usage with minimal resource consumption. Features native GPU monitoring, dark/light theme support, and customizable display options.",
+  "description": "A blazing-fast, lightweight menu bar system monitor for macOS. Monitor CPU, Memory, Storage, GPU, and Network usage with minimal resource consumption. Features native GPU monitoring, dark/light theme support, and customizable display options.",
   "author": {
     "name": "Alex Pedersen",
     "email": "hello@alexpedersen.dev"

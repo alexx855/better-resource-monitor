@@ -7,7 +7,7 @@
     {
       "id": "overview",
       "question": "O que é o Better Resource Monitor?",
-      "answer": "Um aplicativo de barra de menus gratuito e de código aberto que mostra o uso de CPU, memória, GPU e rede no macOS. Escrito em Rust. Consome menos de 0,1% de CPU e cerca de 15 MB de RAM."
+      "answer": "Um aplicativo de barra de menus gratuito e de código aberto que mostra o uso de CPU, memória, armazenamento, GPU e rede no macOS. Escrito em Rust. Consome menos de 0,1% de CPU e cerca de 15 MB de RAM."
     },
     {
       "id": "macos-support",
@@ -32,7 +32,7 @@
     {
       "id": "privacy",
       "question": "Ele coleta algum dado?",
-      "answer": "Não. Zero solicitações de rede, sem analytics, sem telemetria. Tudo permanece na sua máquina. O código-fonte está no GitHub se você quiser verificar isso pessoalmente."
+      "answer": "Não. Zero solicitações de rede, sem analytics, sem telemetria. Tudo permanece na sua máquina. O uso de armazenamento é calculado localmente pela capacidade total/livre informada pelo sistema operacional para o volume principal; nomes de arquivos, conteúdos, volumes externos e detalhes por volume não são lidos. O código-fonte está no GitHub se você quiser verificar isso pessoalmente."
     },
     {
       "id": "comparison",

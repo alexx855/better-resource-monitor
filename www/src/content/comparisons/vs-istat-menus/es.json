@@ -1,11 +1,11 @@
 {
   "title": "Alternativa a iStat Menus para macOS | Better Resource Monitor",
-  "description": "Compara iStat Menus y Better Resource Monitor para macOS. Una opción más simple y ligera para ver CPU, memoria, GPU y red.",
+  "description": "Compara iStat Menus y Better Resource Monitor para macOS. Una opción más simple y ligera para ver CPU, memoria, almacenamiento, GPU y red.",
   "ogImage": "/images/og-vs-istat-menus-es.png",
   "competitorName": "iStat Menus",
   "competitorPrice": "14.99",
   "heading": "Better Resource Monitor vs iStat Menus",
-  "intro": "iStat Menus y Better Resource Monitor están pensados para trabajos distintos. iStat Menus es una utilidad de sistema más amplia, con más sensores, controles y detalles extra. Better Resource Monitor cubre el caso más simple: mantener CPU, memoria, GPU y red visibles desde la barra de menús para que puedas detectar cargas inusuales rápido sin añadir mucha sobrecarga.",
+  "intro": "iStat Menus y Better Resource Monitor están pensados para trabajos distintos. iStat Menus es una utilidad de sistema más amplia, con más sensores, controles y detalles extra. Better Resource Monitor cubre el caso más simple: mantener CPU, memoria, almacenamiento, GPU y red visibles desde la barra de menús para que puedas detectar cargas inusuales rápido sin añadir mucha sobrecarga.",
   "table": {
     "featureLabel": "Característica",
     "productLabel": "Better Resource Monitor",
@@ -53,7 +53,7 @@
   "sections": [
     {
       "heading": "Cuál encaja mejor contigo",
-      "body": "Si quieres una suite de sistema completa con sensores y controles extra, iStat Menus cubre más terreno. Si lo que buscas es una forma limpia de vigilar tu Mac durante el día, Better Resource Monitor es la opción más enfocada. Se queda con CPU, memoria, GPU y red en lugar de intentar convertirse en un panel de control para todo."
+      "body": "Si quieres una suite de sistema completa con sensores y controles extra, iStat Menus cubre más terreno. Si lo que buscas es una forma limpia de vigilar tu Mac durante el día, Better Resource Monitor es la opción más enfocada. Se queda con CPU, memoria, almacenamiento, GPU y red en lugar de intentar convertirse en un panel de control para todo."
     },
     {
       "heading": "Por qué Better Resource Monitor se mantiene más ligero",
@@ -65,7 +65,7 @@
     },
     {
       "heading": "Privacidad",
-      "body": "Better Resource Monitor no hace solicitudes de red. Sin analíticas, sin telemetría. Todo se queda en tu máquina. Si quieres un monitor que haga su trabajo en silencio y no se meta en más, esa parte es directa."
+      "body": "Better Resource Monitor no hace solicitudes de red. Sin analíticas, sin telemetría. Todo se queda en tu máquina. El uso de almacenamiento viene de la capacidad total/libre que informa el sistema operativo para el volumen principal del usuario, sin leer nombres de archivos, contenidos, volúmenes externos ni detalles por volumen."
     }
   ],
   "cta": "Si quieres la suite más amplia, iStat Menus sigue siendo la herramienta más grande. Si quieres la más simple, [Better Resource Monitor está gratis en la Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) y el código fuente está en [GitHub](https://github.com/alexx855/better-resource-monitor)."

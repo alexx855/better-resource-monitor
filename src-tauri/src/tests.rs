@@ -45,11 +45,13 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         sizing: APP_SIZING,
         cpu_usage: 50.0,
         mem_percent: 50.0,
+        storage_percent: 50.0,
         gpu_usage: 0.0,
         down_str: "0 KB",
         up_str: "0 KB",
         show_cpu: true,
         show_mem: true,
+        show_storage: false,
         show_gpu: false,
         show_net: false,
         show_alerts: true,
@@ -112,33 +114,97 @@ fn test_should_update_threshold() {
 fn test_normalize_metric_flags() {
     for (input, expected) in [
         (
-            (false, false, true, false, true),
-            (false, false, true, false),
-        ),
-        (
+            (false, false, true, false, false, true),
             (false, false, true, false, false),
-            (true, false, false, false),
         ),
         (
-            (false, true, true, false, false),
-            (false, true, false, false),
+            (false, false, false, true, false, true),
+            (false, false, false, true, false),
         ),
         (
-            (false, false, false, false, true),
-            (true, false, false, false),
+            (false, false, false, true, false, false),
+            (true, false, false, false, false),
         ),
         (
-            (false, false, false, false, false),
-            (true, false, false, false),
+            (false, true, false, true, false, false),
+            (false, true, false, false, false),
+        ),
+        (
+            (false, false, false, false, false, true),
+            (true, false, false, false, false),
+        ),
+        (
+            (false, false, false, false, false, false),
+            (true, false, false, false, false),
         ),
     ] {
-        let (cpu, mem, gpu, net, gpu_available) = input;
+        let (cpu, mem, storage, gpu, net, gpu_available) = input;
         assert_eq!(
-            normalize_metric_flags(cpu, mem, gpu, net, gpu_available),
+            normalize_metric_flags(cpu, mem, storage, gpu, net, gpu_available),
             expected,
             "input={input:?}"
         );
     }
+}
+
+#[test]
+fn test_storage_setting_migration() {
+    for (stored_storage, has_legacy_metric_settings, expected) in [
+        (Some(true), true, true),
+        (Some(false), true, false),
+        (Some(true), false, true),
+        (Some(false), false, false),
+        (None, false, true),
+        (None, true, false),
+    ] {
+        assert_eq!(
+            migrate_storage_setting(stored_storage, has_legacy_metric_settings),
+            expected,
+            "stored_storage={stored_storage:?}, has_legacy_metric_settings={has_legacy_metric_settings}"
+        );
+    }
+}
+
+#[test]
+fn test_storage_sample_math() {
+    let sample = storage::sample_from_bytes(1_000, 250).expect("valid sample");
+    assert_eq!(sample.total_bytes, 1_000);
+    assert_eq!(sample.available_bytes, 250);
+    assert_eq!(sample.used_percent, 75.0);
+
+    assert_eq!(storage::sample_from_bytes(0, 0), None);
+
+    let clamped = storage::sample_from_bytes(1_000, 2_000).expect("clamped sample");
+    assert_eq!(clamped.available_bytes, 1_000);
+    assert_eq!(clamped.used_percent, 0.0);
+}
+
+#[test]
+fn test_storage_block_math() {
+    let sample = storage::sample_from_blocks(10, 4, 1024, 512).expect("valid statvfs sample");
+    assert_eq!(sample.total_bytes, 10 * 1024);
+    assert_eq!(sample.available_bytes, 4 * 1024);
+    assert_eq!(sample.used_percent, 60.0);
+
+    let fallback = storage::sample_from_blocks(10, 4, 0, 512).expect("block size fallback");
+    assert_eq!(fallback.total_bytes, 10 * 512);
+    assert_eq!(fallback.available_bytes, 4 * 512);
+
+    assert_eq!(storage::sample_from_blocks(10, 4, 0, 0), None);
+
+    let huge = storage::sample_from_blocks(u128::MAX, u128::MAX / 2, u128::MAX, 0)
+        .expect("huge values saturate");
+    assert_eq!(huge.total_bytes, u64::MAX);
+    assert!(huge.used_percent <= 100.0);
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[test]
+fn test_storage_sample_reads_home_filesystem() {
+    let sample = storage::sample().expect("home filesystem storage sample");
+    assert!(sample.total_bytes > 0);
+    assert!(sample.available_bytes <= sample.total_bytes);
+    assert!((0.0..=100.0).contains(&sample.used_percent));
 }
 
 #[cfg(all(target_os = "macos", feature = "app-store"))]
@@ -324,6 +390,32 @@ fn test_alert_colors_all_segments() {
             "cpu_usage={cpu_usage}, show_alerts={show_alerts}"
         );
     }
+
+    for (storage_percent, show_alerts, expected_alert) in [
+        (50.0, true, false),
+        (80.0, true, false),
+        (81.0, true, true),
+        (81.0, false, false),
+    ] {
+        let (_, _, has_alert) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                cpu_usage: 0.0,
+                mem_percent: 0.0,
+                storage_percent,
+                show_cpu: false,
+                show_mem: false,
+                show_storage: true,
+                show_alerts,
+                ..base_render_config()
+            },
+        );
+        assert_eq!(
+            has_alert, expected_alert,
+            "storage_percent={storage_percent}, show_alerts={show_alerts}"
+        );
+    }
 }
 
 #[test]
@@ -411,6 +503,48 @@ fn test_render_with_long_network_strings() {
 }
 
 #[test]
+fn test_render_all_default_visible_metrics_width() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    let (width, height, has_alert) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        &tray_render::RenderConfig {
+            show_storage: true,
+            show_gpu: true,
+            show_net: true,
+            ..base_render_config()
+        },
+    );
+
+    let percent_segments = 4;
+    let network_segments = 2;
+    let segment_count = percent_segments + network_segments;
+    let expected_width = APP_SIZING.edge_padding * 2
+        + (APP_SIZING.segment_width * percent_segments)
+        + (APP_SIZING.segment_width_net * network_segments)
+        + (APP_SIZING.segment_gap * (segment_count - 1));
+
+    assert!(!has_alert);
+    assert_render_size(&buffer, width, height, expected_width);
+}
+
+#[test]
+fn test_percent_metric_order() {
+    assert_eq!(
+        tray_render::percent_icon_order_for_tests(),
+        [
+            tray_render::IconType::Memory,
+            tray_render::IconType::Cpu,
+            tray_render::IconType::Gpu,
+            tray_render::IconType::Storage,
+        ]
+    );
+}
+
+#[test]
 fn test_detect_language_does_not_panic() {
     let lang = i18n::detect_language();
     let t = lang.translations();
@@ -462,6 +596,7 @@ fn test_all_languages_have_translations() {
         assert!(!t.start_at_login.is_empty());
         assert!(!t.show_memory.is_empty());
         assert!(!t.show_cpu.is_empty());
+        assert!(!t.show_storage.is_empty());
         assert!(!t.show_gpu.is_empty());
         assert!(!t.show_network.is_empty());
         assert!(!t.show_alert_colors.is_empty());
@@ -475,4 +610,5 @@ fn test_english_defaults() {
     let t = i18n::Language::English.translations();
     assert_eq!(t.quit, "Quit");
     assert_eq!(t.system_monitor, "System Monitor");
+    assert_eq!(t.show_storage, "Show Storage");
 }

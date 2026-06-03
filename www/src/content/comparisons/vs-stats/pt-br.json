@@ -1,11 +1,11 @@
 {
   "title": "Alternativa ao Stats para macOS | Better Resource Monitor",
-  "description": "Compare Stats e Better Resource Monitor no macOS. Uma opção gratuita, mais simples e leve para ver CPU, memória, GPU e rede na barra de menus.",
+  "description": "Compare Stats e Better Resource Monitor no macOS. Uma opção gratuita, mais simples e leve para ver CPU, memória, armazenamento, GPU e rede na barra de menus.",
   "ogImage": "/images/og-vs-stats-pt-br.png",
   "competitorName": "Stats",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats",
-  "intro": "Stats e Better Resource Monitor são bons monitores de barra de menus, mas não foram feitos exatamente para a mesma pessoa. O Stats vai mais fundo em sensores extras como ventoinhas e temperatura. O Better Resource Monitor segue um caminho mais simples: deixar CPU, memória, GPU e rede sempre visíveis, continuar leve e evitar atrito extra só para acompanhar o Mac.",
+  "intro": "Stats e Better Resource Monitor são bons monitores de barra de menus, mas não foram feitos exatamente para a mesma pessoa. O Stats vai mais fundo em sensores extras como ventoinhas e temperatura. O Better Resource Monitor segue um caminho mais simples: deixar CPU, memória, armazenamento, GPU e rede sempre visíveis, continuar leve e evitar atrito extra só para acompanhar o Mac.",
   "table": {
     "featureLabel": "Recurso",
     "productLabel": "Better Resource Monitor",
@@ -53,7 +53,7 @@
   "sections": [
     {
       "heading": "Para que cada app foi otimizado",
-      "body": "O Stats cobre mais terreno se você se importa com velocidade das ventoinhas, dados térmicos e sensores mais profundos. O Better Resource Monitor é mais enxuto de propósito. Ele foca nas quatro coisas que a maioria das pessoas olha primeiro quando sente que o Mac está estranho: CPU, memória, GPU e rede."
+      "body": "O Stats cobre mais terreno se você se importa com velocidade das ventoinhas, dados térmicos e sensores mais profundos. O Better Resource Monitor é mais enxuto de propósito. Ele foca nas cinco coisas que a maioria das pessoas olha primeiro quando sente que o Mac está estranho: CPU, memória, armazenamento, GPU e rede."
     },
     {
       "heading": "Por que o Better Resource Monitor fica mais leve",
