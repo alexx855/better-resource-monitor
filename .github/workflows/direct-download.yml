@@ -1,0 +1,121 @@
+name: Direct Download
+
+# Builds signed and notarized macOS artifacts for a tagged release, then
+# optionally uploads them to the matching GitHub Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build, for example v1.1.4'
+        required: true
+        type: string
+      upload_to_release:
+        description: 'Upload artifacts to the existing GitHub Release'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: direct-download-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-direct-download:
+    name: Build direct-download artifacts
+    runs-on: macos-15
+    env:
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+      DEVELOPER_ID_APPLICATION_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_IDENTITY }}
+      DEVELOPER_ID_APPLICATION_CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
+      DEVELOPER_ID_APPLICATION_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
+
+    steps:
+      - name: Checkout workflow tooling
+        uses: actions/checkout@v5
+
+      - name: Checkout release source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          path: source
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './source/src-tauri -> target'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        working-directory: source
+        run: pnpm install
+
+      - name: Validate scripts
+        run: bash -n scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh
+
+      - name: Prepare Developer ID credentials
+        run: bash scripts/setup-developer-id-signing.sh
+
+      - name: Resolve build metadata
+        id: metadata
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_TAG" in
+            v[0-9]*)
+              ;;
+            *)
+              echo "Error: tag must look like v1.2.3, got '$RELEASE_TAG'"
+              exit 1
+              ;;
+          esac
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r '.version' src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build direct-download artifacts
+        id: package
+        uses: ./.github/actions/build-direct-download
+        with:
+          source-dir: source
+          build-commit: ${{ steps.metadata.outputs.sha }}
+
+      - name: Upload artifacts to GitHub Release
+        if: ${{ inputs.upload_to_release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          DMG_PATH: ${{ steps.package.outputs.dmg_path }}
+          ZIP_PATH: ${{ steps.package.outputs.zip_path }}
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG"
+          gh release upload "$RELEASE_TAG" \
+            "$DMG_PATH#Better Resource Monitor ${RELEASE_TAG} macOS universal.dmg" \
+            "$ZIP_PATH#Better Resource Monitor ${RELEASE_TAG} macOS universal.zip" \
+            --clobber
