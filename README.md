@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/images/simplicity-en.png" alt="Better Resource Monitor showing CPU, memory, GPU, and network usage in the macOS menu bar" width="830">
+  <img src="https://better-resource-monitor.alexpedersen.dev/images/simplicity-en.png" alt="Better Resource Monitor showing CPU, memory, GPU, and network usage in the macOS menu bar" width="830" height="519">
 </p>
 
 <p align="center">
