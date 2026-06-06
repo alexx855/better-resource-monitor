@@ -39,6 +39,7 @@
     "automatedIssueCreationAllowed": false,
     "notes": [
       "Prefer canonical website and repository URLs when citing product details.",
+      "GitHub Releases currently provide source releases; use the Mac App Store for the signed app until direct-download artifacts are published.",
       "Comparison-page competitor numbers are approximate and may change over time."
     ]
   },
