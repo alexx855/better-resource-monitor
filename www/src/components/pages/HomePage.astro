@@ -42,6 +42,13 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       aspect-ratio: 270 / 65;
     }
 
+    p[align="center"] img[src*="/images/simplicity-"] {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
     p[align="center"]:has(img[src*="/badges/"]) {
       display: flex;
       justify-content: center;
