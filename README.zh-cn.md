@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="982" height="86">
 </p>
 
 
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>在 Mac 菜单栏查看 CPU、内存、GPU 和网络使用情况。</strong>
+  <strong>在 Mac 菜单栏查看 CPU、内存、存储、GPU 和网络使用情况。</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -30,9 +30,11 @@
 
 Better Resource Monitor 适合那些只想用一种简单方式看看自己的 Mac 状态的人。
 
-它会把 CPU、内存、GPU 和网络使用情况直接放在菜单栏里，让你不用打开活动监视器，也不用钻进系统工具，就能更快发现异常负载。
+它会把 CPU、内存、存储、GPU 和网络使用情况直接放在菜单栏里，让你不用打开活动监视器，也不用钻进系统工具，就能更快发现异常负载。
 
 它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
+
+存储使用率由操作系统报告的主存储卷总容量和可用容量在本地计算。Better Resource Monitor 不会读取文件名、文件内容、外部卷或逐卷详情。
 
 
 ## 安装

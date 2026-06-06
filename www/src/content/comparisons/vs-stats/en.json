@@ -5,7 +5,7 @@
   "competitorName": "Stats",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats for macOS",
-  "intro": "Stats and Better Resource Monitor are both good menu bar monitors, but they suit different habits. Stats goes deeper into fans, thermals, and extra sensor detail. Better Resource Monitor keeps to the everyday numbers: CPU, memory, GPU, and network. If you want a Stats alternative that stays focused and does not add much overhead of its own, that narrower scope is the point.",
+  "intro": "Stats and Better Resource Monitor are both good menu bar monitors, but they suit different habits. Stats goes deeper into fans, thermals, and extra sensor detail. Better Resource Monitor keeps to the everyday numbers: CPU, memory, storage, GPU, and network. If you want a Stats alternative that stays focused and does not add much overhead of its own, that narrower scope is the point.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
@@ -53,7 +53,7 @@
   "sections": [
     {
       "heading": "What each app is optimized for",
-      "body": "Stats covers more ground if you care about fan speeds, thermals, and deeper sensor data. Better Resource Monitor is narrower on purpose. It focuses on the four things most people actually check first when their Mac feels off: CPU, memory, GPU, and network usage."
+      "body": "Stats covers more ground if you care about fan speeds, thermals, and deeper sensor data. Better Resource Monitor is narrower on purpose. It focuses on the five things most people actually check first when their Mac feels off: CPU, memory, storage, GPU, and network usage."
     },
     {
       "heading": "Why Better Resource Monitor stays lighter",

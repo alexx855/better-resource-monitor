@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="982" height="86">
 </p>
 
 
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Supervisa CPU, memoria, GPU y red desde la barra de menús de tu Mac.</strong>
+  <strong>Supervisa CPU, memoria, almacenamiento, GPU y red desde la barra de menús de tu Mac.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -30,9 +30,11 @@
 
 Better Resource Monitor es para quienes solo quieren una forma rápida y discreta de vigilar su Mac.
 
-Mantiene el uso de CPU, memoria, GPU y red directamente en la barra de menús, para que puedas detectar cargas inusuales sin interrumpir lo que haces ni abrir el Monitor de Actividad.
+Mantiene el uso de CPU, memoria, almacenamiento, GPU y red directamente en la barra de menús, para que puedas detectar cargas inusuales sin interrumpir lo que haces ni abrir el Monitor de Actividad.
 
 Está pensado para quedarse abierto todo el día sin convertirse en parte del problema: menos del 0,1% de CPU en Apple Silicon, unos 15 MB de memoria y cero solicitudes de red.
+
+El uso de almacenamiento se calcula localmente con la capacidad total y libre que informa el sistema operativo para tu volumen principal. Better Resource Monitor no lee nombres de archivos, contenidos, volúmenes externos ni detalles por volumen.
 
 
 ## Instalación

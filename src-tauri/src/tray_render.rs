@@ -5,6 +5,7 @@ use rusttype::{Font, Scale};
 
 const SVG_CPU: &str = include_str!("../assets/icons/svg/fill/cpu-fill.svg");
 const SVG_MEMORY: &str = include_str!("../assets/icons/svg/fill/memory-fill.svg");
+const SVG_STORAGE: &str = include_str!("../assets/icons/svg/fill/disc-fill.svg");
 const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
 const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
@@ -59,13 +60,26 @@ pub const SIZING_LINUX: Sizing = Sizing {
     font_size: 19.0,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-enum IconType {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum IconType {
     Cpu,
     Memory,
+    Storage,
     Gpu,
     ArrowDown,
     ArrowUp,
+}
+
+const PERCENT_ICON_ORDER: [IconType; 4] = [
+    IconType::Memory,
+    IconType::Cpu,
+    IconType::Gpu,
+    IconType::Storage,
+];
+
+#[cfg(test)]
+pub(crate) fn percent_icon_order_for_tests() -> [IconType; 4] {
+    PERCENT_ICON_ORDER
 }
 
 pub(crate) fn cap_percent(value: f32) -> f32 {
@@ -95,9 +109,16 @@ pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8
     let (r, g, b) = color;
     let color_hex = format!("#{r:02x}{g:02x}{b:02x}");
 
-    let svg_with_color = svg_data
-        .replace("currentColor", &color_hex)
-        .replace("<svg ", &format!("<svg fill=\"{color_hex}\" "));
+    let svg_with_color = svg_data.replace("currentColor", &color_hex);
+    let svg_with_color = if svg_with_color
+        .split_once('>')
+        .map(|(svg_tag, _)| svg_tag.contains("fill="))
+        .unwrap_or(false)
+    {
+        svg_with_color
+    } else {
+        svg_with_color.replace("<svg ", &format!("<svg fill=\"{color_hex}\" "))
+    };
 
     let opts = resvg::usvg::Options::default();
     let tree = resvg::usvg::Tree::from_str(&svg_with_color, &opts).expect("Failed to parse SVG");
@@ -138,6 +159,7 @@ impl IconCache {
         let icon_svgs = [
             (IconType::Cpu, SVG_CPU),
             (IconType::Memory, SVG_MEMORY),
+            (IconType::Storage, SVG_STORAGE),
             (IconType::Gpu, SVG_GPU),
             (IconType::ArrowDown, SVG_ARROW_DOWN),
             (IconType::ArrowUp, SVG_ARROW_UP),
@@ -167,11 +189,13 @@ pub struct RenderConfig<'a> {
     pub sizing: Sizing,
     pub cpu_usage: f32,
     pub mem_percent: f32,
+    pub storage_percent: f32,
     pub gpu_usage: f32,
     pub down_str: &'a str,
     pub up_str: &'a str,
     pub show_cpu: bool,
     pub show_mem: bool,
+    pub show_storage: bool,
     pub show_gpu: bool,
     pub show_net: bool,
     pub show_alerts: bool,
@@ -225,13 +249,18 @@ impl TrayRenderer {
 
         let sizing = config.sizing;
 
-        let mut segments = Vec::with_capacity(5);
-        let percent_segments = [
-            (config.show_mem, IconType::Memory, config.mem_percent),
-            (config.show_cpu, IconType::Cpu, config.cpu_usage),
-            (config.show_gpu, IconType::Gpu, config.gpu_usage),
-        ];
-        for (show, icon, value) in percent_segments {
+        let mut segments = Vec::with_capacity(6);
+        for icon in PERCENT_ICON_ORDER {
+            let (show, value) = match icon {
+                IconType::Memory => (config.show_mem, config.mem_percent),
+                IconType::Cpu => (config.show_cpu, config.cpu_usage),
+                IconType::Gpu => (config.show_gpu, config.gpu_usage),
+                IconType::Storage => (config.show_storage, config.storage_percent),
+                IconType::ArrowDown | IconType::ArrowUp => {
+                    unreachable!("network icons are separate")
+                }
+            };
+
             if show {
                 segments.push(Segment {
                     icon,

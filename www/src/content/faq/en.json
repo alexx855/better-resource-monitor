@@ -7,7 +7,7 @@
     {
       "id": "overview",
       "question": "What is Better Resource Monitor?",
-      "answer": "A free, open-source menu bar app that shows CPU, memory, GPU, and network usage on macOS. Written in Rust. Under 0.1% CPU and about 15 MB of RAM."
+      "answer": "A free, open-source menu bar app that shows CPU, memory, storage, GPU, and network usage on macOS. Written in Rust. Under 0.1% CPU and about 15 MB of RAM."
     },
     {
       "id": "macos-support",
@@ -32,12 +32,12 @@
     {
       "id": "privacy",
       "question": "Does it collect any data?",
-      "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. The source code is on GitHub if you want to verify that yourself."
+      "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. Storage usage is calculated locally from OS-reported total/free capacity for your main storage volume; no file names, contents, external volumes, or per-volume details are read. The source code is on GitHub if you want to verify that yourself."
     },
     {
       "id": "comparison",
       "question": "Is Better Resource Monitor a Stats or iStat Menus alternative?",
-      "answer": "Yes, if you want a simpler macOS menu bar monitor focused on CPU, memory, GPU, and network usage. Stats and iStat Menus go deeper into sensors. Better Resource Monitor stays lighter, free, and fully available from the Mac App Store. See the [Stats comparison]({{vsStatsUrl}}) and [iStat Menus comparison]({{vsIstatMenusUrl}})."
+      "answer": "Yes, if you want a simpler macOS menu bar monitor focused on CPU, memory, storage, GPU, and network usage. Stats and iStat Menus go deeper into sensors. Better Resource Monitor stays lighter, free, and fully available from the Mac App Store. See the [Stats comparison]({{vsStatsUrl}}) and [iStat Menus comparison]({{vsIstatMenusUrl}})."
     },
     {
       "id": "battery",

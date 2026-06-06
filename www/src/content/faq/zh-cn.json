@@ -7,7 +7,7 @@
     {
       "id": "overview",
       "question": "什么是 Better Resource Monitor？",
-      "answer": "一款免费、开源的 macOS 菜单栏应用，用于显示 CPU、内存、GPU 和网络使用情况。使用 Rust 编写。CPU 占用低于 0.1%，内存占用约 15 MB。"
+      "answer": "一款免费、开源的 macOS 菜单栏应用，用于显示 CPU、内存、存储、GPU 和网络使用情况。使用 Rust 编写。CPU 占用低于 0.1%，内存占用约 15 MB。"
     },
     {
       "id": "macos-support",
@@ -32,7 +32,7 @@
     {
       "id": "privacy",
       "question": "它会收集任何数据吗？",
-      "answer": "不会。零网络请求，无分析，无遥测。所有数据都保留在你的机器上。如果你想验证，源码就在 GitHub 上。"
+      "answer": "不会。零网络请求，无分析，无遥测。所有数据都保留在你的机器上。存储使用率由操作系统报告的主存储卷总容量/可用容量在本地计算；不会读取文件名、文件内容、外部卷或逐卷详情。如果你想验证，源码就在 GitHub 上。"
     },
     {
       "id": "comparison",

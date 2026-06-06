@@ -109,6 +109,24 @@ runs:
           exit 1
         fi
 
+        PRIVACY_MANIFEST="$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+        if [ ! -f "$PRIVACY_MANIFEST" ]; then
+          echo "Error: PrivacyInfo.xcprivacy was not embedded in Contents/Resources"
+          exit 1
+        fi
+        plutil -lint "$PRIVACY_MANIFEST"
+        DISK_CATEGORY=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType" "$PRIVACY_MANIFEST" 2>/dev/null || true)
+        DISK_REASON=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0" "$PRIVACY_MANIFEST" 2>/dev/null || true)
+        if [ "$DISK_CATEGORY" != "NSPrivacyAccessedAPICategoryDiskSpace" ]; then
+          echo "Error: Privacy manifest missing disk-space API category"
+          exit 1
+        fi
+        if [ "$DISK_REASON" != "85F4.1" ]; then
+          echo "Error: Privacy manifest missing disk-space reason 85F4.1"
+          exit 1
+        fi
+        echo "Privacy manifest disk-space reason verified"
+
         APP_PLIST="$APP_PATH/Contents/Info.plist"
         echo "Setting CFBundleVersion to $BUILD_NUMBER"
         /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$APP_PLIST" 2>/dev/null || \
