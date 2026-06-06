@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="982" height="86">
 </p>
 
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  CPU, memory pressure, GPU, and network signals stay visible without opening Activity Monitor.
+  CPU, memory pressure, storage, GPU, and network signals stay visible without opening Activity Monitor.
 </p>
 
 <p align="center">
@@ -54,8 +54,11 @@ It keeps the common signals visible in the menu bar:
 
 - CPU load
 - Memory pressure
+- Storage usage
 - GPU usage
 - Network activity
+
+Storage usage is calculated locally from OS-reported total and free capacity for your main storage volume. Better Resource Monitor does not read file names, file contents, external volumes, or per-volume details.
 
 That makes it easier to spot unusual load while you are working, building, gaming, or testing apps.
 

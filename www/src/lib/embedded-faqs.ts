@@ -64,7 +64,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "Which monitor should I choose if I only want the basics?",
         answer:
-          "Choose Better Resource Monitor if you want CPU, memory, GPU, and network visible in the menu bar without fan, thermal, or sensor depth.",
+          "Choose Better Resource Monitor if you want CPU, memory, storage, GPU, and network visible in the menu bar without fan, thermal, or sensor depth.",
       },
       {
         question: "When should I compare individual apps?",
@@ -76,7 +76,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "¿Qué monitor debería elegir si solo quiero lo básico?",
         answer:
-          "Elige Better Resource Monitor si quieres ver CPU, memoria, GPU y red en la barra de menús sin profundizar en ventiladores, temperatura ni sensores.",
+          "Elige Better Resource Monitor si quieres ver CPU, memoria, almacenamiento, GPU y red en la barra de menús sin profundizar en ventiladores, temperatura ni sensores.",
       },
       {
         question: "¿Cuándo conviene comparar apps concretas?",
@@ -88,7 +88,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "Qual monitor devo escolher se só quero o básico?",
         answer:
-          "Escolha o Better Resource Monitor se você quer CPU, memória, GPU e rede visíveis na barra de menus sem detalhes de ventoinha, temperatura ou sensores.",
+          "Escolha o Better Resource Monitor se você quer CPU, memória, armazenamento, GPU e rede visíveis na barra de menus sem detalhes de ventoinha, temperatura ou sensores.",
       },
       {
         question: "Quando devo comparar aplicativos específicos?",
@@ -100,7 +100,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "如果我只需要基础功能，应该选择哪个监视器？",
         answer:
-          "如果你只想在菜单栏查看 CPU、内存、GPU 和网络，而不需要风扇、温度或深层传感器信息，请选择 Better Resource Monitor。",
+          "如果你只想在菜单栏查看 CPU、内存、存储、GPU 和网络，而不需要风扇、温度或深层传感器信息，请选择 Better Resource Monitor。",
       },
       {
         question: "什么时候需要查看具体应用的对比？",
@@ -120,7 +120,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "Is Better Resource Monitor a good Stats alternative?",
           answer:
-            "Yes, if you want a Stats alternative focused on CPU, memory, GPU, and network. Stats is better if you need fan, thermal, and deeper sensor detail.",
+            "Yes, if you want a Stats alternative focused on CPU, memory, storage, GPU, and network. Stats is better if you need fan, thermal, and deeper sensor detail.",
         },
         {
           question: "Why does Stats need more system access?",
@@ -132,7 +132,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "¿Better Resource Monitor es una buena alternativa a Stats?",
           answer:
-            "Sí, si quieres una alternativa a Stats más simple, centrada en CPU, memoria, GPU y red. Stats es más amplio si necesitas ventiladores, temperaturas y sensores más profundos.",
+            "Sí, si quieres una alternativa a Stats más simple, centrada en CPU, memoria, almacenamiento, GPU y red. Stats es más amplio si necesitas ventiladores, temperaturas y sensores más profundos.",
         },
         {
           question: "¿Por qué Stats necesita más acceso al sistema?",
@@ -144,7 +144,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "O Better Resource Monitor é uma boa alternativa ao Stats?",
           answer:
-            "Sim, se você quer uma alternativa ao Stats mais simples, focada em CPU, memória, GPU e rede. O Stats é mais amplo se você precisa de ventoinhas, temperatura e sensores mais detalhados.",
+            "Sim, se você quer uma alternativa ao Stats mais simples, focada em CPU, memória, armazenamento, GPU e rede. O Stats é mais amplo se você precisa de ventoinhas, temperatura e sensores mais detalhados.",
         },
         {
           question: "Por que o Stats precisa de mais acesso ao sistema?",
@@ -156,7 +156,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "Better Resource Monitor 是好的 Stats 替代品吗？",
           answer:
-            "是的，如果你想要一个更简单、专注于 CPU、内存、GPU 和网络的 Stats 替代品。若需要风扇、温度和更深层传感器，Stats 覆盖更广。",
+            "是的，如果你想要一个更简单、专注于 CPU、内存、存储、GPU 和网络的 Stats 替代品。若需要风扇、温度和更深层传感器，Stats 覆盖更广。",
         },
         {
           question: "为什么 Stats 需要更多系统访问权限？",
@@ -220,7 +220,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "How is Better Resource Monitor different from Eul?",
           answer:
-            "Both are lightweight options. Better Resource Monitor is narrower, actively packaged for the Mac App Store, and focuses on CPU, memory, GPU, and network.",
+            "Both are lightweight options. Better Resource Monitor is narrower, actively packaged for the Mac App Store, and focuses on CPU, memory, storage, GPU, and network.",
         },
         {
           question: "Which one is better for daily menu bar monitoring?",
@@ -232,7 +232,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "¿En qué se diferencia Better Resource Monitor de Eul?",
           answer:
-            "Ambas son opciones ligeras. Better Resource Monitor es más enfocado, está empaquetado activamente para la Mac App Store y se centra en CPU, memoria, GPU y red.",
+            "Ambas son opciones ligeras. Better Resource Monitor es más enfocado, está empaquetado activamente para la Mac App Store y se centra en CPU, memoria, almacenamiento, GPU y red.",
         },
         {
           question: "¿Cuál es mejor para la monitorización diaria en la barra de menús?",
@@ -244,7 +244,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "Como o Better Resource Monitor é diferente do Eul?",
           answer:
-            "Ambos são opções leves. O Better Resource Monitor é mais focado, tem empacotamento ativo para a Mac App Store e se concentra em CPU, memória, GPU e rede.",
+            "Ambos são opções leves. O Better Resource Monitor é mais focado, tem empacotamento ativo para a Mac App Store e se concentra em CPU, memória, armazenamento, GPU e rede.",
         },
         {
           question: "Qual é melhor para monitoramento diário na barra de menus?",
@@ -256,7 +256,7 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
         {
           question: "Better Resource Monitor 和 Eul 有什么不同？",
           answer:
-            "两者都是轻量级选择。Better Resource Monitor 更聚焦，持续为 Mac App Store 打包，并专注于 CPU、内存、GPU 和网络。",
+            "两者都是轻量级选择。Better Resource Monitor 更聚焦，持续为 Mac App Store 打包，并专注于 CPU、内存、存储、GPU 和网络。",
         },
         {
           question: "哪一个更适合日常菜单栏监控？",
