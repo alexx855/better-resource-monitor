@@ -167,9 +167,8 @@ Target shape:
 ```ts
 const FONT_DIR = join(import.meta.dirname, "../assets/fonts");
 
-function readFontAsset(filename: string): ArrayBuffer {
-  const buffer = readFileSync(join(FONT_DIR, filename));
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+function readFontAsset(filename: string): Uint8Array {
+  return readFileSync(join(FONT_DIR, filename));
 }
 ```
 
@@ -198,8 +197,7 @@ Recommended pattern:
 const FONT_DIR = join(ROOT, "src", "assets", "fonts");
 
 function readFontAsset(filename) {
-  const buffer = readFileSync(join(FONT_DIR, filename));
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  return readFileSync(join(FONT_DIR, filename));
 }
 ```
 
