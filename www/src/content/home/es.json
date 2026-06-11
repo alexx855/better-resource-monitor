@@ -1,5 +1,5 @@
 {
-  "title": "Monitor para la barra de menús de Mac | Better Resource Monitor",
-  "description": "Supervisa CPU, memoria, almacenamiento, GPU y red desde la barra de menús de tu Mac.",
+  "title": "Alternativa a iStat Menus para macOS | Better Resource Monitor",
+  "description": "Monitor ligero de la barra de menús de Mac para CPU, memoria, GPU y red. Una alternativa ágil y de código abierto a iStat Menus.",
   "ogImage": "/images/og-index-es.png"
 }
