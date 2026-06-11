@@ -23,13 +23,15 @@
 
 ## Why this matters
 
-`pnpm audit --prod` currently reports 36 production dependency advisories in
-the website dependency graph, including 14 high severity advisories. Several
-are in build/deploy tooling used by this repo: Astro, `@astrojs/cloudflare`,
-Vite, Rollup, Wrangler, Undici, H3, and related transitive packages. The site is
-small enough that keeping the framework/toolchain current is cheaper than
-carrying known advisory noise, and it reduces risk for Cloudflare Pages deploys
-and local build tooling.
+`pnpm audit --prod` currently reports 36 dependency advisories in the website
+dependency graph, including 14 high severity advisories. Several are in
+build/deploy tooling used by this repo: Astro, `@astrojs/cloudflare`, Vite,
+Rollup, Wrangler, Undici, H3, and related transitive packages. Because
+development tools such as `wrangler` are in scope for this plan, the executor
+should use full `pnpm audit` as the remediation gate. The site is small enough
+that keeping the framework/toolchain current is cheaper than carrying known
+advisory noise, and it reduces risk for Cloudflare Pages deploys and local build
+tooling.
 
 This plan is specifically for the `www` JavaScript/Astro dependency tree. Rust
 dependency auditing is not included because `cargo audit` was not installed in
@@ -102,11 +104,11 @@ Repo conventions to preserve:
 
 | Purpose | Command | Expected on success |
 | --- | --- | --- |
-| Inspect current advisories | `pnpm audit --prod` | currently exits non-zero; use before/after comparison |
+| Inspect current advisories | `pnpm audit` | currently expected to exit non-zero; use before/after comparison |
 | Update Astro packages | `pnpm --filter www update astro @astrojs/cloudflare @astrojs/sitemap @astrojs/check --latest` | exit 0; framework packages updated |
 | Update remaining website tooling | `pnpm --filter www update wrangler @types/node typescript sharp satori @resvg/resvg-js --latest` | exit 0; remaining direct packages updated |
 | Build site | `pnpm build:www` | exit 0 |
-| Check remaining advisories | `pnpm audit --prod` | preferably exit 0; at minimum no high or moderate advisories |
+| Check remaining advisories | `pnpm audit` | preferably exit 0; at minimum no high or moderate advisories |
 | Check scope | `git status --short` | only in-scope files are modified |
 
 ## Scope
@@ -141,14 +143,14 @@ Repo conventions to preserve:
 Run:
 
 ```bash
-pnpm audit --prod
+pnpm audit
 pnpm --filter www exec astro --version
 pnpm build:www
 ```
 
 Expected:
 
-- `pnpm audit --prod` exits non-zero before the update.
+- `pnpm audit` exits non-zero before the update.
 - Astro reports `v5.16.8` unless drift already occurred.
 - `pnpm build:www` exits 0 before the dependency change.
 
@@ -207,7 +209,7 @@ is only for dependency security and migration compatibility.
 Run:
 
 ```bash
-pnpm audit --prod
+pnpm audit
 ```
 
 Expected: exit 0. If new low severity advisories remain because no patched
@@ -221,7 +223,7 @@ moderate advisories without operator approval.
 - Add no tests unless a required Astro migration changes local helper logic in
   `www/src/lib/**`. If it does, add a small TypeScript or build-time check only
   if the repo already has a matching pattern; otherwise rely on the Astro build.
-- Run `pnpm audit --prod` after the update and record remaining counts.
+- Run `pnpm audit` after the update and record remaining counts.
 
 ## Done criteria
 
@@ -229,7 +231,7 @@ moderate advisories without operator approval.
       versions for the advisories listed above.
 - [ ] `pnpm-lock.yaml` is updated and committed.
 - [ ] `pnpm build:www` exits 0.
-- [ ] `pnpm audit --prod` exits 0, or has no high/moderate advisories and any
+- [ ] `pnpm audit` exits 0, or has no high/moderate advisories and any
       residual low advisories are explicitly documented.
 - [ ] No Rust code, release workflow, or package-manager migration is included.
 - [ ] `plans/README.md` status row updated.
@@ -241,7 +243,7 @@ Stop and report if:
 - Astro 6 or the Cloudflare adapter upgrade requires broad route/content
   rewrites rather than small compatibility edits.
 - `pnpm build:www` fails before any dependency changes.
-- `pnpm audit --prod` still reports high or moderate advisories after updating
+- `pnpm audit` still reports high or moderate advisories after updating
   to current direct dependencies.
 - Clearing the advisories requires pinning transitive dependencies with
   overrides that conflict with Astro or Wrangler peer dependencies.

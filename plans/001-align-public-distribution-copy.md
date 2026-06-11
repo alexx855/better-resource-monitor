@@ -246,7 +246,7 @@ sessions/KV, but the build must complete.
 Then search the generated site output for stale install claims:
 
 ```bash
-rg -n "GitHub versions|Download macOS on GitHub Releases|\\.dmg|Availability: Mac App Store and GitHub" www/dist README*.md
+rg -u -n "GitHub versions|Download macOS on GitHub Releases|\\.dmg|Availability: Mac App Store and GitHub" www/dist README*.md
 ```
 
 Expected: no stale app-download claims. GitHub source/provenance links may
