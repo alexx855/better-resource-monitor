@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="982" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
 </p>
 
 
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>在 Mac 菜单栏查看 CPU、内存、存储、GPU 和网络使用情况。</strong>
+  <strong>在 Mac 菜单栏查看 CPU、内存、GPU 和网络使用情况。</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -30,11 +30,29 @@
 
 Better Resource Monitor 适合那些只想用一种简单方式看看自己的 Mac 状态的人。
 
-它会把 CPU、内存、存储、GPU 和网络使用情况直接放在菜单栏里，让你不用打开活动监视器，也不用钻进系统工具，就能更快发现异常负载。
+它会把 CPU、内存、GPU 和网络使用情况直接放在菜单栏里，让你不用打开活动监视器，也不用钻进系统工具，就能更快发现异常负载。
 
 它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
 
-存储使用率由操作系统报告的主存储卷总容量和可用容量在本地计算。Better Resource Monitor 不会读取文件名、文件内容、外部卷或逐卷详情。
+如果你在寻找 iStat Menus 的替代方案，这里就是你的起点：轻量级日常监控，低开销且不带遥测。
+
+## FAQ：iStat Menus 替代方案
+
+### Better Resource Monitor 能替代 iStat Menus 吗？
+
+可以，在你想要日常稳定可读监控时。iStat Menus 适合深度系统控制；Better Resource Monitor 更适合只关注 CPU、内存、GPU 和网络等核心指标的轻量日常使用。
+
+### 是否免费？
+
+是，Better Resource Monitor 免费且采用 MIT 许可证。Mac App Store 版本与 GitHub 版本是同一款应用。
+
+### 会发送用户数据或遥测吗？
+
+不会。Better Resource Monitor 不发起任何网络请求，不采集分析，也不发送遥测。
+
+### 会明显影响电池续航吗？
+
+不会。它的目标是以很低的资源占用常驻后台，适合日常使用。
 
 
 ## 安装
@@ -71,6 +89,12 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
 ## 对比
+
+快捷跳转：
+
+- [Better Resource Monitor 与 iStat Menus 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-istat-menus/)
+- [Better Resource Monitor 与 Stats 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-stats/)
+- [Better Resource Monitor 与 Eul 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-eul/)
 
 <table>
   <thead>
