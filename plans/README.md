@@ -48,7 +48,7 @@ REJECTED (with one-line rationale).
 
 | # | Finding | Category | Impact | Effort | Risk | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| 001 | Public install copy still advertises GitHub `.dmg` distribution while release/runtime behavior is App Store/TestFlight-shaped | docs/correctness | Users and crawlers are pointed at a non-supported install path | M | MED | `README.md:25`, `README.md:44`, `.github/workflows/release.yml:246`, `src-tauri/src/lib.rs:275`, `www/src/content/faq/en.json:20`, `www/public/llms.txt:8` |
+| 001 | Public install copy still advertises GitHub `.dmg` distribution while release/runtime behavior is App Store/TestFlight-shaped | docs/correctness | Users and crawlers are pointed at a non-supported install path | M | MED | `README.md:25`, `README.md:64`, `.github/workflows/release.yml:246`, `src-tauri/src/lib.rs:275`, `www/src/content/faq/en.json:20`, `www/public/llms.txt:8` |
 | 002 | CI does not build the Astro marketing site | tests/DX | Site/content/image-route breakage can merge green | S | LOW | `.github/workflows/ci.yml:20-69`, `package.json:44-47`, `www/package.json:5-11`, `AGENTS.md:4-11` |
 | 003 | Website production dependency tree has current high/moderate advisories | security/migration | Known vulnerable build/deploy/framework packages remain in use | M | MED | `www/package.json:13-25`, `pnpm audit --prod` reported 14 high and 15 moderate advisories |
 | 004 | CSP blocks same-origin fetches required by Astro ClientRouter | correctness/security config | Client-side same-origin navigations trip CSP and silently fall back | S | LOW | `www/src/layouts/Layout.astro:3`, `www/src/layouts/Layout.astro:86`, `www/public/_headers:6`, installed Astro router fetches HTML |

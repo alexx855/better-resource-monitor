@@ -165,7 +165,7 @@ In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
 Target shape:
 
 ```ts
-const FONT_DIR = join(import.meta.dirname, "..", "assets", "fonts");
+const FONT_DIR = join(process.cwd(), "src", "assets", "fonts");
 
 const FONT_MAP = {
   "JetBrainsMono-Regular.ttf": join(FONT_DIR, "JetBrainsMono-Regular.ttf"),
@@ -189,8 +189,10 @@ Then update the cached loaders:
 Keep the existing cache behavior and `renderImage()` font array shape, but
 update the related TypeScript types to match the local-file helper:
 
-- keep or add named imports for `readFileSync` from `node:fs` and `join` from
-  `node:path`; do not add `dirname` or `fileURLToPath` just for this helper
+- keep or add `readFileSync` from `node:fs`
+- ensure `join` is imported from `node:path`, which is already true in the
+  current file
+- do not add extra path-conversion imports just for this helper
 - cache variables such as `fontData`, `fontBoldData`, `notoJPData`, and
   `notoSCData` should be `Uint8Array | null`
 - loader return types should be `Promise<Uint8Array>`
@@ -199,8 +201,8 @@ update the related TypeScript types to match the local-file helper:
 Do not leave these as `ArrayBuffer` if `readFontAsset()` returns the
 `readFileSync` buffer directly.
 
-Keep the path import in `www/src/lib/renderer.ts` because the static `FONT_MAP`
-uses it to resolve filesystem paths relative to the renderer file.
+Keep the `process.cwd()` root in `www/src/lib/renderer.ts` so font asset
+resolution matches the existing `trayIconBase64()` helper.
 
 **Verify**:
 `rg -n "fonts\\.gstatic\\.com|fetchFont|Failed to fetch font" www/src/lib/renderer.ts`
@@ -211,8 +213,8 @@ returns no matches.
 In `www/generate-badges.mjs`, make sure the existing named imports include
 `readFileSync` from `node:fs` and `join` from `node:path`, then read the same
 vendored font files with `readFileSync` instead of `fetch`. Use the existing
-`ROOT` constant defined near the top of that file instead of mixing in
-`import.meta.dirname`.
+`ROOT` constant defined near the top of that file instead of adding a second
+root-resolution style.
 
 Recommended pattern:
 

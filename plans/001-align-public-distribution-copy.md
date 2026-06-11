@@ -52,7 +52,7 @@ README.md:24-25
 <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" ...>
 <a href="https://github.com/alexx855/better-resource-monitor/releases" ... alt="Download macOS on GitHub Releases" ...>
 
-README.md:44
+README.md:64
 Get it from the Mac App Store ... or grab the `.dmg` from GitHub Releases ...
 ```
 
