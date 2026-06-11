@@ -51,7 +51,11 @@ jobs:
         run: pnpm install
 
       - name: Verify macOS signing scripts
-        run: bash -n scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh
+        run: |
+          set -euo pipefail
+          for script in scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh; do
+            bash -n "$script"
+          done
 
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check

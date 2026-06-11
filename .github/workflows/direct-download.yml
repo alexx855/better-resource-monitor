@@ -30,13 +30,6 @@ jobs:
   build-direct-download:
     name: Build direct-download artifacts
     runs-on: macos-15
-    env:
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
-      DEVELOPER_ID_APPLICATION_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_IDENTITY }}
-      DEVELOPER_ID_APPLICATION_CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
-      DEVELOPER_ID_APPLICATION_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
 
     steps:
       - name: Checkout workflow tooling
@@ -74,10 +67,11 @@ jobs:
         run: pnpm install
 
       - name: Validate scripts
-        run: bash -n scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh
-
-      - name: Prepare Developer ID credentials
-        run: bash scripts/setup-developer-id-signing.sh
+        run: |
+          set -euo pipefail
+          for script in scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh; do
+            bash -n "$script"
+          done
 
       - name: Resolve build metadata
         id: metadata
@@ -104,6 +98,12 @@ jobs:
         with:
           source-dir: source
           build-commit: ${{ steps.metadata.outputs.sha }}
+          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          apple-api-issuer: ${{ secrets.APPLE_API_ISSUER }}
+          appstore-connect-api-key-p8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+          developer-id-application-identity: ${{ secrets.DEVELOPER_ID_APPLICATION_IDENTITY }}
+          developer-id-application-cert-p12-base64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
+          developer-id-application-cert-password: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
 
       - name: Upload artifacts to GitHub Release
         if: ${{ inputs.upload_to_release }}
