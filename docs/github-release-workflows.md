@@ -1,7 +1,9 @@
 # GitHub Release Workflows
 
 Better Resource Monitor uses GitHub Actions for both public verification and
-App Store Connect uploads.
+App Store Connect uploads. GitHub direct-download artifacts use a separate
+Developer ID workflow so App Store packaging and outside-the-store packaging do
+not share signing contracts.
 
 ## Workflows
 
@@ -14,6 +16,10 @@ App Store Connect uploads.
   merges a version-bump pull request, tags the merge commit on `main`, dispatches
   `TestFlight` for that tag, waits for the App Store Connect upload to pass,
   then creates the GitHub release.
+- `Direct Download` is manually dispatched for an existing tag. It builds a
+  universal macOS app, signs it with Developer ID, notarizes it, packages both a
+  `.dmg` and `.zip`, and can upload those artifacts to the matching GitHub
+  release.
 
 The `TestFlight` workflow uses `.github/actions/upload-appstore` as the shared
 packaging entrypoint, and `Release` dispatches `TestFlight` instead of
@@ -38,6 +44,12 @@ provisioning-profile installation, installer certificate import, entitlement
 checks, `CFBundleVersion` assignment, embedded commit verification, private API
 scanning, `productbuild`, and `xcrun altool` upload behavior.
 
+The direct-download workflow uses `.github/actions/build-direct-download` and
+`scripts/setup-developer-id-signing.sh`. Keep it separate from the App Store
+action because direct downloads need Developer ID Application signing,
+notarization, stapling, and user-installable artifacts rather than App Store
+provisioning profiles or App Store installer packages.
+
 ## Required GitHub Secrets
 
 Add these repository secrets before running `TestFlight` or `Release`:
@@ -58,6 +70,18 @@ The certificate secrets are base64-encoded `.p12` files. The provisioning
 profile secret is the base64-encoded Mac App Store provisioning profile for
 `dev.alexpedersen.better-resource-monitor`. The App Store Connect key secret is
 the raw private key content for `AuthKey_<APPLE_API_KEY_ID>.p8`.
+
+Add these additional repository secrets before running `Direct Download`:
+
+- `DEVELOPER_ID_APPLICATION_IDENTITY`
+- `DEVELOPER_ID_APPLICATION_CERT_P12_BASE64`
+- `DEVELOPER_ID_APPLICATION_CERT_PASSWORD`
+
+`DEVELOPER_ID_APPLICATION_IDENTITY` should be the full codesigning identity,
+for example `Developer ID Application: Alex Pedersen (TEAMID)`. The certificate
+secret is the base64-encoded Developer ID Application `.p12` file. Direct
+download notarization reuses `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and
+`APPSTORE_CONNECT_API_KEY_P8`.
 
 ## Transparency
 
@@ -87,5 +111,13 @@ Create a release, upload the App Store package, and publish the GitHub release:
 gh workflow run release.yml --ref main -f version_type=patch
 ```
 
-The upload path is GitHub Actions only. There is no local App Store packaging
-fallback; use TestFlight dispatch for validation builds.
+Build signed and notarized direct-download artifacts for an existing tag and
+upload them to the matching GitHub Release:
+
+```bash
+gh workflow run direct-download.yml --ref main -f tag=v1.1.4 -f upload_to_release=true
+```
+
+The upload paths are GitHub Actions only. There is no local App Store packaging
+fallback; use TestFlight dispatch for validation builds and Direct Download
+dispatch for public `.dmg` and `.zip` artifacts.

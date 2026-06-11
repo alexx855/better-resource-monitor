@@ -50,8 +50,12 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
-      - name: Verify macOS autostart scripts
-        run: bash -n scripts/setup-appstore-signing.sh
+      - name: Verify macOS signing scripts
+        run: |
+          set -euo pipefail
+          for script in scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh; do
+            bash -n "$script"
+          done
 
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
