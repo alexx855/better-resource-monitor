@@ -19,7 +19,7 @@ app distributed through TestFlight and the Mac App Store.
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Core tray monitoring | ✅ Shipping | CPU, memory, GPU, and network metrics are rendered in the tray app and are central to the current product. |
+| Core tray monitoring | ✅ Shipping | CPU, memory, storage, GPU, and network metrics are rendered in the tray app and are central to the current product. |
 | Sandboxed, no-root monitoring | ✅ Shipping | Still a core differentiator in the README, and the sysinfo/App Store setup supports that claim. |
 | Mac App Store distribution | ✅ Shipping | App Store listing, App Store-specific config, and sandbox entitlements are present in the repo. |
 | Localized UI | ✅ Shipping | English, Spanish, Portuguese (Brazil), and Simplified Chinese are present, and localization behavior is covered by tests. |

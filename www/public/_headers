@@ -11,6 +11,9 @@
 /better-resource-monitor-alert.png
   Cache-Control: public, max-age=86400
 
+/social-preview.png
+  Cache-Control: public, max-age=86400
+
 /apple-touch-icon.png
   Cache-Control: public, max-age=86400
 

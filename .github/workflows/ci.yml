@@ -67,3 +67,10 @@ jobs:
           pnpm tauri build --bundles app --target x86_64-apple-darwin
           APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
           test ! -d "$APP_PATH/Contents/Library/LaunchAgents"
+          PRIVACY_MANIFEST="$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          test -f "$PRIVACY_MANIFEST"
+          plutil -lint "$PRIVACY_MANIFEST"
+          DISK_CATEGORY=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType" "$PRIVACY_MANIFEST")
+          DISK_REASON=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0" "$PRIVACY_MANIFEST")
+          test "$DISK_CATEGORY" = "NSPrivacyAccessedAPICategoryDiskSpace"
+          test "$DISK_REASON" = "85F4.1"

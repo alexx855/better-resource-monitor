@@ -16,11 +16,13 @@ O Better Resource Monitor ("o Aplicativo") é um aplicativo de desktop que exibe
 
 **Nós não coletamos nenhum dado pessoal.**
 
-O Aplicativo opera inteiramente localmente no seu dispositivo. Todas as informações do sistema (uso de CPU, uso de memória, atividade de rede, estatísticas de GPU) são:
+O Aplicativo opera inteiramente localmente no seu dispositivo. Todas as informações do sistema (uso de CPU, uso de memória, uso de armazenamento, atividade de rede, estatísticas de GPU) são:
 - Lidas diretamente do seu sistema operacional
 - Exibidas apenas na sua tela local
 - Nunca transmitidas para servidores externos
 - Nunca armazenadas em nenhum banco de dados externo
+
+O uso de armazenamento é calculado pela capacidade total e livre informada pelo sistema operacional para o volume principal do usuário. O Aplicativo não lê nomes de arquivos, conteúdos de arquivos, volumes externos nem detalhes por volume.
 
 ## Armazenamento de dados
 

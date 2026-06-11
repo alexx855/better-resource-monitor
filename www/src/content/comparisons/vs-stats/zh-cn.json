@@ -1,11 +1,11 @@
 {
   "title": "macOS Stats 替代选择 | Better Resource Monitor",
-  "description": "Stats 和 Better Resource Monitor 都是免费的 Mac 菜单栏监视器。如果你主要想一眼看到 CPU、内存、GPU 和网络，Better Resource Monitor 会是更简单、更轻量的选择。",
+  "description": "Stats 和 Better Resource Monitor 都是免费的 Mac 菜单栏监视器。如果你主要想一眼看到 CPU、内存、存储、GPU 和网络，Better Resource Monitor 会是更简单、更轻量的选择。",
   "ogImage": "/images/og-vs-stats-zh-cn.png",
   "competitorName": "Stats",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats",
-  "intro": "Stats 和 Better Resource Monitor 都是不错的菜单栏监视器，但它们面向的用户并不完全一样。Stats 会更深入地覆盖风扇、温度等额外传感器。Better Resource Monitor 走的是更简单的路线：把 CPU、内存、GPU 和网络始终放在眼前，保持轻量，并且不要为了看看 Mac 状态就增加额外负担。",
+  "intro": "Stats 和 Better Resource Monitor 都是不错的菜单栏监视器，但它们面向的用户并不完全一样。Stats 会更深入地覆盖风扇、温度等额外传感器。Better Resource Monitor 走的是更简单的路线：把 CPU、内存、存储、GPU 和网络始终放在眼前，保持轻量，并且不要为了看看 Mac 状态就增加额外负担。",
   "table": {
     "featureLabel": "功能",
     "productLabel": "Better Resource Monitor",
@@ -53,7 +53,7 @@
   "sections": [
     {
       "heading": "每款应用分别更适合什么人",
-      "body": "如果你很在意风扇转速、温度和更深入的传感器数据，Stats 覆盖得更广。Better Resource Monitor 则是有意收窄范围。它专注于大多数人在觉得 Mac 不对劲时最先会看的四项数据：CPU、内存、GPU 和网络。"
+      "body": "如果你很在意风扇转速、温度和更深入的传感器数据，Stats 覆盖得更广。Better Resource Monitor 则是有意收窄范围。它专注于大多数人在觉得 Mac 不对劲时最先会看的五项数据：CPU、内存、存储、GPU 和网络。"
     },
     {
       "heading": "为什么 Better Resource Monitor 更轻量",
