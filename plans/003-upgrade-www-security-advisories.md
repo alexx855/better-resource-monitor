@@ -103,7 +103,8 @@ Repo conventions to preserve:
 | Purpose | Command | Expected on success |
 | --- | --- | --- |
 | Inspect current advisories | `pnpm audit --prod` | currently exits non-zero; use before/after comparison |
-| Update website packages | `pnpm --filter www update astro @astrojs/cloudflare wrangler @astrojs/sitemap @astrojs/check @types/node typescript sharp satori @resvg/resvg-js --latest` | exit 0; `www/package.json` and `pnpm-lock.yaml` updated |
+| Update Astro packages | `pnpm --filter www update astro @astrojs/cloudflare @astrojs/sitemap @astrojs/check --latest` | exit 0; framework packages updated |
+| Update remaining website tooling | `pnpm --filter www update wrangler @types/node typescript sharp satori @resvg/resvg-js --latest` | exit 0; remaining direct packages updated |
 | Build site | `pnpm build:www` | exit 0 |
 | Check remaining advisories | `pnpm audit --prod` | preferably exit 0; at minimum no high or moderate advisories |
 | Check scope | `git status --short` | only in-scope files are modified |
@@ -156,13 +157,18 @@ mixed with pre-existing build repair unless the operator approves.
 
 ### Step 2: Upgrade the website toolchain
 
-Run a targeted website update:
+Run targeted website updates in phases so breaking changes are easier to
+isolate:
 
 ```bash
-pnpm --filter www update astro @astrojs/cloudflare wrangler @astrojs/sitemap @astrojs/check @types/node typescript sharp satori @resvg/resvg-js --latest
+pnpm --filter www update astro @astrojs/cloudflare @astrojs/sitemap @astrojs/check --latest
+pnpm build:www
+pnpm --filter www update wrangler @types/node typescript sharp satori @resvg/resvg-js --latest
 ```
 
-This should update direct website dependencies and the transitive lockfile. The
+The first phase moves Astro and its integrations together. The second phase
+updates deploy/build tooling and renderer dependencies. Together they should
+update direct website dependencies and the transitive lockfile. The
 important minimums from the audit are:
 
 - `astro` must move past the vulnerable 5.x line. Audit listed patched Astro
