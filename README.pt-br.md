@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="982" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
 </p>
 
 
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Monitore CPU, memória, armazenamento, GPU e rede pela barra de menus do Mac.</strong>
+  <strong>Monitore CPU, memória, GPU e rede pela barra de menus do Mac.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -30,11 +30,29 @@
 
 Better Resource Monitor é para quem só quer uma forma simples de acompanhar o Mac.
 
-Ele mostra CPU, memória, armazenamento, GPU e rede direto na barra de menus, para você perceber cargas incomuns rapidamente sem abrir o Monitor de Atividade nem fuçar ferramentas do sistema.
+Ele mostra CPU, memória, GPU e rede direto na barra de menus, para você perceber cargas incomuns rapidamente sem abrir o Monitor de Atividade nem fuçar ferramentas do sistema.
 
 Também foi feito para ser leve, para que o próprio monitor não vire parte do problema.
 
-O uso de armazenamento é calculado localmente pela capacidade total e livre informada pelo sistema operacional para o volume principal. O Better Resource Monitor não lê nomes de arquivos, conteúdos, volumes externos nem detalhes por volume.
+Se você está procurando uma alternativa ao iStat Menus, aqui está ela: monitoramento diário leve, com baixo consumo e sem telemetria.
+
+## FAQ: alternativa ao iStat Menus
+
+### O Better Resource Monitor pode substituir o iStat Menus?
+
+Sim, quando o objetivo é visibilidade estável no dia a dia. iStat Menus é melhor para controle profundo do sistema; Better Resource Monitor é feito para manter apenas os números essenciais visíveis durante todo o dia com menos configuração.
+
+### É gratuito?
+
+Sim. Better Resource Monitor é gratuito e com licença MIT. A versão da Mac App Store e a do GitHub são o mesmo app.
+
+### Ele coleta dados ou envia telemetria?
+
+Não. Better Resource Monitor não faz requisições de rede. Não há analytics nem telemetria enviada.
+
+### Funciona sem pesar a bateria?
+
+Sim. Foi construído para ficar ativo em segundo plano com baixo impacto e útil no dia a dia.
 
 
 ## Instalação
@@ -71,6 +89,12 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
 ## Comparação
+
+Atalhos rápidos:
+
+- [Better Resource Monitor vs iStat Menus](https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-istat-menus/)
+- [Better Resource Monitor vs Stats](https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-stats/)
+- [Better Resource Monitor vs Eul](https://better-resource-monitor.alexpedersen.dev/pt-br/comparison/vs-eul/)
 
 <table>
   <thead>
