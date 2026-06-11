@@ -165,10 +165,8 @@ In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
 Target shape:
 
 ```ts
-const FONT_DIR = join(import.meta.dirname, "../assets/fonts");
-
 function readFontAsset(filename: string): Uint8Array {
-  return readFileSync(join(FONT_DIR, filename));
+  return readFileSync(new URL("../assets/fonts/" + filename, import.meta.url));
 }
 ```
 
@@ -189,6 +187,9 @@ update the related TypeScript types to match the local-file helper:
 
 Do not leave these as `ArrayBuffer` if `readFontAsset()` returns the
 `readFileSync` buffer directly.
+
+Remove the `join` import from `www/src/lib/renderer.ts` if the renderer no
+longer uses it after this helper change.
 
 **Verify**:
 `rg -n "fonts\\.gstatic\\.com|fetchFont|Failed to fetch font" www/src/lib/renderer.ts`
