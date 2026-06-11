@@ -37,6 +37,26 @@ Better Resource Monitor is for people who just want a quick, low-noise way to ke
 
 It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
 
+If you're evaluating an iStat Menus alternative, this is the same place to do it: a lightweight monitor for everyday metrics with low overhead and no telemetry.
+
+## IStat Menus alternative FAQ
+
+### Can Better Resource Monitor replace iStat Menus?
+
+Yes, when your goals are visibility and daily stability. iStat Menus is excellent for deep system control; Better Resource Monitor is for keeping the core numbers easy to read all day with less setup.
+
+### Is it free?
+
+Yes. Better Resource Monitor is free and MIT licensed. The Mac App Store build and GitHub build are the same app.
+
+### Does it send telemetry or collect usage data?
+
+No. Better Resource Monitor has zero network requests. No analytics and no telemetry are sent.
+
+### Does it run quietly on a battery-powered Mac?
+
+Yes. It is built to sit in the background with very low impact so it stays usable during daily work.
+
 If this is useful, star the repo so other Mac users can find it.
 
 ## Installation
@@ -73,6 +93,12 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
 ## Comparison
+
+Quick starts:
+
+- [Better Resource Monitor vs iStat Menus](https://better-resource-monitor.alexpedersen.dev/comparison/vs-istat-menus/)
+- [Better Resource Monitor vs Stats](https://better-resource-monitor.alexpedersen.dev/comparison/vs-stats/)
+- [Better Resource Monitor vs Eul](https://better-resource-monitor.alexpedersen.dev/comparison/vs-eul/)
 
 <table>
   <thead>
