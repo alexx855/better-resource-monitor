@@ -5,19 +5,24 @@ import { join } from "node:path";
 
 // Design tokens (matching Layout.astro CSS vars)
 export const colors = {
-  bg: "#181818",
-  surface: "#202020",
-  surfaceAlt: "#242424",
+  bg: "#101214",
+  surface: "#171A1D",
+  surfaceAlt: "#22272F",
   brand: "#D14715",
-  text: "#ffffff",
-  textDim: "#c5c5c5",
-  border: "#3a3a3a",
+  brandMuted: "#321D16",
+  text: "#F8FAFC",
+  textDim: "#C6CED8",
+  textMuted: "#8993A1",
+  border: "#3A414A",
+  borderStrong: "#566170",
+  chrome: "#0B0D0F",
 };
 
 export const imageBackgroundStyle = {
   backgroundColor: colors.bg,
   backgroundImage:
-    "radial-gradient(circle at 12% -10%, rgba(209, 71, 21, 0.22), rgba(209, 71, 21, 0) 56%), radial-gradient(circle at 50% 12%, rgba(209, 71, 21, 0.1), rgba(209, 71, 21, 0) 48%), linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 18px)",
+    "url(\"data:image/svg+xml,%3Csvg width='56' height='56' viewBox='0 0 56 56' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 55.5H56M55.5 0V56' stroke='%2322272F' stroke-width='1'/%3E%3C/svg%3E\")",
+  backgroundSize: "56px 56px",
 };
 
 // Font cache — fetched once per build
