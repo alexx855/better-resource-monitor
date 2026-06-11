@@ -125,7 +125,7 @@ const faqItems = [
   }
 
   .comparison-card {
-    background: linear-gradient(145deg, color-mix(in srgb, var(--c-brand) 12%, transparent), rgba(33, 25, 20, 0.95));
+    background: var(--c-surface);
     border: 1px solid var(--c-border);
     border-radius: 0;
     color: var(--c-text);
@@ -137,20 +137,34 @@ const faqItems = [
     position: relative;
     text-decoration: none;
     transform: translateX(0) scale(1);
-    transition: transform var(--transition-fast);
+    transition:
+      border-color var(--transition-fast),
+      transform var(--transition-fast);
   }
 
   .comparison-card::before {
     content: "";
     position: absolute;
-    inset: 0;
-    border: 1px solid color-mix(in srgb, var(--c-brand) 80%, transparent);
-    opacity: 0;
+    inset: var(--space-3);
+    border-top: 3px solid var(--c-brand);
+    opacity: 0.72;
     pointer-events: none;
-    transform: scale(0.985);
+    transform: scaleX(0.24);
     transform-origin: center;
-    transition: opacity var(--transition-fast),
-                transform var(--transition-fast);
+    transition:
+      opacity var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .comparison-card:hover {
+      border-color: color-mix(in srgb, var(--c-brand) 55%, var(--c-border));
+    }
+
+    .comparison-card:hover::before {
+      opacity: 1;
+      transform: scaleX(1);
+    }
   }
 
   .comparison-card:active {
@@ -159,7 +173,7 @@ const faqItems = [
 
   .comparison-card:focus-visible::before {
     opacity: 1;
-    transform: scale(1);
+    transform: scaleX(1);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -192,12 +206,8 @@ const faqItems = [
   .card-link {
     color: var(--c-on-brand);
     background-color: var(--c-brand);
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--c-brand), #000 16%), color-mix(in srgb, var(--c-brand), #000 16%)),
-      linear-gradient(var(--c-brand), var(--c-brand));
-    background-position: 0 100%, 0 0;
-    background-repeat: no-repeat;
-    background-size: 100% 0, 100% 100%;
+    background-image: none;
+    box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
     font-weight: 700;
     margin-top: auto;
     padding: 2px 4px;
