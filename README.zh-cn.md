@@ -34,6 +34,26 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 
 它也被设计得足够轻量，这样监视器本身不会变成问题的一部分。
 
+如果你在寻找 iStat Menus 的替代方案，这里就是你的起点：轻量级日常监控，低开销且不带遥测。
+
+## FAQ：iStat Menus 替代方案
+
+### Better Resource Monitor 能替代 iStat Menus 吗？
+
+可以，在你想要日常稳定可读监控时。iStat Menus 适合深度系统控制；Better Resource Monitor 更适合只关注 CPU、内存、GPU 和网络等核心指标的轻量日常使用。
+
+### 是否免费？
+
+是，Better Resource Monitor 免费且采用 MIT 许可证。Mac App Store 版本与 GitHub 版本是同一款应用。
+
+### 会发送用户数据或遥测吗？
+
+不会。Better Resource Monitor 不发起任何网络请求，不采集分析，也不发送遥测。
+
+### 会明显影响电池续航吗？
+
+不会。它的目标是以很低的资源占用常驻后台，适合日常使用。
+
 
 ## 安装
 
@@ -69,6 +89,12 @@ cd src-tauri && cargo llvm-cov --lib --html --output-dir coverage/
 ```
 
 ## 对比
+
+快捷跳转：
+
+- [Better Resource Monitor 与 iStat Menus 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-istat-menus/)
+- [Better Resource Monitor 与 Stats 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-stats/)
+- [Better Resource Monitor 与 Eul 对比](https://better-resource-monitor.alexpedersen.dev/zh-cn/comparison/vs-eul/)
 
 <table>
   <thead>
