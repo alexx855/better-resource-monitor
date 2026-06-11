@@ -165,8 +165,7 @@ In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
 Target shape:
 
 ```ts
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const FONT_DIR = join(__dirname, "..", "assets", "fonts");
+const FONT_DIR = join(import.meta.dirname, "..", "assets", "fonts");
 
 const FONT_MAP = {
   "JetBrainsMono-Regular.ttf": join(FONT_DIR, "JetBrainsMono-Regular.ttf"),
@@ -190,8 +189,8 @@ Then update the cached loaders:
 Keep the existing cache behavior and `renderImage()` font array shape, but
 update the related TypeScript types to match the local-file helper:
 
-- add named imports for `dirname` and `join` from `node:path`, and
-  `fileURLToPath` from `node:url`, if they are not already present
+- keep or add named imports for `readFileSync` from `node:fs` and `join` from
+  `node:path`; do not add `dirname` or `fileURLToPath` just for this helper
 - cache variables such as `fontData`, `fontBoldData`, `notoJPData`, and
   `notoSCData` should be `Uint8Array | null`
 - loader return types should be `Promise<Uint8Array>`
@@ -200,8 +199,8 @@ update the related TypeScript types to match the local-file helper:
 Do not leave these as `ArrayBuffer` if `readFontAsset()` returns the
 `readFileSync` buffer directly.
 
-Keep the path and URL imports in `www/src/lib/renderer.ts` because the static
-`FONT_MAP` uses them to resolve filesystem paths relative to the renderer file.
+Keep the path import in `www/src/lib/renderer.ts` because the static `FONT_MAP`
+uses it to resolve filesystem paths relative to the renderer file.
 
 **Verify**:
 `rg -n "fonts\\.gstatic\\.com|fetchFont|Failed to fetch font" www/src/lib/renderer.ts`
