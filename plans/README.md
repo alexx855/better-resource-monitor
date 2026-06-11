@@ -5,7 +5,7 @@ Execute in the order below unless dependencies say otherwise. Each executor
 should read the target plan fully before starting, honor its STOP conditions,
 and update the row when done.
 
-Audit scope: deep direct audit of `/Volumes/WDC/dev/monitor`, covering the root
+Audit scope: deep direct audit of the repository root, covering the root
 Tauri app, `src-tauri/`, the Astro marketing site in `www/`, GitHub Actions,
 release docs, dependencies, public content, and repo-local instructions.
 

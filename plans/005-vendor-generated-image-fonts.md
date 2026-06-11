@@ -166,10 +166,10 @@ Target shape:
 
 ```ts
 const FONT_MAP = {
-  "JetBrainsMono-Regular.ttf": new URL("../assets/fonts/JetBrainsMono-Regular.ttf", import.meta.url),
-  "JetBrainsMono-Bold.ttf": new URL("../assets/fonts/JetBrainsMono-Bold.ttf", import.meta.url),
-  "NotoSansJP-Bold.ttf": new URL("../assets/fonts/NotoSansJP-Bold.ttf", import.meta.url),
-  "NotoSansSC-Bold.ttf": new URL("../assets/fonts/NotoSansSC-Bold.ttf", import.meta.url),
+  "JetBrainsMono-Regular.ttf": join(process.cwd(), "src", "assets", "fonts", "JetBrainsMono-Regular.ttf"),
+  "JetBrainsMono-Bold.ttf": join(process.cwd(), "src", "assets", "fonts", "JetBrainsMono-Bold.ttf"),
+  "NotoSansJP-Bold.ttf": join(process.cwd(), "src", "assets", "fonts", "NotoSansJP-Bold.ttf"),
+  "NotoSansSC-Bold.ttf": join(process.cwd(), "src", "assets", "fonts", "NotoSansSC-Bold.ttf"),
 };
 
 function readFontAsset(filename: keyof typeof FONT_MAP): Uint8Array {
@@ -195,8 +195,8 @@ update the related TypeScript types to match the local-file helper:
 Do not leave these as `ArrayBuffer` if `readFontAsset()` returns the
 `readFileSync` buffer directly.
 
-Remove the `join` import from `www/src/lib/renderer.ts` if the renderer no
-longer uses it after this helper change.
+Keep the `join` import in `www/src/lib/renderer.ts` because the static
+`FONT_MAP` uses it to resolve filesystem paths.
 
 **Verify**:
 `rg -n "fonts\\.gstatic\\.com|fetchFont|Failed to fetch font" www/src/lib/renderer.ts`
