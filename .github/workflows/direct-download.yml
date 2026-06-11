@@ -1,0 +1,148 @@
+name: Direct Download
+
+# Builds signed and notarized macOS artifacts for a tagged release, then
+# optionally uploads them to the matching GitHub Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build, for example v1.1.4'
+        required: true
+        type: string
+      upload_to_release:
+        description: 'Upload artifacts to the existing GitHub Release'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: direct-download-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-direct-download:
+    name: Build direct-download artifacts
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout workflow tooling
+        uses: actions/checkout@v5
+
+      - name: Checkout release source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          path: source
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './source/src-tauri -> target'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        working-directory: source
+        run: pnpm install
+
+      - name: Validate scripts
+        run: |
+          set -euo pipefail
+          for script in scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh; do
+            bash -n "$script"
+          done
+
+      - name: Resolve build metadata
+        id: metadata
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_TAG" in
+            v[0-9]*)
+              ;;
+            *)
+              echo "Error: tag must look like v1.2.3, got '$RELEASE_TAG'"
+              exit 1
+              ;;
+          esac
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r '.version' src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build direct-download artifacts
+        id: package
+        uses: ./.github/actions/build-direct-download
+        with:
+          source-dir: source
+          build-commit: ${{ steps.metadata.outputs.sha }}
+          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          apple-api-issuer: ${{ secrets.APPLE_API_ISSUER }}
+          appstore-connect-api-key-p8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+          developer-id-application-identity: ${{ secrets.DEVELOPER_ID_APPLICATION_IDENTITY }}
+          developer-id-application-cert-p12-base64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
+          developer-id-application-cert-password: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
+
+      - name: Upload direct-download workflow artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: direct-download-${{ inputs.tag }}
+          path: |
+            ${{ steps.package.outputs.dmg_path }}
+            ${{ steps.package.outputs.zip_path }}
+          if-no-files-found: error
+
+  upload-direct-download-release:
+    name: Upload direct-download artifacts to release
+    if: ${{ inputs.upload_to_release }}
+    needs: build-direct-download
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download direct-download workflow artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: direct-download-${{ inputs.tag }}
+          path: artifacts
+
+      - name: Upload artifacts to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          DMG_PATH="$(find artifacts -maxdepth 1 -name '*.dmg' -print -quit)"
+          ZIP_PATH="$(find artifacts -maxdepth 1 -name '*.zip' -print -quit)"
+          test -f "$DMG_PATH"
+          test -f "$ZIP_PATH"
+
+          gh release view "$RELEASE_TAG"
+          gh release upload "$RELEASE_TAG" \
+            "$DMG_PATH#Better Resource Monitor ${RELEASE_TAG} macOS universal.dmg" \
+            "$ZIP_PATH#Better Resource Monitor ${RELEASE_TAG} macOS universal.zip" \
+            --clobber
