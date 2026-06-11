@@ -131,11 +131,12 @@ In `.github/workflows/ci.yml`, add a separate job named `site` or
 Recommended shape:
 
 - `runs-on: ubuntu-latest`
-- checkout with `actions/checkout@v5`
-- setup pnpm with `pnpm/action-setup@v5` and `version: 10.33.2`, matching the
-  existing workflow and `package.json`
-- setup Node with `actions/setup-node@v5`, `node-version: lts/*`, and
-  `cache: 'pnpm'`
+- checkout with the same `actions/checkout` major already used by the live
+  workflow
+- setup pnpm with the same `pnpm/action-setup` major already used by the live
+  workflow and `version: 10.33.2`, matching `package.json`
+- setup Node with the same `actions/setup-node` major already used by the live
+  workflow, `node-version: lts/*`, and `cache: 'pnpm'`
 - run `pnpm install`
 - run `pnpm build:www`
 

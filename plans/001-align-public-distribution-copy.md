@@ -129,14 +129,10 @@ Repo conventions to preserve:
 - `README.es.md`
 - `README.pt-br.md`
 - `README.zh-cn.md`
-- `www/src/content/faq/en.json`
-- `www/src/content/faq/es.json`
-- `www/src/content/faq/pt-br.json`
-- `www/src/content/faq/zh-cn.json`
-- `www/src/content/comparisons/**/*.json`, only if stale distribution claims
-  are found there
-- Any other `www/src/content/**/*.json` file that the verification searches
-  identify as containing stale distribution copy
+- All public content collection files under `www/src/content/**/*.json`,
+  including FAQ files, comparison pages under `www/src/content/comparisons/`,
+  and any other localized marketing content where stale distribution copy is
+  found
 - `www/src/lib/marketing-copy.json`
 - `www/generate-badges.mjs`, only if badge labels or generated badge coverage change
 - `www/public/badges/*`, only generated badge files affected by this copy change
