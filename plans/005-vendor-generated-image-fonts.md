@@ -179,7 +179,16 @@ Then update the cached loaders:
 - `loadNotoJP()` reads `NotoSansJP-Bold.ttf`
 - `loadNotoSC()` reads `NotoSansSC-Bold.ttf`
 
-Keep the existing cache variables and `renderImage()` font array shape.
+Keep the existing cache behavior and `renderImage()` font array shape, but
+update the related TypeScript types to match the local-file helper:
+
+- cache variables such as `fontData`, `fontBoldData`, `notoJPData`, and
+  `notoSCData` should be `Uint8Array | null`
+- loader return types should be `Promise<Uint8Array>`
+- `fontLoads` should be typed as `Promise<Uint8Array>[]`
+
+Do not leave these as `ArrayBuffer` if `readFontAsset()` returns the
+`readFileSync` buffer directly.
 
 **Verify**:
 `rg -n "fonts\\.gstatic\\.com|fetchFont|Failed to fetch font" www/src/lib/renderer.ts`
