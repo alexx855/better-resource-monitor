@@ -106,7 +106,7 @@ Repo conventions to preserve:
 | --- | --- | --- |
 | Inspect current advisories | `pnpm audit` | currently expected to exit non-zero; use before/after comparison |
 | Update Astro packages | `pnpm --filter www update astro @astrojs/cloudflare @astrojs/sitemap @astrojs/check --latest` | exit 0; framework packages updated |
-| Update remaining website tooling | `pnpm --filter www update wrangler @types/node typescript sharp satori @resvg/resvg-js --latest` | exit 0; remaining direct packages updated |
+| Update Wrangler | `pnpm --filter www update wrangler --latest` | exit 0; Wrangler reaches the patched advisory floor |
 | Build site | `pnpm build:www` | exit 0 |
 | Check remaining advisories | `pnpm audit` | preferably exit 0; at minimum no high or moderate advisories |
 | Check scope | `git status --short` | only in-scope files are modified |
@@ -165,13 +165,18 @@ isolate:
 ```bash
 pnpm --filter www update astro @astrojs/cloudflare @astrojs/sitemap @astrojs/check --latest
 pnpm build:www
-pnpm --filter www update wrangler @types/node typescript sharp satori @resvg/resvg-js --latest
+pnpm --filter www update wrangler --latest
+pnpm audit
 ```
 
 The first phase moves Astro and its integrations together. The second phase
-updates deploy/build tooling and renderer dependencies. Together they should
-update direct website dependencies and the transitive lockfile. The
-important minimums from the audit are:
+updates the direct `wrangler` devDependency because the audit reported an
+active advisory for it. If `pnpm audit` still reports high or moderate
+advisories after these two phases, update only the direct packages named by the
+remaining advisory paths, or add a narrow `pnpm.overrides` entry only when no
+compatible direct update exists. Do not blanket-upgrade unrelated build tools
+such as `typescript`, `sharp`, or `@types/node` just to chase the latest
+versions. The important minimums from the audit are:
 
 - `astro` must move past the vulnerable 5.x line. Audit listed patched Astro
   versions at least `>=6.1.10` for the newer low advisory and `>=6.1.6` for the

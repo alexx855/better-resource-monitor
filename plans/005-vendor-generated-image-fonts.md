@@ -162,23 +162,31 @@ License, but do not assume: check the upstream metadata and add a short
 ### Step 2: Replace remote fetches in the image renderer
 
 In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
-Match the existing `trayIconBase64()` pattern by resolving from
-`process.cwd()`. Under the repo's filtered scripts, that is the `www` package
-root; avoid file-relative module paths here because Astro/Vite may bundle this
-source file during prerendering. Target shape:
+Resolve from the module-relative font directory first, then fall back to the
+existing `trayIconBase64()` `process.cwd()` pattern used by this file. This
+keeps local development and Astro/Vite prerender builds covered while still
+failing loudly if the vendored fonts are missing. Target shape:
 
 ```ts
-const FONT_DIR = join(process.cwd(), "src", "assets", "fonts");
-
 const FONT_MAP = {
-  "JetBrainsMono-Regular.ttf": join(FONT_DIR, "JetBrainsMono-Regular.ttf"),
-  "JetBrainsMono-Bold.ttf": join(FONT_DIR, "JetBrainsMono-Bold.ttf"),
-  "NotoSansJP-Bold.ttf": join(FONT_DIR, "NotoSansJP-Bold.ttf"),
-  "NotoSansSC-Bold.ttf": join(FONT_DIR, "NotoSansSC-Bold.ttf"),
-};
+  "JetBrainsMono-Regular.ttf": "JetBrainsMono-Regular.ttf",
+  "JetBrainsMono-Bold.ttf": "JetBrainsMono-Bold.ttf",
+  "NotoSansJP-Bold.ttf": "NotoSansJP-Bold.ttf",
+  "NotoSansSC-Bold.ttf": "NotoSansSC-Bold.ttf",
+} as const;
+
+const FONT_DIR_CANDIDATES = [
+  join(import.meta.dirname, "..", "assets", "fonts"),
+  join(process.cwd(), "src", "assets", "fonts"),
+] as const;
 
 function readFontAsset(filename: keyof typeof FONT_MAP): Uint8Array {
-  return readFileSync(FONT_MAP[filename]);
+  const fontPath = FONT_DIR_CANDIDATES
+    .map((dir) => join(dir, FONT_MAP[filename]))
+    .find(existsSync);
+
+  if (!fontPath) throw new Error(`Missing vendored font ${filename}`);
+  return readFileSync(fontPath);
 }
 ```
 
@@ -192,10 +200,9 @@ Then update the cached loaders:
 Keep the existing cache behavior and `renderImage()` font array shape, but
 update the related TypeScript types to match the local-file helper:
 
-- keep or add `readFileSync` from `node:fs`
+- keep or add `existsSync` and `readFileSync` from `node:fs`
 - ensure `join` is imported from `node:path`, which is already true in the
   current file
-- do not add extra path-conversion imports just for this helper
 - cache variables such as `fontData`, `fontBoldData`, `notoJPData`, and
   `notoSCData` should be `Uint8Array | null`
 - loader return types should be `Promise<Uint8Array>`
