@@ -154,6 +154,7 @@ runs:
 
         APP_NAME="$BRM_DIRECT_APP_NAME"
         APP_PATH="$BRM_DIRECT_APP_PATH"
+        APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
         ARTIFACT_DIR="$BRM_DIRECT_ARTIFACT_DIR"
         DMG_STAGING="$BRM_DIRECT_DMG_STAGING"
         NOTARY_ZIP="$BRM_DIRECT_NOTARY_ZIP"
@@ -174,8 +175,55 @@ runs:
           exit 1
         fi
 
+        submit_for_notarization() {
+          local package_path="$1"
+          local label="$2"
+          local notary_out
+          local submission_id
+
+          notary_out="$(mktemp "${TMPDIR:-/tmp}/brm-notary.XXXXXX")"
+          if ! xcrun notarytool submit "$package_path" \
+            --key "$KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait > "$notary_out" 2>&1; then
+            cat "$notary_out"
+            submission_id="$(grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$notary_out" | head -n 1 || true)"
+            if [ -n "$submission_id" ]; then
+              echo "=== Notarization log for $label submission $submission_id ==="
+              xcrun notarytool log "$submission_id" \
+                --key "$KEY_PATH" \
+                --key-id "$APPLE_API_KEY_ID" \
+                --issuer "$APPLE_API_ISSUER" || true
+            fi
+            rm -f "$notary_out"
+            exit 1
+          fi
+
+          cat "$notary_out"
+          rm -f "$notary_out"
+        }
+
+        echo "Signing nested code with: $DEVELOPER_ID_APPLICATION_IDENTITY"
+        while IFS= read -r -d '' item; do
+          echo "Signing nested component: $item"
+          codesign --force --options runtime \
+            --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
+            "$item"
+        done < <(find "$APP_PATH/Contents" -depth \( -name "*.dylib" -o -name "*.so" -o -name "*.framework" \) -print0)
+
+        while IFS= read -r -d '' item; do
+          if [ "$item" = "$APP_EXECUTABLE" ]; then
+            continue
+          fi
+          echo "Signing helper executable: $item"
+          codesign --force --options runtime \
+            --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
+            "$item"
+        done < <(find "$APP_PATH/Contents/MacOS" -type f -print0)
+
         echo "Signing app with: $DEVELOPER_ID_APPLICATION_IDENTITY"
-        codesign --deep --force --options runtime \
+        codesign --force --options runtime \
           --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
           --entitlements src-tauri/Entitlements.plist \
           "$APP_PATH"
@@ -185,11 +233,7 @@ runs:
 
         echo "Submitting app bundle for notarization..."
         ditto -c -k --keepParent "$APP_PATH" "$NOTARY_ZIP"
-        xcrun notarytool submit "$NOTARY_ZIP" \
-          --key "$KEY_PATH" \
-          --key-id "$APPLE_API_KEY_ID" \
-          --issuer "$APPLE_API_ISSUER" \
-          --wait
+        submit_for_notarization "$NOTARY_ZIP" "app bundle"
 
         xcrun stapler staple "$APP_PATH"
         spctl -a -vv "$APP_PATH"
@@ -209,11 +253,7 @@ runs:
           "$DMG_PATH"
 
         echo "Submitting DMG for notarization..."
-        xcrun notarytool submit "$DMG_PATH" \
-          --key "$KEY_PATH" \
-          --key-id "$APPLE_API_KEY_ID" \
-          --issuer "$APPLE_API_ISSUER" \
-          --wait
+        submit_for_notarization "$DMG_PATH" "DMG"
 
         xcrun stapler staple "$DMG_PATH"
         spctl -a -vv -t open --context context:primary-signature "$DMG_PATH"
