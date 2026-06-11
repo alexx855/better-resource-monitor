@@ -197,10 +197,11 @@ returns no matches.
 
 ### Step 3: Replace remote fetches in badge generation
 
-In `www/generate-badges.mjs`, import `readFileSync` from `node:fs` if it is not
-already imported, then read the same vendored font files with `readFileSync`
-instead of `fetch`. Use the existing `ROOT` constant defined near the top of
-that file instead of mixing in `import.meta.dirname`.
+In `www/generate-badges.mjs`, make sure the existing named imports include
+`readFileSync` from `node:fs` and `join` from `node:path`, then read the same
+vendored font files with `readFileSync` instead of `fetch`. Use the existing
+`ROOT` constant defined near the top of that file instead of mixing in
+`import.meta.dirname`.
 
 Recommended pattern:
 
