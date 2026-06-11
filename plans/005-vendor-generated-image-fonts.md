@@ -162,7 +162,10 @@ License, but do not assume: check the upstream metadata and add a short
 ### Step 2: Replace remote fetches in the image renderer
 
 In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
-Target shape:
+Match the existing `trayIconBase64()` pattern by resolving from
+`process.cwd()`. Under the repo's filtered scripts, that is the `www` package
+root; avoid file-relative module paths here because Astro/Vite may bundle this
+source file during prerendering. Target shape:
 
 ```ts
 const FONT_DIR = join(process.cwd(), "src", "assets", "fonts");
