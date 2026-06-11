@@ -165,8 +165,15 @@ In `www/src/lib/renderer.ts`, replace `fetchFont(url)` with a local file helper.
 Target shape:
 
 ```ts
-function readFontAsset(filename: string): Uint8Array {
-  return readFileSync(new URL("../assets/fonts/" + filename, import.meta.url));
+const FONT_MAP = {
+  "JetBrainsMono-Regular.ttf": new URL("../assets/fonts/JetBrainsMono-Regular.ttf", import.meta.url),
+  "JetBrainsMono-Bold.ttf": new URL("../assets/fonts/JetBrainsMono-Bold.ttf", import.meta.url),
+  "NotoSansJP-Bold.ttf": new URL("../assets/fonts/NotoSansJP-Bold.ttf", import.meta.url),
+  "NotoSansSC-Bold.ttf": new URL("../assets/fonts/NotoSansSC-Bold.ttf", import.meta.url),
+};
+
+function readFontAsset(filename: keyof typeof FONT_MAP): Uint8Array {
+  return readFileSync(FONT_MAP[filename]);
 }
 ```
 
