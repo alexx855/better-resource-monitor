@@ -7,7 +7,7 @@
     {
       "id": "overview",
       "question": "¿Qué es Better Resource Monitor?",
-      "answer": "Una app gratuita y de código abierto para la barra de menús que muestra el uso de CPU, memoria, GPU y red en macOS. Escrita en Rust. Menos del 0,1% de CPU y unos 15 MB de RAM."
+      "answer": "Una app gratuita y de código abierto para la barra de menús que muestra el uso de CPU, memoria, almacenamiento, GPU y red en macOS. Escrita en Rust. Menos del 0,1% de CPU y unos 15 MB de RAM."
     },
     {
       "id": "macos-support",
@@ -32,12 +32,12 @@
     {
       "id": "privacy",
       "question": "¿Recopila algún dato?",
-      "answer": "No. Cero solicitudes de red, sin analíticas y sin telemetría. Todo se queda en tu máquina. El código fuente está en GitHub si quieres comprobarlo."
+      "answer": "No. Cero solicitudes de red, sin analíticas y sin telemetría. Todo se queda en tu máquina. El uso de almacenamiento se calcula localmente con la capacidad total/libre que informa el sistema operativo para tu volumen principal; no se leen nombres de archivos, contenidos, volúmenes externos ni detalles por volumen. El código fuente está en GitHub si quieres comprobarlo."
     },
     {
       "id": "comparison",
       "question": "¿Es una alternativa a Stats o iStat Menus?",
-      "answer": "Sí, si quieres un monitor de barra de menús más simple para macOS, centrado en CPU, memoria, GPU y red. Stats e iStat Menus profundizan más en sensores. Better Resource Monitor se mantiene más ligero, es gratis y está disponible con todas sus funciones en la Mac App Store. Consulta la [comparación con Stats]({{vsStatsUrl}}) y la [comparación con iStat Menus]({{vsIstatMenusUrl}})."
+      "answer": "Sí, si quieres un monitor de barra de menús más simple para macOS, centrado en CPU, memoria, almacenamiento, GPU y red. Stats e iStat Menus profundizan más en sensores. Better Resource Monitor se mantiene más ligero, es gratis y está disponible con todas sus funciones en la Mac App Store. Consulta la [comparación con Stats]({{vsStatsUrl}}) y la [comparación con iStat Menus]({{vsIstatMenusUrl}})."
     },
     {
       "id": "battery",

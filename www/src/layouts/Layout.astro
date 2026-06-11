@@ -100,7 +100,18 @@ const siteUrl = new URL("/", Astro.site).href;
       "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
       "downloadUrl": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
       "isAccessibleForFree": true,
-      "featureList": "Cross-Platform, Lightweight, GPU Monitoring, Theme Aware, Configurable, Private",
+      "featureList": [
+        "CPU monitoring",
+        "Memory pressure monitoring",
+        "GPU monitoring",
+        "Network monitoring",
+        "Menu bar display",
+        "Sandboxed",
+        "No telemetry",
+        "No admin password",
+        "No root helper",
+        "No private APIs"
+      ],
       "screenshot": ogImageUrl,
       "codeRepository": "https://github.com/alexx855/better-resource-monitor",
       "license": "https://opensource.org/licenses/MIT"
@@ -192,7 +203,6 @@ const siteUrl = new URL("/", Astro.site).href;
       body {
         font: 400 16px/1.6 var(--font-mono);
         background:
-          radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--c-brand) 22%, transparent), transparent 32rem),
           radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--c-brand) 10%, transparent), transparent 26rem),
           linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 18px),
           var(--c-bg);

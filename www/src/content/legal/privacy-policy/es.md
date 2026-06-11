@@ -16,11 +16,13 @@ Better Resource Monitor ("la App") es una app de escritorio que muestra informac
 
 **No recopilamos ningún dato personal.**
 
-La App funciona completamente de forma local en tu dispositivo. Toda la información del sistema (uso de CPU, uso de memoria, actividad de red, estadísticas de GPU) es:
+La App funciona completamente de forma local en tu dispositivo. Toda la información del sistema (uso de CPU, uso de memoria, uso de almacenamiento, actividad de red, estadísticas de GPU) es:
 - Leída directamente desde tu sistema operativo
 - Mostrada solo en tu pantalla local
 - Nunca transmitida a servidores externos
 - Nunca almacenada en ninguna base de datos externa
+
+El uso de almacenamiento se calcula con la capacidad total y libre que informa el sistema operativo para el volumen principal del usuario. La App no lee nombres de archivos, contenidos de archivos, volúmenes externos ni detalles por volumen.
 
 ## Almacenamiento de datos
 

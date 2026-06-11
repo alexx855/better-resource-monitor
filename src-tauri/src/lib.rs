@@ -2,6 +2,7 @@ mod gpu;
 pub mod i18n;
 #[cfg(target_os = "macos")]
 mod macos_autostart;
+mod storage;
 pub mod tray_render;
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
@@ -115,6 +116,7 @@ mod menu_id {
     pub const AUTOSTART: &str = "autostart";
     pub const SHOW_CPU: &str = "show_cpu";
     pub const SHOW_MEM: &str = "show_mem";
+    pub const SHOW_STORAGE: &str = "show_storage";
     pub const SHOW_GPU: &str = "show_gpu";
     pub const SHOW_NET: &str = "show_net";
     pub const SHOW_ALERTS: &str = "show_alerts";
@@ -127,12 +129,13 @@ const TRAY_ID: &str = "main";
 struct MetricToggles {
     show_cpu: Arc<AtomicBool>,
     show_mem: Arc<AtomicBool>,
+    show_storage: Arc<AtomicBool>,
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
     show_alerts: Arc<AtomicBool>,
 }
 
-fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool) {
+fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool, bool) {
     let store = match app.store(SETTINGS_FILE) {
         Ok(s) => Some(s),
         Err(e) => {
@@ -141,22 +144,40 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool) {
         }
     };
 
-    let get_bool = |key: &str, default: bool| -> bool {
+    let get_bool_option = |key: &str| -> Option<bool> {
         store
             .as_ref()
             .and_then(|s| s.get(key))
             .and_then(|v| v.as_bool())
-            .unwrap_or(default)
     };
+    let get_bool = |key: &str, default: bool| -> bool { get_bool_option(key).unwrap_or(default) };
+
+    let has_legacy_metric_settings = [
+        menu_id::SHOW_CPU,
+        menu_id::SHOW_MEM,
+        menu_id::SHOW_GPU,
+        menu_id::SHOW_NET,
+    ]
+    .iter()
+    .any(|key| get_bool_option(key).is_some());
+    let show_storage = migrate_storage_setting(
+        get_bool_option(menu_id::SHOW_STORAGE),
+        has_legacy_metric_settings,
+    );
 
     (
         get_bool("show_cpu", true),
         get_bool("show_mem", true),
+        show_storage,
         get_bool("show_gpu", true),
         get_bool("show_net", true),
         get_bool("show_alerts", true),
         get_bool(menu_id::AUTOSTART, false),
     )
+}
+
+fn migrate_storage_setting(stored_storage: Option<bool>, has_legacy_metric_settings: bool) -> bool {
+    stored_storage.unwrap_or(!has_legacy_metric_settings)
 }
 
 fn save_setting(app: &AppHandle, key: &str, value: bool) {
@@ -253,16 +274,17 @@ fn sum_network_totals(networks: &Networks) -> (u64, u64) {
 fn normalize_metric_flags(
     show_cpu: bool,
     show_mem: bool,
+    show_storage: bool,
     show_gpu: bool,
     show_net: bool,
     gpu_available: bool,
-) -> (bool, bool, bool, bool) {
+) -> (bool, bool, bool, bool, bool) {
     let show_gpu = show_gpu && gpu_available;
 
-    if show_cpu || show_mem || show_gpu || show_net {
-        (show_cpu, show_mem, show_gpu, show_net)
+    if show_cpu || show_mem || show_storage || show_gpu || show_net {
+        (show_cpu, show_mem, show_storage, show_gpu, show_net)
     } else {
-        (true, show_mem, show_gpu, show_net)
+        (true, show_mem, show_storage, show_gpu, show_net)
     }
 }
 
@@ -444,7 +466,7 @@ fn toggle_setting(
     app: &AppHandle,
     key: &str,
     flag: &AtomicBool,
-    all_flags: [bool; 4],
+    all_flags: [bool; 5],
     item: &CheckMenuItem<tauri::Wry>,
 ) {
     let current = flag.load(Relaxed);
@@ -513,6 +535,15 @@ fn setup_tray(
         None::<&str>,
     )?;
 
+    let show_storage_item = CheckMenuItem::with_id(
+        app,
+        menu_id::SHOW_STORAGE,
+        translations.show_storage,
+        true,
+        metrics.show_storage.load(Relaxed),
+        None::<&str>,
+    )?;
+
     let show_net_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_NET,
@@ -550,6 +581,7 @@ fn setup_tray(
     menu.append(&separator1)?;
     menu.append(&show_mem_item)?;
     menu.append(&show_cpu_item)?;
+    menu.append(&show_storage_item)?;
     if gpu_available {
         menu.append(&show_gpu_item)?;
     }
@@ -573,11 +605,13 @@ fn setup_tray(
             sizing: APP_SIZING,
             cpu_usage: 0.0,
             mem_percent: 0.0,
+            storage_percent: 0.0,
             gpu_usage: 0.0,
             down_str: "0 KB",
             up_str: "0 KB",
             show_cpu: metrics.show_cpu.load(Relaxed),
             show_mem: metrics.show_mem.load(Relaxed),
+            show_storage: metrics.show_storage.load(Relaxed),
             show_gpu: metrics.show_gpu.load(Relaxed) && gpu_available,
             show_net: metrics.show_net.load(Relaxed),
             show_alerts: metrics.show_alerts.load(Relaxed),
@@ -594,6 +628,7 @@ fn setup_tray(
 
     let cpu_item = show_cpu_item.clone();
     let mem_item = show_mem_item.clone();
+    let storage_item = show_storage_item.clone();
     let gpu_item = show_gpu_item.clone();
     let net_item = show_net_item.clone();
     let autostart_menu_item = autostart_item.clone();
@@ -606,6 +641,7 @@ fn setup_tray(
             let flags = [
                 metrics.show_cpu.load(Relaxed),
                 metrics.show_mem.load(Relaxed),
+                metrics.show_storage.load(Relaxed),
                 metrics.show_gpu.load(Relaxed) && gpu_available,
                 metrics.show_net.load(Relaxed),
             ];
@@ -689,6 +725,13 @@ fn setup_tray(
                 menu_id::SHOW_MEM => {
                     toggle_setting(app, menu_id::SHOW_MEM, &metrics.show_mem, flags, &mem_item)
                 }
+                menu_id::SHOW_STORAGE => toggle_setting(
+                    app,
+                    menu_id::SHOW_STORAGE,
+                    &metrics.show_storage,
+                    flags,
+                    &storage_item,
+                ),
                 menu_id::SHOW_GPU => {
                     toggle_setting(app, menu_id::SHOW_GPU, &metrics.show_gpu, flags, &gpu_item)
                 }
@@ -799,10 +842,12 @@ fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_av
             }
         } else {
             macos_diag_log("second_instance tray missing; rebuilding");
-            let (cpu, mem, gpu, net, alerts, _) = load_settings(app);
-            let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
+            let (cpu, mem, storage, gpu, net, alerts, _) = load_settings(app);
+            let (cpu, mem, storage, gpu, net) =
+                normalize_metric_flags(cpu, mem, storage, gpu, net, gpu_available);
             metrics.show_cpu.store(cpu, Relaxed);
             metrics.show_mem.store(mem, Relaxed);
+            metrics.show_storage.store(storage, Relaxed);
             metrics.show_gpu.store(gpu, Relaxed);
             metrics.show_net.store(net, Relaxed);
             metrics.show_alerts.store(alerts, Relaxed);
@@ -842,11 +887,12 @@ fn start_monitoring(
         // Track previous values for hysteresis-based updates (prevents compositor leak on Linux)
         let mut prev_cpu: f32 = -100.0; // Force initial update
         let mut prev_mem: f32 = -100.0;
+        let mut prev_storage: f32 = -100.0;
         let mut prev_gpu: f32 = -100.0;
         let mut prev_down_speed: f64 = -1.0;
         let mut prev_up_speed: f64 = -1.0;
-        let mut prev_flags: (bool, bool, bool, bool, bool, bool) =
-            (false, false, false, false, false, false);
+        let mut prev_flags: (bool, bool, bool, bool, bool, bool, bool) =
+            (false, false, false, false, false, false, false);
         let update_interval = get_update_interval_ms();
         let mut tick_count: u32 = 0;
 
@@ -867,18 +913,19 @@ fn start_monitoring(
 
             let sc = metrics.show_cpu.load(Relaxed);
             let sm = metrics.show_mem.load(Relaxed);
+            let ss = metrics.show_storage.load(Relaxed);
             let show_gpu_enabled = metrics.show_gpu.load(Relaxed);
             let sg = show_gpu_enabled && gpu_sampler.is_some();
             let sn = metrics.show_net.load(Relaxed);
             let sa = metrics.show_alerts.load(Relaxed);
 
             #[cfg(target_os = "linux")]
-            let current_flags = (sc, sm, sg, sn, sa, detect_light_icons());
+            let current_flags = (sc, sm, ss, sg, sn, sa, detect_light_icons());
             #[cfg(not(target_os = "linux"))]
-            let current_flags = (sc, sm, sg, sn, sa, false);
+            let current_flags = (sc, sm, ss, sg, sn, sa, false);
 
             let flags_changed = prev_flags != current_flags;
-            let net_was_enabled = prev_flags.3;
+            let net_was_enabled = prev_flags.4;
 
             // Refresh only metrics currently visible in the tray
             if sc {
@@ -901,6 +948,14 @@ fn start_monitoring(
                 } else {
                     0.0
                 }
+            } else {
+                0.0
+            };
+
+            let storage_percent = if full_tick && ss {
+                storage::sample().map(|s| s.used_percent).unwrap_or(0.0)
+            } else if ss {
+                prev_storage.max(0.0)
             } else {
                 0.0
             };
@@ -933,6 +988,8 @@ fn start_monitoring(
             // accumulation that causes cursor slowdown on Ubuntu/GNOME
             let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
             let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
+            let storage_changed =
+                should_update(prev_storage, storage_percent, HYSTERESIS_THRESHOLD);
             let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
             let down_diff = (down_speed - prev_down_speed).abs();
             let up_diff = (up_speed - prev_up_speed).abs();
@@ -940,7 +997,13 @@ fn start_monitoring(
                 down_diff >= NET_HYSTERESIS_BPS || up_diff >= NET_HYSTERESIS_BPS;
             let net_changed = sn && net_value_changed;
 
-            if cpu_changed || mem_changed || gpu_changed || net_changed || flags_changed {
+            if cpu_changed
+                || mem_changed
+                || storage_changed
+                || gpu_changed
+                || net_changed
+                || flags_changed
+            {
                 // Defer string formatting to render time only
                 let down_str = format_speed(down_speed);
                 let up_str = format_speed(up_speed);
@@ -950,6 +1013,9 @@ fn start_monitoring(
                 }
                 if sm {
                     prev_mem = mem_percent;
+                }
+                if ss {
+                    prev_storage = storage_percent;
                 }
                 if sg {
                     prev_gpu = gpu_usage;
@@ -967,15 +1033,17 @@ fn start_monitoring(
                         sizing: APP_SIZING,
                         cpu_usage,
                         mem_percent,
+                        storage_percent,
                         gpu_usage,
                         down_str: &down_str,
                         up_str: &up_str,
                         show_cpu: sc,
                         show_mem: sm,
+                        show_storage: ss,
                         show_gpu: sg,
                         show_net: sn,
                         show_alerts: sa,
-                        use_light_icons: current_flags.5,
+                        use_light_icons: current_flags.6,
                         background: None,
                     },
                 );
@@ -1019,6 +1087,7 @@ pub fn run() {
     let metrics = MetricToggles {
         show_cpu: Arc::new(AtomicBool::new(true)),
         show_mem: Arc::new(AtomicBool::new(true)),
+        show_storage: Arc::new(AtomicBool::new(true)),
         show_gpu: Arc::new(AtomicBool::new(true)),
         show_net: Arc::new(AtomicBool::new(true)),
         show_alerts: Arc::new(AtomicBool::new(true)),
@@ -1062,8 +1131,10 @@ pub fn run() {
             #[cfg(target_os = "linux")]
             start_theme_detection_thread();
 
-            let (cpu, mem, gpu, net, alerts, stored_autostart) = load_settings(app.handle());
-            let (cpu, mem, gpu, net) = normalize_metric_flags(cpu, mem, gpu, net, gpu_available);
+            let (cpu, mem, storage, gpu, net, alerts, stored_autostart) =
+                load_settings(app.handle());
+            let (cpu, mem, storage, gpu, net) =
+                normalize_metric_flags(cpu, mem, storage, gpu, net, gpu_available);
             #[cfg(target_os = "macos")]
             // The macOS menu reflects live SMAppService state only.
             let autostart = macos_autostart::is_enabled();
@@ -1071,10 +1142,11 @@ pub fn run() {
             let autostart = stored_autostart;
             #[cfg(target_os = "macos")]
             macos_diag_log(format!(
-                "settings loaded stored_autostart={stored_autostart} system_autostart={autostart} metrics cpu={cpu} mem={mem} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
+                "settings loaded stored_autostart={stored_autostart} system_autostart={autostart} metrics cpu={cpu} mem={mem} storage={storage} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
             ));
             tray_metrics.show_cpu.store(cpu, Relaxed);
             tray_metrics.show_mem.store(mem, Relaxed);
+            tray_metrics.show_storage.store(storage, Relaxed);
             tray_metrics.show_gpu.store(gpu, Relaxed);
             tray_metrics.show_net.store(net, Relaxed);
             tray_metrics.show_alerts.store(alerts, Relaxed);

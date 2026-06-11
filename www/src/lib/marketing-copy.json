@@ -8,11 +8,11 @@
     },
     "home": {
       "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
-      "description": "Monitor CPU, memory, GPU, and network from your Mac menu bar."
+      "description": "Monitor CPU, memory, storage, GPU, and network from your Mac menu bar."
     },
     "screenshotLang": "en",
     "screenshots": {
-      "simplicity": "CPU, GPU, Memory, Network\nin Your Menu Bar",
+      "simplicity": "CPU, GPU, Memory, Storage, Network\nin Your Menu Bar",
       "performance": "Always Visible\nZero Clicks to Check",
       "privacy": "Runs Locally\nNo Telemetry"
     },
@@ -49,11 +49,11 @@
     },
     "home": {
       "title": "Better Resource Monitor - Monitor para la barra de menús de macOS",
-      "description": "Supervisa CPU, memoria, GPU y red desde la barra de menús de tu Mac."
+      "description": "Supervisa CPU, memoria, almacenamiento, GPU y red desde la barra de menús de tu Mac."
     },
     "screenshotLang": "es",
     "screenshots": {
-      "simplicity": "CPU, GPU, memoria, red\nen la barra de menús",
+      "simplicity": "CPU, GPU, memoria, almacenamiento, red\nen la barra de menús",
       "performance": "Siempre visible\nsin abrir otra app",
       "privacy": "Todo queda local\nsin telemetría"
     },
@@ -90,11 +90,11 @@
     },
     "home": {
       "title": "Better Resource Monitor - Monitor de Barra de Menus para macOS",
-      "description": "Monitore CPU, memória, GPU e rede pela barra de menus do Mac."
+      "description": "Monitore CPU, memória, armazenamento, GPU e rede pela barra de menus do Mac."
     },
     "screenshotLang": "pt-BR",
     "screenshots": {
-      "simplicity": "CPU, GPU, Memória, Rede\nna Sua Barra de Menu",
+      "simplicity": "CPU, GPU, Memória, Armazenamento, Rede\nna Sua Barra de Menu",
       "performance": "Sempre Visível\nSem Abrir Nenhum App",
       "privacy": "Funciona Localmente\nSem Telemetria"
     },
@@ -131,11 +131,11 @@
     },
     "home": {
       "title": "Better Resource Monitor - macOS 菜单栏监视器",
-      "description": "在 Mac 菜单栏查看 CPU、内存、GPU 和网络使用情况。"
+      "description": "在 Mac 菜单栏查看 CPU、内存、存储、GPU 和网络使用情况。"
     },
     "screenshotLang": "zh-Hans",
     "screenshots": {
-      "simplicity": "CPU, GPU, 内存, 网络\n显示在菜单栏",
+      "simplicity": "CPU, GPU, 内存, 存储, 网络\n显示在菜单栏",
       "performance": "始终可见\n无需打开任何应用",
       "privacy": "本地运行\n无遥测数据"
     },
