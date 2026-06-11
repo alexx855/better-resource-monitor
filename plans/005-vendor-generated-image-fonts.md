@@ -189,12 +189,13 @@ returns no matches.
 ### Step 3: Replace remote fetches in badge generation
 
 In `www/generate-badges.mjs`, read the same vendored font files with
-`readFileSync` instead of `fetch`.
+`readFileSync` instead of `fetch`. Use the existing `ROOT` constant defined near
+the top of that file instead of mixing in `import.meta.dirname`.
 
 Recommended pattern:
 
 ```js
-const FONT_DIR = join(import.meta.dirname, "src", "assets", "fonts");
+const FONT_DIR = join(ROOT, "src", "assets", "fonts");
 
 function readFontAsset(filename) {
   const buffer = readFileSync(join(FONT_DIR, filename));

@@ -6,7 +6,7 @@
 > report. When done, update the status row for this plan in `plans/README.md`.
 >
 > **Drift check (run first)**:
-> `git diff --stat d3646b8..HEAD -- README.md README.es.md README.pt-br.md README.zh-cn.md www/src/content.config.ts www/src/content/faq www/src/lib/marketing-copy.json www/public/llms.txt www/public/agent-facts.json www/generate-badges.mjs www/public/badges .github/workflows/release.yml src-tauri/src/lib.rs docs`
+> `git diff --stat d3646b8..HEAD -- README.md README.es.md README.pt-br.md README.zh-cn.md www/src/content.config.ts www/src/content www/src/lib/marketing-copy.json www/public/llms.txt www/public/agent-facts.json www/generate-badges.mjs www/public/badges .github/workflows/release.yml src-tauri/src/lib.rs docs`
 >
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
@@ -41,8 +41,9 @@ the release workflow and runtime guard are intentionally changed later.
   `www/src/content.config.ts`, so README install copy is also website copy.
 - `.github/workflows/release.yml` creates a source-only GitHub release.
 - `src-tauri/src/lib.rs` enforces the App Store/TestFlight receipt/runtime guard.
-- `www/src/content/faq/*.json`, `www/public/llms.txt`, and generated badge copy
-  also still describe GitHub as an app distribution path.
+- `www/src/content/**/*.json`, `www/public/llms.txt`, and generated badge copy
+  also need to be searched because FAQ and comparison pages are public
+  marketing surfaces.
 
 Important excerpts:
 
@@ -115,7 +116,7 @@ Repo conventions to preserve:
 
 | Purpose | Command | Expected on success |
 | --- | --- | --- |
-| Search current claims | `rg -n "GitHub Releases|GitHub versions|GitHub version|\\.dmg|Availability" README*.md www/src/content/faq www/src/lib/marketing-copy.json www/public/llms.txt www/public/agent-facts.json docs` | Only source/provenance references remain after edits; no GitHub app-download claims |
+| Search current claims | `rg -n "GitHub Releases|GitHub versions|GitHub version|\\.dmg|Availability" README*.md www/src/content www/src/lib/marketing-copy.json www/public/llms.txt www/public/agent-facts.json docs` | Only source/provenance references remain after edits; no GitHub app-download claims |
 | Regenerate badges if badge copy changes | `node www/generate-badges.mjs` | exit 0; generated badge paths logged |
 | Build site | `pnpm build:www` | exit 0; Astro build completes |
 | Check working tree scope | `git status --short` | Only in-scope files are modified |
@@ -132,6 +133,10 @@ Repo conventions to preserve:
 - `www/src/content/faq/es.json`
 - `www/src/content/faq/pt-br.json`
 - `www/src/content/faq/zh-cn.json`
+- `www/src/content/comparisons/**/*.json`, only if stale distribution claims
+  are found there
+- Any other `www/src/content/**/*.json` file that the verification searches
+  identify as containing stale distribution copy
 - `www/src/lib/marketing-copy.json`
 - `www/generate-badges.mjs`, only if badge labels or generated badge coverage change
 - `www/public/badges/*`, only generated badge files affected by this copy change
@@ -175,7 +180,7 @@ Preserve the App Store badge and all existing locale links.
 `rg -n "Download.*GitHub Releases|Descargar.*GitHub Releases|Baixar.*GitHub Releases|GitHub Releases.*\\.dmg|\\.dmg" README*.md`
 returns no matches.
 
-### Step 2: Align FAQ answers in every locale
+### Step 2: Align content collection copy in every locale
 
 Update the pricing and GPU monitoring FAQ answers in:
 
@@ -196,8 +201,13 @@ Do not claim there are matching "App Store and GitHub versions" unless plan
 owners have separately changed the workflow and runtime guard to ship a GitHub
 installer.
 
+Then search all content collections under `www/src/content`, including
+comparison pages under `www/src/content/comparisons/`, and update any stale
+distribution claims found there. Keep copy changes limited to the same App
+Store install vs GitHub source/provenance distinction.
+
 **Verify**:
-`rg -n "GitHub versions|GitHub version|App Store and GitHub versions|both the App Store and GitHub" www/src/content/faq`
+`rg -n "GitHub versions|GitHub version|App Store and GitHub versions|both the App Store and GitHub" www/src/content`
 returns no matches.
 
 ### Step 3: Fix machine-readable and badge copy
