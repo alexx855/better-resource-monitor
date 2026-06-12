@@ -1,5 +1,5 @@
 import satori from "satori";
-import { Resvg } from "@resvg/resvg-js";
+import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -27,6 +27,7 @@ export const imageBackgroundStyle = {
 
 // Font cache — fetched once per build
 let fontData: ArrayBuffer | null = null;
+const require = createRequire(import.meta.url);
 
 async function fetchFont(url: string): Promise<ArrayBuffer> {
   const res = await fetch(url);
@@ -99,6 +100,8 @@ export async function renderImage(
 
   const svg = await satori(element, { width, height, fonts });
 
+  const resvgPackage = "@resvg/resvg-js";
+  const { Resvg } = require(resvgPackage);
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: width },
   });

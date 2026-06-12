@@ -1,0 +1,10 @@
+.github/CODEOWNERS @alexx855
+.github/dependabot.yml @alexx855
+.github/workflows/ @alexx855
+.github/actions/ @alexx855
+scripts/setup-appstore-signing.sh @alexx855
+scripts/setup-developer-id-signing.sh @alexx855
+src-tauri/Entitlements.plist @alexx855
+src-tauri/Entitlements.appstore.plist @alexx855
+src-tauri/PrivacyInfo.xcprivacy @alexx855
+src-tauri/tauri.appstore.conf.json @alexx855

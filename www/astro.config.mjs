@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import cloudflare from '@astrojs/cloudflare';
 
+const externalNativeRenderer = (id) => id.includes('@resvg') || id.endsWith('.node');
+
 // https://astro.build/config
 export default defineConfig({
   i18n: {
@@ -21,13 +23,20 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [sitemap()],
   adapter: cloudflare({
+    imageService: 'passthrough',
     platformProxy: {
       enabled: true
-    }
+    },
+    prerenderEnvironment: 'node',
   }),
   vite: {
+    build: {
+      rollupOptions: {
+        external: externalNativeRenderer,
+      },
+    },
     ssr: {
-      external: ['@resvg/resvg-js', 'node:fs', 'node:path'],
+      external: [/^@resvg\/resvg-js(?:-.+)?$/, 'node:fs', 'node:module', 'node:path'],
     },
   },
 });
