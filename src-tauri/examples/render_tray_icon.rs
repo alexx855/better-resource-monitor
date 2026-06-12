@@ -281,7 +281,7 @@ fn main() {
             &output_buffer,
             output_width,
             output_height,
-            ColorType::Rgba8,
+            ColorType::Rgba8.into(),
         )
         .expect("failed to encode PNG");
 
