@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import cloudflare from '@astrojs/cloudflare';
 
-const externalNativeRenderer = (id) => id.includes('@resvg') || id.endsWith('.node');
+const externalNativeRenderer = (id) => /@resvg[\\/]/.test(id) || id.endsWith('.node');
 
 // https://astro.build/config
 export default defineConfig({
