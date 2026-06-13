@@ -29,6 +29,10 @@ use tauri_plugin_store::StoreExt;
 use tauri::ActivationPolicy;
 
 #[cfg(target_os = "macos")]
+use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::NSButtonCell;
+#[cfg(target_os = "macos")]
 use objc2_foundation::NSBundle;
 #[cfg(target_os = "macos")]
 use std::io::Write;
@@ -322,6 +326,28 @@ fn current_macos_bundle_id() -> Option<String> {
     NSBundle::mainBundle()
         .bundleIdentifier()
         .map(|id| id.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn prevent_macos_tray_image_dimming(tray: &tray_icon::TrayIcon) {
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let Some(ns_status_item) = tray.ns_status_item() else {
+        return;
+    };
+    let Some(button) = ns_status_item.button(mtm) else {
+        return;
+    };
+    let Some(cell) = button.cell() else {
+        return;
+    };
+    let Some(button_cell) = cell.downcast_ref::<NSButtonCell>() else {
+        return;
+    };
+
+    // Keep template tinting for theme adaptation while avoiding button-cell image dimming.
+    button_cell.setImageDimsWhenDisabled(false);
 }
 
 #[cfg(target_os = "macos")]
@@ -750,7 +776,10 @@ fn setup_tray(
         .build(app)?;
 
     #[cfg(target_os = "macos")]
-    macos_diag_log("tray build ok");
+    {
+        let _ = _tray.with_inner_tray_icon(prevent_macos_tray_image_dimming);
+        macos_diag_log("tray build ok");
+    }
 
     Ok(())
 }
@@ -1054,8 +1083,13 @@ fn start_monitoring(
                         let use_template = !_has_active_alert;
                         let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
-                        let _ = tray.with_inner_tray_icon(move |inner| {
-                            inner.set_icon_with_as_template(Some(icon), use_template)
+                        let _ = app.run_on_main_thread(move || {
+                            let _ = tray.with_inner_tray_icon(move |inner| {
+                                let result =
+                                    inner.set_icon_with_as_template(Some(icon), use_template);
+                                prevent_macos_tray_image_dimming(inner);
+                                result
+                            });
                         });
                     }
 
