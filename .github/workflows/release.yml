@@ -204,7 +204,10 @@ jobs:
           set -euo pipefail
           started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-          gh workflow run testflight.yml --ref "$RELEASE_REF" -f build_number="$APPSTORE_BUILD_NUMBER"
+          gh workflow run testflight.yml \
+            --ref main \
+            -f source_ref="$RELEASE_REF" \
+            -f build_number="$APPSTORE_BUILD_NUMBER"
 
           run_id=""
           for _ in {1..60}; do
