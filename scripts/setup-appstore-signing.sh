@@ -35,7 +35,9 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-decode_base64_to_file "$APPLE_PROVISION_PROFILE_BASE64" src-tauri/embedded.provisionprofile
+PROVISION_PROFILE_OUTPUT="${PROVISION_PROFILE_OUTPUT:-src-tauri/embedded.provisionprofile}"
+mkdir -p "$(dirname "$PROVISION_PROFILE_OUTPUT")"
+decode_base64_to_file "$APPLE_PROVISION_PROFILE_BASE64" "$PROVISION_PROFILE_OUTPUT"
 
 mkdir -p "$HOME/.appstoreconnect/private_keys"
 printf '%s' "$APPSTORE_CONNECT_API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
