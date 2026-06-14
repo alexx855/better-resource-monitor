@@ -330,21 +330,19 @@ fn current_macos_bundle_id() -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn prevent_macos_tray_image_dimming(tray: &tray_icon::TrayIcon) {
-    let Some(mtm) = MainThreadMarker::new() else {
-        return;
-    };
-    let Some(ns_status_item) = tray.ns_status_item() else {
-        return;
-    };
-    let Some(button) = ns_status_item.button(mtm) else {
-        return;
-    };
-    let Some(cell) = button.cell() else {
-        return;
-    };
-    let Some(button_cell) = cell.downcast_ref::<NSButtonCell>() else {
-        return;
-    };
+    let mtm = MainThreadMarker::new().expect("macOS tray dimming hook must run on main thread");
+    let ns_status_item = tray
+        .ns_status_item()
+        .expect("macOS tray status item is unavailable");
+    let button = ns_status_item
+        .button(mtm)
+        .expect("macOS tray status item button is unavailable");
+    let cell = button
+        .cell()
+        .expect("macOS tray status item button cell is unavailable");
+    let button_cell = cell
+        .downcast_ref::<NSButtonCell>()
+        .expect("macOS tray status item cell is not an NSButtonCell");
 
     // Keep template tinting for theme adaptation while avoiding button-cell image dimming.
     button_cell.setImageDimsWhenDisabled(false);
@@ -777,7 +775,9 @@ fn setup_tray(
 
     #[cfg(target_os = "macos")]
     {
-        let _ = _tray.with_inner_tray_icon(prevent_macos_tray_image_dimming);
+        _tray
+            .with_inner_tray_icon(prevent_macos_tray_image_dimming)
+            .expect("failed to apply macOS tray image dimming hook");
         macos_diag_log("tray build ok");
     }
 
@@ -1083,14 +1083,13 @@ fn start_monitoring(
                         let use_template = !_has_active_alert;
                         let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
                             .expect("Failed to create icon");
-                        let _ = app.run_on_main_thread(move || {
-                            let _ = tray.with_inner_tray_icon(move |inner| {
-                                let result =
-                                    inner.set_icon_with_as_template(Some(icon), use_template);
-                                prevent_macos_tray_image_dimming(inner);
-                                result
-                            });
-                        });
+                        tray.with_inner_tray_icon(move |inner| {
+                            inner
+                                .set_icon_with_as_template(Some(icon), use_template)
+                                .expect("failed to set macOS tray icon template image");
+                            prevent_macos_tray_image_dimming(inner);
+                        })
+                        .expect("failed to update macOS tray icon on main thread");
                     }
 
                     #[cfg(not(target_os = "macos"))]
