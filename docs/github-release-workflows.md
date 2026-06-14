@@ -50,9 +50,24 @@ action because direct downloads need Developer ID Application signing,
 notarization, stapling, and user-installable artifacts rather than App Store
 provisioning profiles or App Store installer packages.
 
+## Protected TestFlight Environment
+
+The `TestFlight` workflow must be dispatched from `main`. To test a PR branch
+or release tag, pass that ref as `source_ref` so the reviewed workflow code is
+stable while the checked-out source changes. The App Store upload job declares
+the protected `testflight` environment; configure that environment with an owner
+reviewer before allowing the job to run.
+
+Branch protection and rulesets protect changes that reach `main`. They do not
+turn repository-level Apple signing secrets into owner-only secrets for every
+future writable branch. Keep App Store upload secrets scoped to the protected
+`testflight` environment rather than exposing them broadly as repository-level
+secrets.
+
 ## Required GitHub Secrets
 
-Add these repository secrets before running `TestFlight` or `Release`:
+Add these `testflight` environment secrets before running `TestFlight` or
+`Release`:
 
 - `APPLE_TEAM_ID`
 - `APPLE_DISTRIBUTION_IDENTITY`
@@ -103,6 +118,12 @@ Upload a TestFlight/App Store Connect build without changing versions:
 
 ```bash
 gh workflow run testflight.yml --ref main
+```
+
+Upload a pre-merge TestFlight build for the current PR branch:
+
+```bash
+gh workflow run testflight.yml --ref main -f source_ref="$(git branch --show-current)" -f pr_number="$(gh pr view --json number -q .number)"
 ```
 
 Create a release, upload the App Store package, and publish the GitHub release:
