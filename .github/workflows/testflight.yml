@@ -9,9 +9,16 @@ on:
         description: 'Optional numeric CFBundleVersion to use for this upload'
         required: false
         type: string
+      pr_number:
+        description: 'Optional PR number to mark with the Pre-merge TestFlight status'
+        required: false
+        type: string
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -101,8 +108,60 @@ jobs:
           fi
           echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
 
+      - name: Mark pre-merge TestFlight pending
+        if: ${{ inputs.pr_number != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
+          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*)
+              echo "Error: pr_number input must be numeric, got '$PR_NUMBER'"
+              exit 1
+              ;;
+          esac
+
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
+            -f state=pending \
+            -f context='Pre-merge TestFlight' \
+            -f description="Uploading TestFlight build ${BUILD_NUMBER}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
       - name: Upload to App Store Connect
         uses: ./.github/actions/upload-appstore
         with:
           build-number: ${{ steps.build-metadata.outputs.build_number }}
           build-commit: ${{ steps.build-metadata.outputs.sha }}
+
+      - name: Mark pre-merge TestFlight success
+        if: ${{ success() && inputs.pr_number != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
+          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
+            -f state=success \
+            -f context='Pre-merge TestFlight' \
+            -f description="TestFlight build ${BUILD_NUMBER} uploaded" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            -f body="✅ Pre-merge TestFlight uploaded for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Mark pre-merge TestFlight failure
+        if: ${{ failure() && inputs.pr_number != '' && steps.build-metadata.outputs.sha != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
+          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
+            -f state=failure \
+            -f context='Pre-merge TestFlight' \
+            -f description="TestFlight build ${BUILD_NUMBER} failed" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
