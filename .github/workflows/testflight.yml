@@ -9,6 +9,10 @@ on:
         description: 'Optional numeric CFBundleVersion to use for this upload'
         required: false
         type: string
+      source_ref:
+        description: 'Git ref to build; dispatch this workflow from main'
+        required: false
+        type: string
       pr_number:
         description: 'Optional PR number to mark with the Pre-merge TestFlight status'
         required: false
@@ -24,29 +28,39 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: testflight-${{ github.ref }}
+  group: testflight-${{ inputs.source_ref || github.ref }}
   cancel-in-progress: false
 
 jobs:
   upload-testflight:
     name: Upload TestFlight build
     runs-on: macos-15
-    env:
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_DISTRIBUTION_IDENTITY: ${{ secrets.APPLE_DISTRIBUTION_IDENTITY }}
-      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
-      APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
-      APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
-      APPLE_INSTALLER_CERT_P12_BASE64: ${{ secrets.APPLE_INSTALLER_CERT_P12_BASE64 }}
-      APPLE_INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERT_PASSWORD }}
-      APPLE_PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+    environment: testflight
 
     steps:
+      - name: Resolve source ref
+        id: source
+        env:
+          INPUT_SOURCE_REF: ${{ inputs.source_ref }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PR_NUMBER" ] && [ -z "$INPUT_SOURCE_REF" ]; then
+            echo "Error: pr_number requires source_ref so the tested PR head is explicit."
+            exit 1
+          fi
+
+          source_ref="$INPUT_SOURCE_REF"
+          if [ -z "$source_ref" ]; then
+            source_ref="$GITHUB_REF_NAME"
+          fi
+
+          echo "ref=$source_ref" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ steps.source.outputs.ref }}
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -77,9 +91,6 @@ jobs:
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Prepare App Store credentials
-        run: bash scripts/setup-appstore-signing.sh
 
       - name: Resolve build metadata
         id: build-metadata
@@ -129,8 +140,25 @@ jobs:
             -f description="Uploading TestFlight build ${BUILD_NUMBER}" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+      - name: Prepare App Store credentials
+        env:
+          APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_INSTALLER_CERT_P12_BASE64: ${{ secrets.APPLE_INSTALLER_CERT_P12_BASE64 }}
+          APPLE_INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERT_PASSWORD }}
+          APPLE_PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+        run: bash scripts/setup-appstore-signing.sh
+
       - name: Upload to App Store Connect
         uses: ./.github/actions/upload-appstore
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DISTRIBUTION_IDENTITY: ${{ secrets.APPLE_DISTRIBUTION_IDENTITY }}
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         with:
           build-number: ${{ steps.build-metadata.outputs.build_number }}
           build-commit: ${{ steps.build-metadata.outputs.sha }}
