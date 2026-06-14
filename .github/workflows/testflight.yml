@@ -38,6 +38,14 @@ jobs:
     environment: testflight
 
     steps:
+      - name: Require main workflow dispatch
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" != "branch" ] || [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "Error: dispatch TestFlight from main and pass -f source_ref=... for another ref."
+            exit 1
+          fi
+
       - name: Resolve source ref
         id: source
         env:
