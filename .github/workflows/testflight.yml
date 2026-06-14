@@ -65,10 +65,18 @@ jobs:
 
           echo "ref=$source_ref" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout repository
+      - name: Checkout trusted workflow tooling
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Checkout source ref
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ steps.source.outputs.ref }}
+          path: source
+          persist-credentials: false
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -78,7 +86,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: './source/src-tauri -> target'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
@@ -90,22 +98,27 @@ jobs:
         with:
           node-version: lts/*
           cache: 'pnpm'
+          cache-dependency-path: source/pnpm-lock.yaml
 
       - name: Install dependencies
+        working-directory: source
         run: pnpm install --frozen-lockfile
 
-      - name: Validate scripts
-        run: bash -n scripts/setup-appstore-signing.sh
+      - name: Validate trusted scripts
+        run: |
+          bash -n scripts/build-appstore-bundle.sh
+          bash -n scripts/setup-appstore-signing.sh
+          bash -n scripts/upload-appstore-package.sh
 
       - name: Run Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --manifest-path source/src-tauri/Cargo.toml
 
       - name: Resolve build metadata
         id: build-metadata
         env:
           INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
           input_build_number="$INPUT_BUILD_NUMBER"
           if [ -n "$input_build_number" ]; then
@@ -126,6 +139,13 @@ jobs:
             fi
           fi
           echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+
+      - name: Build App Store app bundle
+        run: |
+          bash scripts/build-appstore-bundle.sh \
+            source \
+            "${{ steps.build-metadata.outputs.build_number }}" \
+            "${{ steps.build-metadata.outputs.sha }}"
 
       - name: Mark pre-merge TestFlight pending
         if: ${{ inputs.pr_number != '' }}
@@ -157,19 +177,23 @@ jobs:
           APPLE_PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPSTORE_CONNECT_API_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+          PROVISION_PROFILE_OUTPUT: ${{ runner.temp }}/embedded.provisionprofile
         run: bash scripts/setup-appstore-signing.sh
 
       - name: Upload to App Store Connect
-        uses: ./.github/actions/upload-appstore
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_DISTRIBUTION_IDENTITY: ${{ secrets.APPLE_DISTRIBUTION_IDENTITY }}
           APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-        with:
-          build-number: ${{ steps.build-metadata.outputs.build_number }}
-          build-commit: ${{ steps.build-metadata.outputs.sha }}
+          PROVISION_PROFILE_PATH: ${{ runner.temp }}/embedded.provisionprofile
+        run: |
+          bash scripts/upload-appstore-package.sh \
+            source \
+            "${{ steps.build-metadata.outputs.build_number }}" \
+            "${{ steps.build-metadata.outputs.sha }}" \
+            "$PROVISION_PROFILE_PATH"
 
       - name: Mark pre-merge TestFlight success
         if: ${{ success() && inputs.pr_number != '' }}

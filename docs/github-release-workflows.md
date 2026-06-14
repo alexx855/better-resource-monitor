@@ -21,10 +21,10 @@ not share signing contracts.
   `.dmg` and `.zip`, and can upload those artifacts to the matching GitHub
   release.
 
-The `TestFlight` workflow uses `.github/actions/upload-appstore` as the shared
-packaging entrypoint, and `Release` dispatches `TestFlight` instead of
-duplicating upload logic. Keep signing, entitlement, provisioning-profile,
-embedded commit, private-GPU-API, and LaunchAgent checks in that action.
+The `TestFlight` workflow uses trusted scripts from `main` as the packaging
+entrypoint, and `Release` dispatches `TestFlight` instead of duplicating upload
+logic. Keep signing, entitlement, provisioning-profile, embedded commit,
+private-GPU-API, and LaunchAgent checks in those scripts.
 The current macOS autostart contract is documented in
 [`macos-autostart.md`](macos-autostart.md).
 
@@ -36,13 +36,14 @@ They also set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` at workflow scope so
 any remaining JavaScript action runs on Node 24 while GitHub phases out older
 runtimes.
 
-Do not replace `.github/actions/upload-appstore` or
-`scripts/setup-appstore-signing.sh` with `tauri-apps/tauri-action` just to
-silence Node runtime warnings. The Tauri action is useful for Tauri builds and
-GitHub Release artifacts, but this repo's App Store path also needs
-provisioning-profile installation, installer certificate import, entitlement
-checks, `CFBundleVersion` assignment, embedded commit verification, private API
-scanning, `productbuild`, and `xcrun altool` upload behavior.
+Do not replace `scripts/build-appstore-bundle.sh`,
+`scripts/setup-appstore-signing.sh`, or `scripts/upload-appstore-package.sh`
+with `tauri-apps/tauri-action` just to silence Node runtime warnings. The Tauri
+action is useful for Tauri builds and GitHub Release artifacts, but this repo's
+App Store path also needs provisioning-profile installation, installer
+certificate import, entitlement checks, `CFBundleVersion` assignment, embedded
+commit verification, private API scanning, `productbuild`, and `xcrun altool`
+upload behavior.
 
 The direct-download workflow uses `.github/actions/build-direct-download` and
 `scripts/setup-developer-id-signing.sh`. Keep it separate from the App Store
@@ -52,22 +53,34 @@ provisioning profiles or App Store installer packages.
 
 ## Protected TestFlight Environment
 
-The `TestFlight` workflow must be dispatched from `main`. To test a PR branch
-or release tag, pass that ref as `source_ref` so the reviewed workflow code is
-stable while the checked-out source changes. The App Store upload job declares
-the protected `testflight` environment; configure that environment with an owner
-reviewer before allowing the job to run.
+The `TestFlight` workflow must be dispatched from `main`. To test a PR or
+release tag, pass that ref as `source_ref` so reviewed workflow code and trusted
+packaging scripts stay on `main` while the checked-out source changes. For PRs,
+prefer `refs/pull/<number>/head` so fork PRs and same-repo branches use the same
+exact-head path.
+
+The workflow checks out trusted `main` tooling and the requested source into
+separate directories. PR-controlled code may run during dependency install,
+tests, and the app build, but Apple signing/upload secrets are not materialized
+until after that build has finished. The secret-bearing steps then run trusted
+`main` scripts to embed the CI-provided provisioning profile, sign, package, and
+upload the already-built app.
+
+The App Store upload job declares the protected `testflight` environment;
+configure that environment with an owner reviewer before allowing the job to
+run.
 
 Branch protection and rulesets protect changes that reach `main`. They do not
 turn repository-level Apple signing secrets into owner-only secrets for every
-future writable branch. Keep App Store upload secrets scoped to the protected
-`testflight` environment rather than exposing them broadly as repository-level
-secrets.
+future writable branch. Repository-level Apple secrets are acceptable only while
+repository write access remains owner-only; before adding any non-owner writer,
+move App Store upload secrets into the protected `testflight` environment.
 
 ## Required GitHub Secrets
 
-Add these `testflight` environment secrets before running `TestFlight` or
-`Release`:
+Add these repository secrets before running `TestFlight` or `Release`. If the
+repo ever gains non-owner writers, move the same names to the protected
+`testflight` environment and remove the repository-level copies:
 
 - `APPLE_TEAM_ID`
 - `APPLE_DISTRIBUTION_IDENTITY`
@@ -120,10 +133,11 @@ Upload a TestFlight/App Store Connect build without changing versions:
 gh workflow run testflight.yml --ref main
 ```
 
-Upload a pre-merge TestFlight build for the current PR branch:
+Upload a pre-merge TestFlight build for the current PR head:
 
 ```bash
-gh workflow run testflight.yml --ref main -f source_ref="$(git branch --show-current)" -f pr_number="$(gh pr view --json number -q .number)"
+pr_number="$(gh pr view --json number -q .number)"
+gh workflow run testflight.yml --ref main -f source_ref="refs/pull/${pr_number}/head" -f pr_number="$pr_number"
 ```
 
 Create a release, upload the App Store package, and publish the GitHub release:

@@ -65,10 +65,10 @@ change touches shared behavior or release packaging.
 
 Treat executable files as the source of truth. Release and TestFlight behavior
 is defined by `.github/workflows/release.yml`,
-`.github/workflows/testflight.yml`, `.github/actions/upload-appstore/action.yml`,
-`scripts/setup-appstore-signing.sh`, `src-tauri/tauri.appstore.conf.json`,
-`src-tauri/Cargo.lock`, `src-tauri/Entitlements.appstore.plist`, and
-`src-tauri/embedded.provisionprofile`.
+`.github/workflows/testflight.yml`, `scripts/build-appstore-bundle.sh`,
+`scripts/setup-appstore-signing.sh`, `scripts/upload-appstore-package.sh`,
+`src-tauri/tauri.appstore.conf.json`, `src-tauri/Cargo.lock`, and
+`src-tauri/Entitlements.appstore.plist`.
 
 The App Store upload path is GitHub Actions only. Use the `TestFlight` workflow
 for validation uploads; there is no supported local App Store packaging script
