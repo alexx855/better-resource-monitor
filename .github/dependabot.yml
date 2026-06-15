@@ -34,6 +34,13 @@ updates:
       time: "09:30"
       timezone: Europe/Madrid
     open-pull-requests-limit: 3
+    ignore:
+      # Keep the direct tray-icon dependency aligned with Tauri's transitive version.
+      # The app uses Tauri's with_inner_tray_icon escape hatch, so a newer direct
+      # tray-icon minor creates incompatible Icon/TrayIcon types until Tauri moves.
+      - dependency-name: tray-icon
+        update-types:
+          - "version-update:semver-minor"
     groups:
       rust-dependencies:
         patterns:
