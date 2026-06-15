@@ -14,7 +14,7 @@
 		"@astrojs/cloudflare": "^13.7.0",
 		"@astrojs/sitemap": "^3.7.3",
 		"@resvg/resvg-js": "^2.6.2",
-		"astro": "^6.4.6",
+		"astro": "^6.4.7",
 		"satori": "^0.26.0"
 	},
 	"devDependencies": {
