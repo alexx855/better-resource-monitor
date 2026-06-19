@@ -14,14 +14,14 @@
 		"@astrojs/cloudflare": "^13.7.0",
 		"@astrojs/sitemap": "^3.7.3",
 		"@resvg/resvg-js": "^2.6.2",
-		"astro": "^6.4.7",
+		"astro": "^6.4.8",
 		"satori": "^0.26.0"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.9",
 		"@types/node": "^25.9.3",
-		"sharp": "^0.35.1",
+		"sharp": "^0.35.2",
 		"typescript": "^6.0.3",
-		"wrangler": "^4.100.0"
+		"wrangler": "^4.103.0"
 	}
 }
