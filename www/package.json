@@ -19,7 +19,7 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.9",
-		"@types/node": "^25.9.3",
+		"@types/node": "^26.0.0",
 		"sharp": "^0.35.2",
 		"typescript": "^6.0.3",
 		"wrangler": "^4.103.0"
