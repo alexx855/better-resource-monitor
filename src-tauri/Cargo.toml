@@ -66,3 +66,6 @@ panic = "abort"
 strip = "symbols"
 debug = 0
 incremental = false
+
+[patch.crates-io]
+plist = { git = "https://github.com/ebarnard/rust-plist", rev = "0a2f9e79fe4b" }
