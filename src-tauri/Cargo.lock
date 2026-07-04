@@ -263,7 +263,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
- "tray-icon 0.23.1",
+ "tray-icon",
 ]
 
 [[package]]
@@ -4126,7 +4126,7 @@ dependencies = [
  "tauri-utils",
  "thiserror 2.0.17",
  "tokio",
- "tray-icon 0.24.1",
+ "tray-icon",
  "url",
  "webkit2gtk",
  "webview2-com",
@@ -4708,27 +4708,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "tray-icon"
-version = "0.23.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15edbb0d80583e85ee8df283410038e17314df5cba30da2087a54a85216c0773"
-dependencies = [
- "crossbeam-channel",
- "dirs 6.0.0",
- "libappindicator",
- "muda",
- "objc2",
- "objc2-app-kit",
- "objc2-core-foundation",
- "objc2-core-graphics",
- "objc2-foundation",
- "once_cell",
- "png 0.18.1",
- "thiserror 2.0.17",
- "windows-sys 0.61.2",
 ]
 
 [[package]]
