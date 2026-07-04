@@ -13,6 +13,7 @@ interface Props {
   ogImageAlt?: string;
   preloadImage?: string;
   robots?: string;
+  omitCanonical?: boolean;
 }
 
 const {
@@ -24,6 +25,7 @@ const {
   ogImageAlt = title,
   preloadImage,
   robots = "index, follow",
+  omitCanonical = false,
 } = Astro.props;
 const localeMeta = getLocaleMeta(locale);
 const uiEntry = await getEntry("ui", locale);
@@ -54,7 +56,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={canonicalUrl} />
+    {!omitCanonical && <meta property="og:url" content={canonicalUrl} />}
     <meta property="og:site_name" content="Better Resource Monitor" />
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:alt" content={ogImageAlt} />
@@ -74,13 +76,13 @@ const siteUrl = new URL("/", Astro.site).href;
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
-    <link rel="canonical" href={canonicalUrl} />
+    {!omitCanonical && <link rel="canonical" href={canonicalUrl} />}
     <link rel="alternate" type="text/plain" href={new URL("/llms.txt", Astro.site).href} title="LLMs.txt" />
     <link rel="alternate" type="application/json" href={new URL("/agent-facts.json", Astro.site).href} title="Agent facts" />
-    {alternateLinks.map((link) => (
+    {!omitCanonical && alternateLinks.map((link) => (
       <link rel="alternate" hreflang={link.hrefLang} href={new URL(link.href, Astro.site).href} />
     ))}
-    <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />
+    {!omitCanonical && <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />}
     <meta name="robots" content={robots} />
     <title>{title}</title>
     <ClientRouter />
