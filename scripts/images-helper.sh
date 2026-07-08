@@ -8,7 +8,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-DIST_DIR="$PROJECT_DIR/www/dist/images"
+DIST_DIR="$PROJECT_DIR/www/dist/client/images"
 OUTPUT_DIR="$PROJECT_DIR/images/appstore"
 
 LANGS=("en" "es" "pt-BR" "zh-Hans")
