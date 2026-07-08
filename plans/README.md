@@ -28,7 +28,7 @@ Baseline verified during planning (2026-07-08):
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
-| 007 | Isolate Apple signing credentials from untrusted code in CI | P1 | M | - | TODO |
+| 007 | Isolate Apple signing credentials from untrusted code in CI | P1 | M | - | DONE (branch `fix/ci-signing-isolation`; workflow correctness needs a post-merge manual dispatch) |
 | 006 | Make direct-download distribution real or retire its public promises | P1 | M | decision gate (Path A/B); coordinate with 007 on `direct-download.yml` | TODO |
 | 008 | Stop tray-update failures from silently killing the monitoring thread | P1 | S-M | - | TODO |
 | 009 | Make CI enforce every documented check (clippy, website build, astro check) | P1 | S | - | TODO |
