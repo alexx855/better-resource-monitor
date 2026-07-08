@@ -12,7 +12,7 @@
 
 ## Wiring And Gotchas
 - `www/src/content.config.ts` loads the localized root `README*.md` files into the website home body. README edits change the site, not just GitHub docs.
-- Website locales come from `www/src/lib/marketing-copy.json`; app menu translations are separate in `src-tauri/src/i18n.rs`. Keep both sides aligned when changing locales. Current locale keys are `en`, `es`, `pt-br`, and `zh-cn`; screenshot language tags are mapped separately in `www/src/lib/translations.ts`.
+- Website locales come from `www/src/lib/marketing-copy.json`; app menu translations are separate in `src-tauri/src/i18n.rs`. Keep both sides aligned when changing locales. Current locale keys are `en`, `es`, `pt-br`, and `zh-cn`; screenshot language tags are mapped separately in `www/src/lib/translations.ts`. `scripts/check-locale-parity.mjs` (run in CI) enforces the structural half of this; translated wording still needs human review.
 - `www/src/pages/images/[id].png.ts` is `prerender = true` build-time code. It depends on native `@resvg/resvg-js`, which `www/astro.config.mjs` externalizes for SSR. Treat image generation as Node build-time logic, not Cloudflare runtime logic.
 - `www/src/lib/renderer.ts` fetches fonts from Google during build. `pnpm build:www` and `pnpm build:screenshots` need network access.
 - `pnpm build:screenshots` first builds `www/`, then copies generated PNGs from `www/dist/images` into `images/appstore/<lang>/`.
