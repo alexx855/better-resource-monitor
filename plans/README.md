@@ -33,7 +33,7 @@ Baseline verified during planning (2026-07-08):
 | 008 | Stop tray-update failures from silently killing the monitoring thread | P1 | S-M | - | DONE (branch `fix/tray-update-panic-hardening`; manual sleep/wake smoke test still recommended) |
 | 009 | Make CI enforce every documented check (clippy, website build, astro check) | P1 | S | - | DONE (branch `fix/ci-enforce-documented-checks`) |
 | 010 | Enforce locale parity across app and website; delete drifted duplicates | P2 | S-M | 009 recommended | DONE (branch `fix/locale-parity-check`, stacked on 009) |
-| 011 | Remove Astro ClientRouter — resolve the CSP conflict by deleting its cause | P2 | S | 009 recommended | TODO |
+| 011 | Remove Astro ClientRouter — resolve the CSP conflict by deleting its cause | P2 | S | 009 recommended | DONE (branch `fix/www-remove-client-router`, stacked on 010; site now ships zero JS) |
 | 005 | Vendor generated-image fonts for deterministic builds | P2 | M | 009 recommended (was: 002) | TODO |
 | 001 | Align public distribution copy with the App Store runtime | P1 | M | - | SUPERSEDED by 006 (predates direct-download workflow and the runtime-guard incompatibility) |
 | 002 | Add the marketing site build to CI | P1 | S | - | SUPERSEDED by 009 (same goal, extended with clippy + astro check) |
