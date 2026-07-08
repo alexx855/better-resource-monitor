@@ -38,6 +38,12 @@ Pull requests should explain:
 
 ## Validation
 
+CI enforces `cargo fmt --check`, `cargo test`, `cargo clippy -- -D warnings`,
+`cargo check` (Intel target), `pnpm audit`, `cargo audit`, website type
+checking (`pnpm --filter www check`, i.e. `astro check`), the website build
+(`pnpm build:www`), and the macOS app bundle layout check. Run the relevant
+subset locally before opening a pull request.
+
 Docs-only changes still need enough proof for the claims they make. A wording
 fix can usually be reviewed with a focused diff check. A docs change that
 describes Rust/Tauri behavior, release packaging, CI gates, App Store signing,

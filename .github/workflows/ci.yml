@@ -53,6 +53,12 @@ jobs:
       - name: Audit JavaScript dependencies
         run: pnpm audit --prod --audit-level high
 
+      - name: Check website types
+        run: pnpm --filter www check
+
+      - name: Build website
+        run: pnpm build:www
+
       - name: Verify macOS signing scripts
         run: |
           set -euo pipefail
@@ -73,6 +79,9 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Check Intel macOS target
         run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin

@@ -44,6 +44,7 @@
     "dev:www": "pnpm --filter www dev",
     "build:www": "pnpm --filter www build",
     "preview:www": "pnpm --filter www preview",
+    "check:www": "pnpm --filter www check",
     "build:screenshots": "bash scripts/images-helper.sh"
   },
   "devDependencies": {
