@@ -1,6 +1,13 @@
 name: TestFlight
 
 # Uploads a TestFlight build without changing repository version files.
+#
+# Security invariant: the workflow is split into two jobs so that untrusted
+# code (the source_ref checkout: pnpm lifecycle scripts, build.rs, tests, the
+# app build itself) never runs in the same job that holds Apple signing
+# credentials. Job `build` has no access to the `testflight` environment or
+# any APPLE_* secret; job `sign-upload` executes only trusted scripts from
+# `main` and treats the downloaded artifact strictly as data to sign.
 
 on:
   workflow_dispatch:
@@ -32,10 +39,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  upload-testflight:
-    name: Upload TestFlight build
+  build:
+    name: Build app bundle
     runs-on: macos-15
-    environment: testflight
+    outputs:
+      build_number: ${{ steps.build-metadata.outputs.build_number }}
+      sha: ${{ steps.build-metadata.outputs.sha }}
 
     steps:
       - name: Require main workflow dispatch
@@ -63,7 +72,18 @@ jobs:
             source_ref="$GITHUB_REF_NAME"
           fi
 
-          echo "ref=$source_ref" >> "$GITHUB_OUTPUT"
+          if [ "$source_ref" != "main" ] \
+            && ! [[ "$source_ref" =~ ^v[0-9][0-9A-Za-z._-]*$ ]] \
+            && ! [[ "$source_ref" =~ ^refs/pull/[0-9]+/head$ ]]; then
+            echo "Error: source_ref must be main, a v* tag, or refs/pull/<number>/head, got '$source_ref'"
+            exit 1
+          fi
+
+          {
+            echo "ref<<BRM_EOF"
+            echo "$source_ref"
+            echo "BRM_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout trusted workflow tooling
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -140,13 +160,6 @@ jobs:
           fi
           echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
 
-      - name: Build App Store app bundle
-        run: |
-          bash scripts/build-appstore-bundle.sh \
-            source \
-            "${{ steps.build-metadata.outputs.build_number }}" \
-            "${{ steps.build-metadata.outputs.sha }}"
-
       - name: Mark pre-merge TestFlight pending
         if: ${{ inputs.pr_number != '' }}
         env:
@@ -167,6 +180,93 @@ jobs:
             -f context='Pre-merge TestFlight' \
             -f description="Uploading TestFlight build ${BUILD_NUMBER}" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Build App Store app bundle
+        run: |
+          bash scripts/build-appstore-bundle.sh \
+            source \
+            "${{ steps.build-metadata.outputs.build_number }}" \
+            "${{ steps.build-metadata.outputs.sha }}"
+
+      - name: Package app bundle artifact
+        run: |
+          set -euo pipefail
+          # ditto preserves symlinks and extended attributes that a bare
+          # upload-artifact zip would drop, which would break code signing.
+          ditto -c -k --keepParent \
+            "source/src-tauri/target/universal-apple-darwin/release/bundle/macos/Better Resource Monitor.app" \
+            "$RUNNER_TEMP/Better-Resource-Monitor.app.zip"
+
+      - name: Upload app bundle artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: appstore-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/Better-Resource-Monitor.app.zip
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Mark pre-merge TestFlight failure
+        if: ${{ failure() && inputs.pr_number != '' && steps.build-metadata.outputs.sha != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
+          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
+            -f state=failure \
+            -f context='Pre-merge TestFlight' \
+            -f description="TestFlight build ${BUILD_NUMBER} failed" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+  sign-upload:
+    name: Sign and upload to App Store Connect
+    needs: build
+    runs-on: macos-15
+    environment: testflight
+
+    # Security invariant: this job never checks out or executes source_ref
+    # code. It runs trusted scripts from main against the downloaded artifact,
+    # which is data to be signed, never executed.
+    steps:
+      - name: Checkout trusted workflow tooling
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Validate trusted scripts
+        run: |
+          bash -n scripts/setup-appstore-signing.sh
+          bash -n scripts/upload-appstore-package.sh
+
+      - name: Download app bundle artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: appstore-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/appstore-artifact
+
+      - name: Extract and verify app bundle
+        env:
+          BUILD_SHA: ${{ needs.build.outputs.sha }}
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
+          mkdir -p "$BUNDLE_DIR"
+          ditto -x -k "$RUNNER_TEMP/appstore-artifact/Better-Resource-Monitor.app.zip" "$BUNDLE_DIR"
+
+          APP_EXECUTABLE="$BUNDLE_DIR/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor"
+          if [ ! -f "$APP_EXECUTABLE" ]; then
+            echo "Error: app executable not found at $APP_EXECUTABLE after extraction"
+            exit 1
+          fi
+
+          COMMIT_PREFIX="$(printf '%s' "$BUILD_SHA" | cut -c1-12)"
+          if ! strings -a "$APP_EXECUTABLE" | grep -F "$COMMIT_PREFIX" > /dev/null; then
+            echo "Error: downloaded app bundle does not embed expected commit $COMMIT_PREFIX"
+            exit 1
+          fi
+          echo "Downloaded app bundle embeds expected commit $COMMIT_PREFIX"
 
       - name: Prepare App Store credentials
         env:
@@ -190,17 +290,17 @@ jobs:
           PROVISION_PROFILE_PATH: ${{ runner.temp }}/embedded.provisionprofile
         run: |
           bash scripts/upload-appstore-package.sh \
-            source \
-            "${{ steps.build-metadata.outputs.build_number }}" \
-            "${{ steps.build-metadata.outputs.sha }}" \
+            . \
+            "${{ needs.build.outputs.build_number }}" \
+            "${{ needs.build.outputs.sha }}" \
             "$PROVISION_PROFILE_PATH"
 
       - name: Mark pre-merge TestFlight success
         if: ${{ success() && inputs.pr_number != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
-          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          BUILD_NUMBER: ${{ needs.build.outputs.build_number }}
+          BUILD_SHA: ${{ needs.build.outputs.sha }}
           PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
@@ -213,11 +313,11 @@ jobs:
             -f body="✅ Pre-merge TestFlight uploaded for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Mark pre-merge TestFlight failure
-        if: ${{ failure() && inputs.pr_number != '' && steps.build-metadata.outputs.sha != '' }}
+        if: ${{ failure() && inputs.pr_number != '' && needs.build.outputs.sha != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
-          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
+          BUILD_NUMBER: ${{ needs.build.outputs.build_number }}
+          BUILD_SHA: ${{ needs.build.outputs.sha }}
           PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \

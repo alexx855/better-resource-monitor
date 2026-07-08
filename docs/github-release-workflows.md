@@ -59,16 +59,25 @@ packaging scripts stay on `main` while the checked-out source changes. For PRs,
 prefer `refs/pull/<number>/head` so fork PRs and same-repo branches use the same
 exact-head path.
 
-The workflow checks out trusted `main` tooling and the requested source into
-separate directories. PR-controlled code may run during dependency install,
-tests, and the app build, but Apple signing/upload secrets are not materialized
-until after that build has finished. The secret-bearing steps then run trusted
-`main` scripts to embed the CI-provided provisioning profile, sign, package, and
-upload the already-built app.
+The workflow is split into two jobs. The `build` job checks out trusted `main`
+tooling and the requested source into separate directories, runs the
+PR-controlled dependency install, tests, and app build, and uploads the built
+`.app` bundle as a workflow artifact (zipped with `ditto` to preserve
+signature-relevant metadata). The `sign-upload` job runs on a fresh runner with
+only a `main` checkout, re-verifies the embedded commit prefix in the
+downloaded artifact, and only then materializes Apple signing secrets to embed
+the CI-provided provisioning profile, sign, package, and upload. No step in
+the signing job executes code from the `source_ref` checkout or the artifact.
 
-The App Store upload job declares the protected `testflight` environment;
+The `sign-upload` job declares the protected `testflight` environment;
 configure that environment with an owner reviewer before allowing the job to
 run.
+
+The `Direct Download` workflow follows the same trust rule: the composite
+action `.github/actions/build-direct-download` and the Developer ID signing
+script are always loaded from the trusted `main` checkout at the workspace
+root, never from the tag checkout in `source/`. The build still compiles
+tag-controlled code, so pushing tags must remain maintainer-only.
 
 Branch protection and rulesets protect changes that reach `main`. They do not
 turn repository-level Apple signing secrets into owner-only secrets for every
