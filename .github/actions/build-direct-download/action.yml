@@ -44,6 +44,10 @@ runs:
       env:
         SOURCE_DIR_INPUT: ${{ inputs.source-dir }}
         BRM_BUILD_COMMIT_INPUT: ${{ inputs.build-commit }}
+        # Compile-time marker so the runtime guard accepts this non-App-Store
+        # build at /Applications without a Mac App Store receipt. App Store
+        # builds (scripts/build-appstore-bundle.sh) must never set this.
+        BRM_DIRECT_DISTRIBUTION: '1'
       run: |
         set -euo pipefail
 

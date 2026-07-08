@@ -206,6 +206,13 @@ const MACOS_SUPPORTED_EXECUTABLE_PATH: &str =
     "/Applications/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor";
 #[cfg(target_os = "macos")]
 const MACOS_PROCESS_LOCK_PREFIX: &str = "/tmp/dev.alexpedersen.better-resource-monitor";
+/// Set at compile time by the direct-download CI build
+/// (`.github/actions/build-direct-download/action.yml`). Direct-distribution
+/// builds have no Mac App Store receipt, so the runtime guard accepts them at
+/// the supported install path instead of requiring a receipt. App Store
+/// builds must never set this.
+#[cfg(target_os = "macos")]
+const MACOS_DIRECT_DISTRIBUTION: bool = option_env!("BRM_DIRECT_DISTRIBUTION").is_some();
 
 /// Minimum change threshold to trigger icon update (prevents compositor leak on Linux)
 const HYSTERESIS_THRESHOLD: f32 = 2.0;
@@ -302,10 +309,22 @@ fn should_exit_unsupported_macos_bundle(
     bundle_id: Option<&str>,
     executable_path: &std::path::Path,
     has_app_store_receipt: bool,
+    is_direct_distribution: bool,
 ) -> bool {
-    bundle_id == Some(MACOS_BUNDLE_ID)
-        && (executable_path != std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH)
-            || !has_app_store_receipt)
+    if bundle_id != Some(MACOS_BUNDLE_ID) {
+        return false;
+    }
+
+    // Stray copies (Trash, duplicates, dev builds with the production bundle
+    // id) are rejected regardless of distribution channel.
+    if executable_path != std::path::Path::new(MACOS_SUPPORTED_EXECUTABLE_PATH) {
+        return true;
+    }
+
+    // At the supported install path: App Store builds prove themselves with a
+    // receipt; direct-download (Developer ID) builds carry the compile-time
+    // marker instead.
+    !has_app_store_receipt && !is_direct_distribution
 }
 
 #[cfg(target_os = "macos")]
@@ -364,7 +383,12 @@ fn enforce_supported_macos_runtime() {
     let should_exit = executable_path
         .as_deref()
         .map(|path| {
-            should_exit_unsupported_macos_bundle(bundle_id.as_deref(), path, has_app_store_receipt)
+            should_exit_unsupported_macos_bundle(
+                bundle_id.as_deref(),
+                path,
+                has_app_store_receipt,
+                MACOS_DIRECT_DISTRIBUTION,
+            )
         })
         .unwrap_or(bundle_id.as_deref() == Some(MACOS_BUNDLE_ID));
 

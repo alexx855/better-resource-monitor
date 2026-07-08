@@ -225,35 +225,49 @@ fn test_macos_process_lock_path_is_per_user() {
 #[cfg(target_os = "macos")]
 #[test]
 fn test_supported_macos_bundle_runtime() {
-    for (bundle_id, executable_path, has_receipt, should_exit) in [
+    const TRASH_PATH: &str = "/Users/xeliapedersen/.Trash/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor";
+
+    for (bundle_id, executable_path, has_receipt, is_direct, should_exit) in [
+        // App Store build: receipt at the supported path.
         (
             Some(MACOS_BUNDLE_ID),
             MACOS_SUPPORTED_EXECUTABLE_PATH,
             true,
             false,
+            false,
         ),
+        // Stray copy in the Trash exits even with a receipt.
+        (Some(MACOS_BUNDLE_ID), TRASH_PATH, true, false, true),
+        // Non-direct build without a receipt exits (existing behavior).
         (
             Some(MACOS_BUNDLE_ID),
-            "/Users/xeliapedersen/.Trash/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor",
-            true,
+            MACOS_SUPPORTED_EXECUTABLE_PATH,
+            false,
+            false,
             true,
         ),
+        // Direct-distribution build: no receipt, supported path — allowed.
         (
             Some(MACOS_BUNDLE_ID),
             MACOS_SUPPORTED_EXECUTABLE_PATH,
             false,
             true,
+            false,
         ),
-        (None, "/tmp/better-resource-monitor", false, false),
+        // Direct-distribution build in the Trash still exits.
+        (Some(MACOS_BUNDLE_ID), TRASH_PATH, false, true, true),
+        // Other bundle ids are never the guard's business.
+        (None, "/tmp/better-resource-monitor", false, false, false),
     ] {
         assert_eq!(
             should_exit_unsupported_macos_bundle(
                 bundle_id,
                 std::path::Path::new(executable_path),
-                has_receipt
+                has_receipt,
+                is_direct
             ),
             should_exit,
-            "executable_path={executable_path}"
+            "executable_path={executable_path} has_receipt={has_receipt} is_direct={is_direct}"
         );
     }
 }
