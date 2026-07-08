@@ -34,12 +34,16 @@ jobs:
     steps:
       - name: Checkout workflow tooling
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: main
+          persist-credentials: false
 
       - name: Checkout release source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ inputs.tag }}
           path: source
+          persist-credentials: false
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -92,9 +96,14 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=$(jq -r '.version' src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
 
+      # Security invariant: the composite action and the signing script it
+      # resolves must come from the trusted main checkout at the workspace
+      # root, never from the tag checkout in source/. The build step inside
+      # the action still compiles tag-controlled code (build.rs, sources), so
+      # pushing tags must remain maintainer-only.
       - name: Build direct-download artifacts
         id: package
-        uses: ./source/.github/actions/build-direct-download
+        uses: ./.github/actions/build-direct-download
         with:
           source-dir: source
           build-commit: ${{ steps.metadata.outputs.sha }}
