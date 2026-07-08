@@ -532,6 +532,32 @@ fn test_render_all_default_visible_metrics_width() {
 }
 
 #[test]
+fn test_render_buffer_matches_rgba_dimensions() {
+    // The monitor loop skips a frame when the rendered buffer is not exactly
+    // 4 bytes per pixel; this pins the renderer invariant that check relies on.
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    for config in [
+        base_render_config(),
+        tray_render::RenderConfig {
+            show_storage: true,
+            show_gpu: true,
+            show_net: true,
+            ..base_render_config()
+        },
+    ] {
+        let (width, height, _) = renderer.render_tray_icon_into(&font, &mut buffer, &config);
+        assert_eq!(
+            buffer.len(),
+            (4 * width * height) as usize,
+            "render buffer must be 4 bytes per pixel for {width}x{height}"
+        );
+    }
+}
+
+#[test]
 fn test_percent_metric_order() {
     assert_eq!(
         tray_render::percent_icon_order_for_tests(),
