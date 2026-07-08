@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import cloudflare from '@astrojs/cloudflare';
 
+/** @param {string} id */
 const externalNativeRenderer = (id) => /@resvg[\\/]/.test(id) || id.endsWith('.node');
 
 // https://astro.build/config
@@ -24,9 +25,8 @@ export default defineConfig({
   integrations: [sitemap()],
   adapter: cloudflare({
     imageService: 'passthrough',
-    platformProxy: {
-      enabled: true
-    },
+    // platformProxy was removed in @astrojs/cloudflare v13; the underlying
+    // @cloudflare/vite-plugin provides bindings proxying in dev automatically.
     prerenderEnvironment: 'node',
   }),
   vite: {
@@ -36,6 +36,9 @@ export default defineConfig({
       },
     },
     ssr: {
+      // @ts-expect-error resvg native module matched by regex; Vite types
+      // ssr.external as string[] but RegExp entries work at runtime and the
+      // resvg externalization is load-bearing for the image routes.
       external: [/^@resvg\/resvg-js(?:-.+)?$/, 'node:fs', 'node:module', 'node:path'],
     },
   },
