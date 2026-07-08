@@ -330,19 +330,24 @@ fn current_macos_bundle_id() -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn prevent_macos_tray_image_dimming(tray: &tray_icon::TrayIcon) {
-    let mtm = MainThreadMarker::new().expect("macOS tray dimming hook must run on main thread");
-    let ns_status_item = tray
-        .ns_status_item()
-        .expect("macOS tray status item is unavailable");
-    let button = ns_status_item
-        .button(mtm)
-        .expect("macOS tray status item button is unavailable");
-    let cell = button
-        .cell()
-        .expect("macOS tray status item button cell is unavailable");
-    let button_cell = cell
-        .downcast_ref::<NSButtonCell>()
-        .expect("macOS tray status item cell is not an NSButtonCell");
+    // Dimming is cosmetic: if any AppKit lookup fails (e.g. transient status
+    // item unavailability during display sleep/wake), skip silently rather
+    // than panic — this runs on the main thread on every tray update.
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let Some(ns_status_item) = tray.ns_status_item() else {
+        return;
+    };
+    let Some(button) = ns_status_item.button(mtm) else {
+        return;
+    };
+    let Some(cell) = button.cell() else {
+        return;
+    };
+    let Some(button_cell) = cell.downcast_ref::<NSButtonCell>() else {
+        return;
+    };
 
     // Keep template tinting for theme adaptation while avoiding button-cell image dimming.
     button_cell.setImageDimsWhenDisabled(false);
@@ -1077,19 +1082,51 @@ fn start_monitoring(
                     },
                 );
 
+                // Icon::from_rgba (and Image::new_owned on other platforms)
+                // requires exactly 4 bytes per pixel; a mismatch here would
+                // otherwise fail the icon update every tick.
+                if render_buffer.len() != (4 * width * height) as usize {
+                    eprintln!(
+                        "tray_update buffer size mismatch len={} expected={}",
+                        render_buffer.len(),
+                        4 * width * height
+                    );
+                    #[cfg(target_os = "macos")]
+                    macos_diag_log(format!(
+                        "tray_update buffer size mismatch len={} expected={}",
+                        render_buffer.len(),
+                        4 * width * height
+                    ));
+                    continue;
+                }
+
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
+                    // A transient failure here (e.g. AppKit contention during
+                    // display sleep/wake) must not kill the monitor thread;
+                    // log, skip this frame, and let the next tick retry.
                     #[cfg(target_os = "macos")]
                     {
                         let use_template = !_has_active_alert;
-                        let icon = tray_icon::Icon::from_rgba(render_buffer.clone(), width, height)
-                            .expect("Failed to create icon");
-                        tray.with_inner_tray_icon(move |inner| {
-                            inner
-                                .set_icon_with_as_template(Some(icon), use_template)
-                                .expect("failed to set macOS tray icon template image");
-                            prevent_macos_tray_image_dimming(inner);
-                        })
-                        .expect("failed to update macOS tray icon on main thread");
+                        match tray_icon::Icon::from_rgba(render_buffer.clone(), width, height) {
+                            Ok(icon) => {
+                                let result = tray.with_inner_tray_icon(move |inner| {
+                                    if let Err(e) =
+                                        inner.set_icon_with_as_template(Some(icon), use_template)
+                                    {
+                                        eprintln!("Failed to set macOS tray icon: {e}");
+                                    }
+                                    prevent_macos_tray_image_dimming(inner);
+                                });
+                                if let Err(e) = result {
+                                    macos_diag_log(format!(
+                                        "tray_update main-thread dispatch failed: {e}"
+                                    ));
+                                }
+                            }
+                            Err(e) => {
+                                macos_diag_log(format!("tray_update icon creation failed: {e}"));
+                            }
+                        }
                     }
 
                     #[cfg(not(target_os = "macos"))]
