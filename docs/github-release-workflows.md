@@ -15,11 +15,15 @@ not share signing contracts.
 - `Release` is manually dispatched with a version bump type. It opens and
   merges a version-bump pull request, tags the merge commit on `main`, dispatches
   `TestFlight` for that tag, waits for the App Store Connect upload to pass,
-  then creates the GitHub release.
-- `Direct Download` is manually dispatched for an existing tag. It builds a
-  universal macOS app, signs it with Developer ID, notarizes it, packages both a
-  `.dmg` and `.zip`, and can upload those artifacts to the matching GitHub
-  release.
+  creates the GitHub release, then dispatches `Direct Download` for the new tag
+  so the release carries signed binary artifacts.
+- `Direct Download` builds a universal macOS app, signs it with Developer ID,
+  notarizes it, packages both a `.dmg` and `.zip`, and uploads those artifacts
+  to the matching GitHub release. It is dispatched automatically by `Release`
+  and can also be dispatched manually for an existing tag. Its builds set
+  `BRM_DIRECT_DISTRIBUTION=1` at compile time so the runtime guard in
+  `src-tauri/src/lib.rs` accepts the receipt-less install at `/Applications`;
+  App Store builds must never set that marker.
 
 The `TestFlight` workflow uses trusted scripts from `main` as the packaging
 entrypoint, and `Release` dispatches `TestFlight` instead of duplicating upload
