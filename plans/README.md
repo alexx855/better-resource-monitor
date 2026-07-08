@@ -29,7 +29,7 @@ Baseline verified during planning (2026-07-08):
 | Plan | Title | Priority | Effort | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | 007 | Isolate Apple signing credentials from untrusted code in CI | P1 | M | - | DONE (branch `fix/ci-signing-isolation`; workflow correctness needs a post-merge manual dispatch) |
-| 006 | Make direct-download distribution real or retire its public promises | P1 | M | decision gate (Path A/B); coordinate with 007 on `direct-download.yml` | TODO |
+| 006 | Make direct-download distribution real or retire its public promises | P1 | M | decision gate (Path A/B); coordinate with 007 on `direct-download.yml` | DONE (Path A; branch `fix/direct-download-distribution`, stacked on 007's workflow changes; first release needs a manual DMG install smoke test) |
 | 008 | Stop tray-update failures from silently killing the monitoring thread | P1 | S-M | - | DONE (branch `fix/tray-update-panic-hardening`; manual sleep/wake smoke test still recommended) |
 | 009 | Make CI enforce every documented check (clippy, website build, astro check) | P1 | S | - | DONE (branch `fix/ci-enforce-documented-checks`) |
 | 010 | Enforce locale parity across app and website; delete drifted duplicates | P2 | S-M | 009 recommended | DONE (branch `fix/locale-parity-check`, stacked on 009) |
