@@ -1,8 +1,4 @@
 {
-  "title": "FAQ - Better Resource Monitor",
-  "description": "Como funciona o monitoramento de GPU, uso de recursos, privacidade e como se compara ao Stats e iStat Menus.",
-  "ogImage": "/images/og-faq-pt-br.png",
-  "heading": "Perguntas Frequentes",
   "items": [
     {
       "id": "overview",

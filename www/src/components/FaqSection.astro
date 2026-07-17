@@ -39,7 +39,7 @@ const faqSchemaJson = JSON.stringify({
   <HeadingTag id="faq-section-heading">{heading}</HeadingTag>
   <dl class="faq-list">
     {renderedItems.map((item) => (
-      <div class="faq-item">
+      <div class="faq-item content-panel">
         <dt>{item.question}</dt>
         <dd><Fragment set:html={item.html} /></dd>
       </div>
@@ -67,27 +67,9 @@ const faqSchemaJson = JSON.stringify({
   }
 
   .faq-item {
-    border: var(--border-width) solid var(--c-border);
-    background: var(--c-surface);
     padding: var(--space-5);
     margin-bottom: var(--space-5);
-    overflow: hidden;
-    position: relative;
   }
-
-  .faq-item::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: var(--c-brand);
-    opacity: 0;
-    transform: scaleY(0.35);
-    transform-origin: top;
-    transition: opacity var(--transition-fast),
-                transform var(--transition-fast);
-  }
-
 
   .faq-item dt {
     font-weight: 600;
