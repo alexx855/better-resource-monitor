@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Monitor CPU, memory, GPU, and network from your Mac menu bar.</strong>
+  <strong>Monitor CPU, memory, storage, GPU, and network from your Mac menu bar.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -35,7 +35,7 @@
 
 Better Resource Monitor is for people who just want a quick, low-noise way to keep an eye on their Mac.
 
-It keeps CPU, memory, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
+It keeps CPU, memory, storage, GPU, and network usage in the menu bar, so you can catch unusual load without stopping what you're doing or opening Activity Monitor.
 
 If you're evaluating an iStat Menus alternative, this is the same place to do it: a lightweight monitor for everyday metrics with low overhead and no telemetry.
 

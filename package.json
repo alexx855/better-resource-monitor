@@ -27,6 +27,7 @@
     "cpu-monitor",
     "gpu-monitor",
     "memory-monitor",
+    "storage-monitor",
     "network-monitor",
     "tray-icon",
     "menu-bar-app",

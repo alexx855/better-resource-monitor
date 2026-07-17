@@ -263,7 +263,10 @@ runs:
         submit_for_notarization "$DMG_PATH" "DMG"
 
         xcrun stapler staple "$DMG_PATH"
-        spctl -a -vv -t open --context context:primary-signature "$DMG_PATH"
+        # spctl -t open is unreliable on notarized DMGs ("no usable signature"
+        # even after Accepted + successful staple). stapler validate is the
+        # authoritative post-staple check for disk images.
+        xcrun stapler validate "$DMG_PATH"
 
         echo "dmg_path=$DMG_PATH" >> "$GITHUB_OUTPUT"
         echo "zip_path=$ZIP_PATH" >> "$GITHUB_OUTPUT"
