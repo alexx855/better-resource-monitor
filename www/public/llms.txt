@@ -5,7 +5,7 @@
 ## Summary
 - Product: Better Resource Monitor
 - Category: macOS menu bar system monitor
-- Availability: Mac App Store and GitHub source releases
+- Availability: Mac App Store and GitHub releases (signed DMG)
 - Price: Free
 - Privacy: Works offline, no telemetry
 - License: MIT

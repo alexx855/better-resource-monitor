@@ -225,35 +225,49 @@ fn test_macos_process_lock_path_is_per_user() {
 #[cfg(target_os = "macos")]
 #[test]
 fn test_supported_macos_bundle_runtime() {
-    for (bundle_id, executable_path, has_receipt, should_exit) in [
+    const TRASH_PATH: &str = "/Users/xeliapedersen/.Trash/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor";
+
+    for (bundle_id, executable_path, has_receipt, is_direct, should_exit) in [
+        // App Store build: receipt at the supported path.
         (
             Some(MACOS_BUNDLE_ID),
             MACOS_SUPPORTED_EXECUTABLE_PATH,
             true,
             false,
+            false,
         ),
+        // Stray copy in the Trash exits even with a receipt.
+        (Some(MACOS_BUNDLE_ID), TRASH_PATH, true, false, true),
+        // Non-direct build without a receipt exits (existing behavior).
         (
             Some(MACOS_BUNDLE_ID),
-            "/Users/xeliapedersen/.Trash/Better Resource Monitor.app/Contents/MacOS/better-resource-monitor",
-            true,
+            MACOS_SUPPORTED_EXECUTABLE_PATH,
+            false,
+            false,
             true,
         ),
+        // Direct-distribution build: no receipt, supported path — allowed.
         (
             Some(MACOS_BUNDLE_ID),
             MACOS_SUPPORTED_EXECUTABLE_PATH,
             false,
             true,
+            false,
         ),
-        (None, "/tmp/better-resource-monitor", false, false),
+        // Direct-distribution build in the Trash still exits.
+        (Some(MACOS_BUNDLE_ID), TRASH_PATH, false, true, true),
+        // Other bundle ids are never the guard's business.
+        (None, "/tmp/better-resource-monitor", false, false, false),
     ] {
         assert_eq!(
             should_exit_unsupported_macos_bundle(
                 bundle_id,
                 std::path::Path::new(executable_path),
-                has_receipt
+                has_receipt,
+                is_direct
             ),
             should_exit,
-            "executable_path={executable_path}"
+            "executable_path={executable_path} has_receipt={has_receipt} is_direct={is_direct}"
         );
     }
 }
@@ -529,6 +543,32 @@ fn test_render_all_default_visible_metrics_width() {
 
     assert!(!has_alert);
     assert_render_size(&buffer, width, height, expected_width);
+}
+
+#[test]
+fn test_render_buffer_matches_rgba_dimensions() {
+    // The monitor loop skips a frame when the rendered buffer is not exactly
+    // 4 bytes per pixel; this pins the renderer invariant that check relies on.
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    for config in [
+        base_render_config(),
+        tray_render::RenderConfig {
+            show_storage: true,
+            show_gpu: true,
+            show_net: true,
+            ..base_render_config()
+        },
+    ] {
+        let (width, height, _) = renderer.render_tray_icon_into(&font, &mut buffer, &config);
+        assert_eq!(
+            buffer.len(),
+            (4 * width * height) as usize,
+            "render buffer must be 4 bytes per pixel for {width}x{height}"
+        );
+    }
 }
 
 #[test]

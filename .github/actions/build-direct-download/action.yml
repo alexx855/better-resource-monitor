@@ -44,6 +44,10 @@ runs:
       env:
         SOURCE_DIR_INPUT: ${{ inputs.source-dir }}
         BRM_BUILD_COMMIT_INPUT: ${{ inputs.build-commit }}
+        # Compile-time marker so the runtime guard accepts this non-App-Store
+        # build at /Applications without a Mac App Store receipt. App Store
+        # builds (scripts/build-appstore-bundle.sh) must never set this.
+        BRM_DIRECT_DISTRIBUTION: '1'
       run: |
         set -euo pipefail
 
@@ -132,6 +136,9 @@ runs:
       run: |
         set -euo pipefail
 
+        # This action must be loaded from the trusted main checkout at the
+        # workspace root (uses: ./.github/actions/build-direct-download), so
+        # this resolves to the main checkout's scripts/, not the tag's.
         SETUP_SCRIPT="$GITHUB_ACTION_PATH/../../../scripts/setup-developer-id-signing.sh"
         if [ ! -f "$SETUP_SCRIPT" ]; then
           echo "Error: Developer ID signing setup script not found at $SETUP_SCRIPT"

@@ -12,9 +12,9 @@
 
 ## Wiring And Gotchas
 - `www/src/content.config.ts` loads the localized root `README*.md` files into the website home body. README edits change the site, not just GitHub docs.
-- Website locales come from `www/src/lib/marketing-copy.json`; app menu translations are separate in `src-tauri/src/i18n.rs`. Keep both sides aligned when changing locales. Current locale keys are `en`, `es`, `pt-br`, and `zh-cn`; screenshot language tags are mapped separately in `www/src/lib/translations.ts`.
+- Website locales come from `www/src/lib/marketing-copy.json`; app menu translations are separate in `src-tauri/src/i18n.rs`. Keep both sides aligned when changing locales. Current locale keys are `en`, `es`, `pt-br`, and `zh-cn`; screenshot language tags are mapped separately in `www/src/lib/translations.ts`. `scripts/check-locale-parity.mjs` (run in CI) enforces the structural half of this; translated wording still needs human review.
 - `www/src/pages/images/[id].png.ts` is `prerender = true` build-time code. It depends on native `@resvg/resvg-js`, which `www/astro.config.mjs` externalizes for SSR. Treat image generation as Node build-time logic, not Cloudflare runtime logic.
-- `www/src/lib/renderer.ts` fetches fonts from Google during build. `pnpm build:www` and `pnpm build:screenshots` need network access.
+- `www/src/lib/renderer.ts` and `www/generate-badges.mjs` read vendored fonts from `www/src/assets/fonts` (OFL-licensed; see the README there). Generated image routes still run at build time in Node, but builds no longer need network access for Google font fetches.
 - `pnpm build:screenshots` first builds `www/`, then copies generated PNGs from `www/dist/images` into `images/appstore/<lang>/`.
 - If you change tray visuals, regenerate marketing tray art from `src-tauri/examples/render_tray_icon.rs`; do not hand-redraw `www/public/better-resource-monitor*.png` separately from the app renderer.
 - macOS App Store builds use `--features app-store`, but GPU sampling must stay enabled through the public IOAccelerator path in `src-tauri/src/gpu.rs`. Do not reintroduce an App Store GPU stub; the old private IOReport workaround is obsolete. `sysinfo` separately enables its dependency feature `apple-app-store` in `Cargo.toml`.

@@ -1,6 +1,5 @@
 ---
 import { getEntry } from "astro:content";
-import { ClientRouter } from "astro:transitions";
 import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
 
 
@@ -85,7 +84,6 @@ const siteUrl = new URL("/", Astro.site).href;
     {!omitCanonical && <link rel="alternate" hreflang="x-default" href={new URL(getLocalizedPath("en", slug), Astro.site).href} />}
     <meta name="robots" content={robots} />
     <title>{title}</title>
-    <ClientRouter />
 
     <!-- Structured Data -->
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
@@ -381,7 +379,6 @@ const siteUrl = new URL("/", Astro.site).href;
         padding: 0;
         margin: 0;
         text-decoration: none;
-        view-transition-name: site-title;
         font-size: clamp(1.15rem, 4vw, 1.6rem);
         line-height: 1;
       }
