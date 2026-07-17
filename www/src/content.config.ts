@@ -36,7 +36,6 @@ const ui = defineCollection({
     footer: z.object({
       internalNavigation: z.string(),
       externalNavigation: z.string(),
-      faq: z.string(),
       comparison: z.string(),
       privacyPolicy: z.string(),
       terms: z.string(),
@@ -108,10 +107,6 @@ const faqItems = z.array(
 const faq = defineCollection({
   loader: glob({ pattern: "*.json", base: "./src/content/faq" }),
   schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    ogImage: z.string(),
-    heading: z.string(),
     items: faqItems,
   }),
 });

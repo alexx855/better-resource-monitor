@@ -21,6 +21,7 @@
 
 ## Website UX Decisions
 - Do not add a skip-to-content link to the current marketing site by default. Pages start directly with their main content, and the extra localized copy, CSS, focus target, and DOM add complexity without clear value here. Revisit only if persistent navigation or other repeated chrome is added before the content.
+- Marketing link styles (see `DESIGN.md` and `www/src/layouts/Layout.astro`): all text links share one brand-filled pill style (white text, inset bottom edge, no underline) — same-origin `/`, outbound `http(s)`, language switcher, and footer nav alike. Keep `a:has(img)` badge links transparent with no box-shadow. `.comparison-card` keeps its own card treatment.
 
 ## Release Notes
 - Manual version bumps touch `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`. `.github/workflows/release.yml` is the executable reference.

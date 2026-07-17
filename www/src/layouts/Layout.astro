@@ -174,7 +174,6 @@ const siteUrl = new URL("/", Astro.site).href;
         /* Transitions */
         --transition-fast: 0.15s var(--ease-out);
         --transition-normal: 0.2s var(--ease-out);
-        --transition-hover: 0.18s ease;
       }
 
       /* Base reset */
@@ -292,8 +291,12 @@ const siteUrl = new URL("/", Astro.site).href;
         color: inherit;
       }
 
-      /* Links */
-      a {
+      /*
+        Links — one pill style for all text links: brand fill + white text +
+        inset bottom edge. Exceptions: badge image links (`a:has(img)`) and
+        `.comparison-card` keep their own undecorated / card treatment.
+      */
+      a:not(:has(img)):not(.comparison-card) {
         color: var(--c-on-brand);
         background-color: var(--c-brand);
         background-image: none;
@@ -301,44 +304,35 @@ const siteUrl = new URL("/", Astro.site).href;
         text-decoration: none;
         padding: 2px 4px;
         margin: 0 -4px;
-      }
-
-      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)) {
+        overflow-wrap: anywhere;
         display: inline-block;
-        transform: translateX(0) scale(1);
-        transition:
-          transform 160ms var(--ease-out),
-          box-shadow 180ms ease,
-          background-color 180ms ease,
-          color 180ms ease;
+        transform: translateY(0) scale(1);
+        transition: transform 120ms var(--ease-out);
         vertical-align: baseline;
       }
 
-      p a:not(:has(img)),
-      li a:not(:has(img)),
-      dd a:not(:has(img)) {
-        text-decoration-thickness: 0.08em;
-        text-underline-offset: 0.18em;
-      }
-
       a:has(img) {
+        color: inherit;
         padding: 0;
         margin: 0;
-        background-color: transparent;
+        background: transparent;
         background-image: none;
+        box-shadow: none;
+        text-decoration: none;
+        display: inline;
+        transform: none;
+        transition: none;
       }
 
-      a[href^="/"]:not(:has(img)):not(.comparison-card):focus-visible {
-        outline-offset: 4px;
-      }
-
-      :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
-        transform: translateX(-2px) scale(0.98);
+      /* Touch / non-hover pointers: press scale without needing :hover */
+      a:not(:has(img)):not(.comparison-card):active {
+        transform: scale(0.97);
       }
 
       @media (hover: hover) and (pointer: fine) {
         a:has(img):hover {
-          background-color: transparent;
+          background: transparent;
+          box-shadow: none;
         }
       }
 
@@ -359,18 +353,31 @@ const siteUrl = new URL("/", Astro.site).href;
         border: 0;
       }
 
-      .home-link {
+      a.home-link:not(:has(img)) {
         font-weight: bold;
+        font-size: clamp(1rem, 4vw, 1.6rem);
+        line-height: 1;
         display: inline-flex;
         align-items: center;
-        gap: var(--space-3);
+        gap: var(--space-2);
         width: fit-content;
-        color: var(--c-on-brand);
-        background-color: var(--c-brand);
-        background-image: none;
-        box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
-        padding: 2px 4px;
+        max-width: 100%;
+        padding: var(--space-2) var(--space-3);
         margin: 0 0 var(--space-6);
+        overflow-wrap: normal;
+      }
+
+      .home-link__arrow {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .home-link__arrow svg {
+        /* Tight viewBox; oversized vs em so open chevron optically matches bold caps */
+        width: 1.25em;
+        height: 1.25em;
       }
 
       .home-link__title {
@@ -380,14 +387,9 @@ const siteUrl = new URL("/", Astro.site).href;
         padding: 0;
         margin: 0;
         text-decoration: none;
-        font-size: clamp(1.15rem, 4vw, 1.6rem);
+        font-size: 1em;
         line-height: 1;
-      }
-
-      @media (hover: hover) and (pointer: fine) {
-        .home-link:hover {
-          box-shadow: inset 0 -3px 0 color-mix(in srgb, #000 36%, var(--c-brand));
-        }
+        white-space: nowrap;
       }
 
       /* Container */
@@ -511,6 +513,13 @@ const siteUrl = new URL("/", Astro.site).href;
         padding-top: var(--space-5);
       }
 
+      /* Shared panel chrome for FAQ items, comparison cards, etc.
+         Same fill as table headers; same border as tables. */
+      .content-panel {
+        border: var(--border-width) solid var(--c-border);
+        background: var(--c-surface-alt);
+      }
+
       /* Blockquotes */
       blockquote {
         padding: var(--space-3) var(--space-4);
@@ -528,8 +537,6 @@ const siteUrl = new URL("/", Astro.site).href;
 
       /* Footer */
       .site-footer {
-        border-top: var(--border-width) solid var(--c-border);
-        background: transparent;
         margin-top: auto;
       }
 
@@ -551,63 +558,42 @@ const siteUrl = new URL("/", Astro.site).href;
         gap: var(--space-2) var(--space-3);
       }
 
-      .footer-link {
+      a.footer-link:not(:has(img)) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-size: var(--fs-sm);
         line-height: 1.35;
         text-align: center;
-      }
-
-      .footer-link--internal {
-        color: var(--c-on-brand);
-        background-color: var(--c-brand);
-        background-image: none;
-        padding: 2px 4px;
-        margin: 0 -4px;
-        text-decoration: none;
-      }
-
-      .footer-link--external {
-        color: var(--c-text-dim);
-        background: transparent;
-        background-image: none;
-        padding: 0 var(--space-1);
-        margin: 0;
-        text-decoration-line: underline;
-        text-decoration-thickness: calc(var(--border-width) * 1.5);
-        text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
-        text-underline-offset: 0.4em;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
       }
 
       @media (hover: hover) and (pointer: fine) {
-        .footer-link--internal:hover {
+        /* Lift only — no color change */
+        a:not(:has(img)):not(.comparison-card):hover {
+          transform: translateY(-1px);
           color: var(--c-on-brand);
           background-color: var(--c-brand);
           background-image: none;
+          box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+          text-decoration: none;
         }
 
-        .footer-link--external:hover {
-          color: var(--c-text-dim);
-          background: transparent;
-          background-image: none;
-          text-decoration-color: color-mix(in srgb, var(--c-brand) 55%, transparent);
+        /*
+          Press must follow hover: same specificity, later source order so
+          :active scale wins over :hover lift while the pointer is down.
+        */
+        a:not(:has(img)):not(.comparison-card):active {
+          transform: scale(0.97);
         }
       }
 
-      .footer-link--internal:focus-visible {
+      a:not(:has(img)):not(.comparison-card):focus-visible {
         color: var(--c-on-brand);
         background-color: var(--c-brand);
         background-image: none;
-      }
-
-      .footer-link--external:focus-visible {
-        color: var(--c-text);
-        background: transparent;
-        background-image: none;
-        text-decoration-color: var(--c-brand);
+        box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+        text-decoration: none;
       }
 
       /* Responsive */
@@ -635,6 +621,10 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       @media (max-width: 600px) {
+        .container {
+          padding: 0 var(--space-5);
+        }
+
         .site-footer .container {
           flex-direction: column;
           align-items: stretch;
@@ -663,7 +653,7 @@ const siteUrl = new URL("/", Astro.site).href;
           scroll-behavior: auto !important;
         }
 
-        :where(a[href^="/"]:not(:has(img)):not(.comparison-card)):active {
+        a:not(:has(img)):not(.comparison-card):active {
           transform: none;
         }
       }
@@ -676,7 +666,6 @@ const siteUrl = new URL("/", Astro.site).href;
     <footer class="site-footer">
       <div class="container">
         <nav class="footer-links" aria-label={labels.footer.internalNavigation}>
-          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "faq")}>{labels.footer.faq}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
           <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>

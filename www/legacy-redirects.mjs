@@ -22,5 +22,15 @@ export function buildLegacyRedirectMap() {
 		}
 	}
 
+	// Dedicated FAQ pages were removed; questions live on the homepage.
+	redirects['/faq'] = '/';
+	redirects['/faq/'] = '/';
+	redirects['/en/faq'] = '/';
+	redirects['/en/faq/'] = '/';
+	for (const locale of localizedLocales) {
+		redirects[`/${locale}/faq`] = `/${locale}/`;
+		redirects[`/${locale}/faq/`] = `/${locale}/`;
+	}
+
 	return redirects;
 }

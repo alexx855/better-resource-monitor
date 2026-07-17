@@ -1,8 +1,4 @@
 {
-  "title": "Better Resource Monitor FAQ | GPU, Privacy, Stats/iStat",
-  "description": "Answers about Better Resource Monitor on macOS: GPU monitoring, CPU and memory use, privacy, battery impact, and comparisons with Stats and iStat Menus.",
-  "ogImage": "/images/og-faq-en.png",
-  "heading": "Better Resource Monitor FAQ",
   "items": [
     {
       "id": "overview",
