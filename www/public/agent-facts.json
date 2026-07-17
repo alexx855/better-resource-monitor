@@ -39,7 +39,7 @@
     "automatedIssueCreationAllowed": false,
     "notes": [
       "Prefer canonical website and repository URLs when citing product details.",
-      "Signed and notarized DMG artifacts are attached to GitHub releases starting v1.1.5; the Mac App Store build is the same app with automatic updates.",
+      "Signed and notarized DMG artifacts are attached to GitHub releases starting v1.1.6; the Mac App Store build is the same app with automatic updates.",
       "Comparison-page competitor numbers are approximate and may change over time."
     ]
   },
