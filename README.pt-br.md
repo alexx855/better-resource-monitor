@@ -6,7 +6,7 @@
 <h1 align="center">Better Resource Monitor</h1>
 
 <p align="center">
-  <strong>Monitore CPU, memória, GPU e rede pela barra de menus do Mac.</strong>
+  <strong>Monitore CPU, memória, armazenamento, GPU e rede pela barra de menus do Mac.</strong>
 </p>
 
 <!-- README-LANG-START -->
@@ -30,7 +30,7 @@
 
 Better Resource Monitor é para quem só quer uma forma simples de acompanhar o Mac.
 
-Ele mostra CPU, memória, GPU e rede direto na barra de menus, para você perceber cargas incomuns rapidamente sem abrir o Monitor de Atividade nem fuçar ferramentas do sistema.
+Ele mostra CPU, memória, armazenamento, GPU e rede direto na barra de menus, para você perceber cargas incomuns rapidamente sem abrir o Monitor de Atividade nem fuçar ferramentas do sistema.
 
 Também foi feito para ser leve, para que o próprio monitor não vire parte do problema.
 
