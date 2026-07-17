@@ -1,11 +1,11 @@
 {
   "title": "Better Resource Monitor vs iStat Menus | iStat Menus Alternative for macOS",
-  "description": "Looking for an iStat Menus replacement? Compare Better Resource Monitor and iStat Menus. This page explains performance, privacy, and menu bar basics for CPU, memory, GPU, and network.",
+  "description": "Looking for an iStat Menus replacement? Compare Better Resource Monitor and iStat Menus. This page explains performance, privacy, and menu bar basics for CPU, memory, storage, GPU, and network.",
   "ogImage": "/images/og-vs-istat-menus-en.png",
   "competitorName": "iStat Menus",
   "competitorPrice": "14.99",
   "heading": "Better Resource Monitor vs iStat Menus for macOS",
-  "intro": "If you are searching for an iStat Menus alternative, this is what to compare first. iStat Menus is a deep toolkit for power users. Better Resource Monitor is the lightweight menu bar monitor for people who just want clean CPU, memory, GPU, and network visibility, all day, with less setup and lower overhead.",
+  "intro": "If you are searching for an iStat Menus alternative, this is what to compare first. iStat Menus is a deep toolkit for power users. Better Resource Monitor is the lightweight menu bar monitor for people who just want clean CPU, memory, storage, GPU, and network visibility, all day, with less setup and lower overhead.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
@@ -57,7 +57,7 @@
     },
     {
       "heading": "Which one fits better",
-      "body": "If you want a full system suite with extra sensors and controls, iStat Menus covers more ground. If you mostly want a clean way to keep an eye on your Mac during the day, Better Resource Monitor is the more focused option. It sticks to CPU, memory, GPU, and network usage instead of trying to become a control panel for everything."
+      "body": "If you want a full system suite with extra sensors and controls, iStat Menus covers more ground. If you mostly want a clean way to keep an eye on your Mac during the day, Better Resource Monitor is the more focused option. It sticks to CPU, memory, storage, GPU, and network usage instead of trying to become a control panel for everything."
     },
     {
       "heading": "Migration with less friction",
