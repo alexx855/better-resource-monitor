@@ -6,18 +6,16 @@ export const localizedLocales = locales.filter((locale) => locale !== "en");
 export const comparisonPageKeys = ["vs-stats", "vs-eul", "vs-istat-menus"] as const;
 export type ComparisonPageKey = (typeof comparisonPageKeys)[number];
 
-export const internalSlugs = ["comparison", "faq", "privacy-policy", "terms"] as const;
+export const internalSlugs = ["comparison", "privacy-policy", "terms"] as const;
 
 export type InternalSlug = (typeof internalSlugs)[number];
 
 export type LocalizedPageDescriptor =
   | { kind: "comparison-index" }
-  | { kind: "faq" }
   | { kind: "legal"; slug: "privacy-policy" | "terms" };
 
 const localizedPageMap: Record<InternalSlug, LocalizedPageDescriptor> = {
   comparison: { kind: "comparison-index" },
-  faq: { kind: "faq" },
   "privacy-policy": { kind: "legal", slug: "privacy-policy" },
   terms: { kind: "legal", slug: "terms" },
 };
@@ -65,7 +63,6 @@ export function getAlternateLinks(slug = "") {
 export function getLocalizedInternalLinks(locale: SupportedLocale) {
   return {
     homeUrl: getLocalizedPath(locale),
-    faqUrl: getLocalizedPath(locale, "faq"),
     comparisonUrl: getLocalizedPath(locale, "comparison"),
     vsStatsUrl: getComparisonPath(locale, "vs-stats"),
     vsEulUrl: getComparisonPath(locale, "vs-eul"),

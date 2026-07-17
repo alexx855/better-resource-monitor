@@ -88,7 +88,7 @@ const faqItems = [
 
       <div class="comparison-grid" aria-label={copy.heading}>
         {comparisons.map((comparison) => (
-          <a class="comparison-card" href={comparison.href}>
+          <a class="comparison-card content-panel" href={comparison.href}>
             <span class="card-title">{comparison.title}</span>
             <span class="card-description">{comparison.description}</span>
             <span class="card-link">
@@ -125,66 +125,13 @@ const faqItems = [
   }
 
   .comparison-card {
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: 0;
     color: var(--c-text);
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
     min-height: 240px;
     padding: var(--space-5);
-    position: relative;
     text-decoration: none;
-    transform: translateX(0) scale(1);
-    transition:
-      border-color var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  .comparison-card::before {
-    content: "";
-    position: absolute;
-    inset: var(--space-3);
-    border-top: 3px solid var(--c-brand);
-    opacity: 0.72;
-    pointer-events: none;
-    transform: scaleX(0.24);
-    transform-origin: center;
-    transition:
-      opacity var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .comparison-card:hover {
-      border-color: color-mix(in srgb, var(--c-brand) 55%, var(--c-border));
-    }
-
-    .comparison-card:hover::before {
-      opacity: 1;
-      transform: scaleX(1);
-    }
-  }
-
-  .comparison-card:active {
-    transform: translateX(-2px) scale(0.99);
-  }
-
-  .comparison-card:focus-visible::before {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .comparison-card:active {
-      border-color: var(--c-border);
-      transform: none;
-    }
-
-    .comparison-card:focus-visible::before {
-      transform: none;
-    }
   }
 
   .comparison-card:focus-visible {

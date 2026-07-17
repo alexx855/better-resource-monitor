@@ -1,8 +1,4 @@
 {
-  "title": "Preguntas frecuentes - Better Resource Monitor",
-  "description": "Respuestas sobre GPU, uso de recursos, privacidad y comparaciones con Stats e iStat Menus.",
-  "ogImage": "/images/og-faq-es.png",
-  "heading": "Preguntas frecuentes",
   "items": [
     {
       "id": "overview",
