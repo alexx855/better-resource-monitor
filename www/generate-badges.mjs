@@ -39,15 +39,16 @@ const ICON_SIZE = 128;
 const BORDER = 6;
 const RADIUS = 26;
 
-async function loadFonts() {
-  const [bold, notoSC] = await Promise.all([
-    fetch("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.ttf").then((r) => r.arrayBuffer()),
-    fetch("https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf").then((r) => r.arrayBuffer()),
-  ]);
+const FONT_DIR = join(ROOT, "src", "assets", "fonts");
 
+function readFontAsset(filename) {
+  return readFileSync(join(FONT_DIR, filename));
+}
+
+async function loadFonts() {
   return [
-    { name: "JetBrains Mono", data: bold, weight: 700, style: "normal" },
-    { name: "Noto Sans SC", data: notoSC, weight: 700, style: "normal", lang: "zh-CN" },
+    { name: "JetBrains Mono", data: readFontAsset("JetBrainsMono-Bold.ttf"), weight: 700, style: "normal" },
+    { name: "Noto Sans SC", data: readFontAsset("NotoSansSC-Bold.ttf"), weight: 700, style: "normal", lang: "zh-CN" },
   ];
 }
 

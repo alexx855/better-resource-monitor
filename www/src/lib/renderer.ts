@@ -1,6 +1,6 @@
 import satori from "satori";
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Design tokens (matching Layout.astro CSS vars)
@@ -25,52 +25,64 @@ export const imageBackgroundStyle = {
   backgroundSize: "56px 56px",
 };
 
-// Font cache — fetched once per build
-let fontData: ArrayBuffer | null = null;
+// Font cache — vendored files read once per build
+let fontData: Buffer | null = null;
 const require = createRequire(import.meta.url);
 
-async function fetchFont(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch font ${url}: ${res.status} ${res.statusText}`);
-  return res.arrayBuffer();
+type FontAsset =
+  | "JetBrainsMono-Regular.ttf"
+  | "JetBrainsMono-Bold.ttf"
+  | "NotoSansJP-Bold.ttf"
+  | "NotoSansSC-Bold.ttf";
+
+// Module-relative resolution covers Astro/Vite prerender builds; the
+// process.cwd() fallback matches the trayIconBase64() pattern below for
+// plain-Node callers running from www/.
+const FONT_DIR_CANDIDATES = [
+  typeof import.meta.dirname === "string"
+    ? join(import.meta.dirname, "..", "assets", "fonts")
+    : null,
+  join(process.cwd(), "src", "assets", "fonts"),
+].filter((dir): dir is string => dir !== null);
+
+function readFontAsset(filename: FontAsset): Buffer {
+  const fontPath = FONT_DIR_CANDIDATES.map((dir) => join(dir, filename)).find(existsSync);
+  if (!fontPath) {
+    throw new Error(
+      `Missing vendored font ${filename}; looked in: ${FONT_DIR_CANDIDATES.join(", ")}`
+    );
+  }
+  return readFileSync(fontPath);
 }
 
-async function loadFont(): Promise<ArrayBuffer> {
+async function loadFont(): Promise<Buffer> {
   if (fontData) return fontData;
-  fontData = await fetchFont(
-    "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPQ.ttf"
-  );
+  fontData = readFontAsset("JetBrainsMono-Regular.ttf");
   return fontData;
 }
 
-let fontBoldData: ArrayBuffer | null = null;
+let fontBoldData: Buffer | null = null;
 
-async function loadFontBold(): Promise<ArrayBuffer> {
+async function loadFontBold(): Promise<Buffer> {
   if (fontBoldData) return fontBoldData;
-  fontBoldData = await fetchFont(
-    "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.ttf"
-  );
+  fontBoldData = readFontAsset("JetBrainsMono-Bold.ttf");
   return fontBoldData;
 }
 
 // CJK fonts — lazy loaded only for Japanese/Chinese screenshots
-let notoJPData: ArrayBuffer | null = null;
+let notoJPData: Buffer | null = null;
 
-async function loadNotoJP(): Promise<ArrayBuffer> {
+async function loadNotoJP(): Promise<Buffer> {
   if (notoJPData) return notoJPData;
-  notoJPData = await fetchFont(
-    "https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
-  );
+  notoJPData = readFontAsset("NotoSansJP-Bold.ttf");
   return notoJPData;
 }
 
-let notoSCData: ArrayBuffer | null = null;
+let notoSCData: Buffer | null = null;
 
-async function loadNotoSC(): Promise<ArrayBuffer> {
+async function loadNotoSC(): Promise<Buffer> {
   if (notoSCData) return notoSCData;
-  notoSCData = await fetchFont(
-    "https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf"
-  );
+  notoSCData = readFontAsset("NotoSansSC-Bold.ttf");
   return notoSCData;
 }
 
@@ -80,13 +92,13 @@ export async function renderImage(
   height: number,
   lang?: string
 ): Promise<Uint8Array> {
-  const fontLoads: Promise<ArrayBuffer>[] = [loadFont(), loadFontBold()];
+  const fontLoads: Promise<Buffer>[] = [loadFont(), loadFontBold()];
   if (lang === "ja") fontLoads.push(loadNotoJP());
   if (lang === "zh-Hans") fontLoads.push(loadNotoSC());
 
   const loaded = await Promise.all(fontLoads);
 
-  const fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal"; lang?: string }[] = [
+  const fonts: { name: string; data: Buffer; weight: 400 | 700; style: "normal"; lang?: string }[] = [
     { name: "JetBrains Mono", data: loaded[0], weight: 400, style: "normal" },
     { name: "JetBrains Mono", data: loaded[1], weight: 700, style: "normal" },
   ];

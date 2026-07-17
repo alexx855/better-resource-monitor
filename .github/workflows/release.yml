@@ -1,7 +1,8 @@
 name: Release
 
 # Bumps the marketing version, tags the release, uploads the App Store package,
-# then creates the GitHub release.
+# creates the GitHub release, then dispatches Direct Download to attach the
+# signed and notarized DMG/ZIP artifacts to it.
 
 on:
   workflow_dispatch:
@@ -240,13 +241,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
-      - name: Create source-only GitHub release
+      - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_BODY: ${{ needs.version-bump.outputs.release_notes }}
@@ -271,3 +273,18 @@ jobs:
           gh release create "v${{ needs.version-bump.outputs.new_version }}" \
             --title "Better Resource Monitor v${{ needs.version-bump.outputs.new_version }}" \
             --notes-file release_notes.md
+
+      # Same GITHUB_TOKEN + actions:write dispatch mechanism the
+      # dispatch-testflight job already uses. The Direct Download workflow
+      # builds, signs, and notarizes the DMG/ZIP and uploads them to the
+      # release created above.
+      - name: Dispatch direct-download artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: v${{ needs.version-bump.outputs.new_version }}
+        run: |
+          set -euo pipefail
+          gh workflow run direct-download.yml --ref main \
+            -f tag="$RELEASE_TAG" \
+            -f upload_to_release=true

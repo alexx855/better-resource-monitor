@@ -6,10 +6,6 @@
       "label": "English",
       "language": "English"
     },
-    "home": {
-      "title": "Better Resource Monitor - Menu Bar Monitor for macOS",
-      "description": "Monitor CPU, memory, storage, GPU, and network from your Mac menu bar."
-    },
     "screenshotLang": "en",
     "screenshots": {
       "simplicity": "CPU, GPU, Memory, Storage, Network\nin Your Menu Bar",
@@ -46,10 +42,6 @@
       "ogLocale": "es_ES",
       "label": "Español",
       "language": "Neutral Spanish for Latin America"
-    },
-    "home": {
-      "title": "Better Resource Monitor - Monitor para la barra de menús de macOS",
-      "description": "Supervisa CPU, memoria, almacenamiento, GPU y red desde la barra de menús de tu Mac."
     },
     "screenshotLang": "es",
     "screenshots": {
@@ -88,10 +80,6 @@
       "label": "Português (Brasil)",
       "language": "Brazilian Portuguese"
     },
-    "home": {
-      "title": "Better Resource Monitor - Monitor de Barra de Menus para macOS",
-      "description": "Monitore CPU, memória, armazenamento, GPU e rede pela barra de menus do Mac."
-    },
     "screenshotLang": "pt-BR",
     "screenshots": {
       "simplicity": "CPU, GPU, Memória, Armazenamento, Rede\nna Sua Barra de Menu",
@@ -128,10 +116,6 @@
       "ogLocale": "zh_CN",
       "label": "简体中文",
       "language": "Simplified Chinese"
-    },
-    "home": {
-      "title": "Better Resource Monitor - macOS 菜单栏监视器",
-      "description": "在 Mac 菜单栏查看 CPU、内存、存储、GPU 和网络使用情况。"
     },
     "screenshotLang": "zh-Hans",
     "screenshots": {
