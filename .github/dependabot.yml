@@ -21,6 +21,12 @@ updates:
       time: "09:15"
       timezone: Europe/Madrid
     open-pull-requests-limit: 3
+    ignore:
+      # Astro check / @astrojs/language-server break on TypeScript 7 (withastro/astro#17268).
+      # Keep typescript on ^6 until Astro supports TS 7; see PR #149.
+      - dependency-name: typescript
+        versions:
+          - ">=7.0.0"
     groups:
       javascript-dependencies:
         patterns:
