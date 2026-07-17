@@ -89,17 +89,19 @@ The home page should stay document-like: tray image, badges, compact links, prac
 
 ## Components
 
-Links and calls to action are solid brand rectangles with white text and tight padding. Hover may darken the brand color slightly and move up by 1px. Active states may scale to `0.97`.
+**Links / buttons:** one style for all text links and text buttons — solid brand fill (`#D14715`), white text, tight padding, no underline, and a 2px inset bottom edge (`inset 0 -2px 0` darkened brand). Hover lifts `1px` with no color change (fine-pointer only). Active states scale to `0.97` — declare `:active` after `:hover` so press beats lift at the same specificity. Keep transitions short (`~120ms`) and transform-only (`transform`, not `all`). Same treatment for same-origin `/` links, outbound `http(s)` / `target="_blank"` links, language switcher, footer nav, and body/README content links.
 
-Cards and FAQ items are square surface blocks with 1px borders. Hover changes only the border to the brand color.
+**Exception:** image badge download links (`a:has(img)`) stay undecorated (transparent, no box-shadow, no orange fill). Comparison index cards (`.comparison-card`) keep their own panel treatment; the nested `.card-link` label reuses the same brand-pill look.
 
-Tables use surface backgrounds, alternate header backgrounds, uppercase header labels, `12px 24px` cell padding, and 1px dividers. Keep comparison tables horizontally scrollable on small screens.
+Cards and FAQ items share `.content-panel`: square blocks using the same chrome as tables — `var(--c-surface-alt)` fill (table header) and `var(--c-border)` 1px border. No hover border or motion chrome on these panels.
+
+Tables use surface backgrounds, alternate header backgrounds (`var(--c-surface-alt)`), uppercase header labels, `12px 24px` cell padding, and 1px `var(--c-border)` dividers. Keep comparison tables horizontally scrollable on small screens.
 
 Code blocks use the alternate surface, monospace text, and a brand-colored left border. Inline code uses the same family with a subtle border.
 
 Blockquotes are surface panels with a thick brand left bar. Use them for warnings, caveats, or notes rather than decorative quotes.
 
-Footer navigation is a row of uppercase brand links with a `44px` minimum target height. On narrow screens it stacks vertically.
+Footer nav uses the same orange filled link style for internal and external links. On narrow screens the footer stacks.
 
 ## Rules
 
@@ -107,6 +109,9 @@ Footer navigation is a row of uppercase brand links with a `44px` minimum target
 - Do use `#D14715` as the only brand color.
 - Do preserve square corners and 1px structure.
 - Do keep tables readable and horizontally scrollable.
+- Do style all text links and text buttons as brand-filled pills (white text, inset bottom edge) — same for `_self` `/` and `_blank` `http(s)` links.
+- Don't use a separate underline style for outbound or language-switcher links.
+- Don't orange-fill image badge download links (`a:has(img)`); keep those transparent with no box-shadow.
 - Don't add rounded cards, pastel gradients, glass effects, or soft shadows.
 - Don't add more typefaces.
 - Don't add separate hover, focus, warning, or accent colors.

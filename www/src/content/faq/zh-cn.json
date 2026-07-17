@@ -1,8 +1,4 @@
 {
-  "title": "常见问题 - Better Resource Monitor",
-  "description": "GPU 监控的工作原理、资源占用、隐私说明，以及与 Stats 和 iStat Menus 的对比。",
-  "ogImage": "/images/og-faq-zh-cn.png",
-  "heading": "常见问题",
   "items": [
     {
       "id": "overview",

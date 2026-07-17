@@ -19,10 +19,9 @@ const appStoreEntries = supportedLangs.flatMap((lang) =>
   }))
 );
 
-// OG images: 7 pages x 4 locales = 28 entries (1200x630)
+// OG images: 6 pages x 4 locales = 24 entries (1200x630)
 const ogPages = [
   { key: "index", title: (l: SiteMarketingLocale) => ogTitles[l].index },
-  { key: "faq", title: (l: SiteMarketingLocale) => ogTitles[l].faq },
   { key: "privacy", title: (l: SiteMarketingLocale) => ogTitles[l].privacy },
   { key: "terms", title: (l: SiteMarketingLocale) => ogTitles[l].terms },
   { key: "vs-stats", title: (l: SiteMarketingLocale) => ogTitles[l]["vs-stats"] },
