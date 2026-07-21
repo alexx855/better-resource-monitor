@@ -33,7 +33,7 @@
     {
       "id": "comparison",
       "question": "Is Better Resource Monitor a Stats or iStat Menus alternative?",
-      "answer": "Yes, if you want a simpler macOS menu bar monitor focused on CPU, memory, storage, GPU, and network usage. Stats and iStat Menus go deeper into sensors. Better Resource Monitor stays lighter, free, and fully available from the Mac App Store. See the [Stats comparison]({{vsStatsUrl}}) and [iStat Menus comparison]({{vsIstatMenusUrl}})."
+      "answer": "Yes, if you want a simpler macOS menu bar monitor focused on CPU, memory, storage, GPU, and network usage. Stats and iStat Menus go deeper into sensors; Eul was a similar lightweight option that is no longer actively maintained. Better Resource Monitor stays lighter, free, and fully available from the Mac App Store. See all [comparisons]({{comparisonUrl}}), or jump to [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}), or [Eul]({{vsEulUrl}})."
     },
     {
       "id": "battery",
