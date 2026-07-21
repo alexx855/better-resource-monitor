@@ -33,7 +33,7 @@
     {
       "id": "comparison",
       "question": "Como ele se compara ao iStat Menus e ao Stats?",
-      "answer": "Todos os três mostram métricas do sistema na barra de menus. As diferenças: o Stats precisa de um helper root para dados de ventoinhas e térmicos. O iStat Menus custa $14.99 e também precisa de root. O Better Resource Monitor roda inteiramente no espaço do usuário, usa cerca de 15 MB de RAM e é gratuito. Veja a [página de comparação do Stats]({{vsStatsUrl}}) e a [página de comparação do iStat Menus]({{vsIstatMenusUrl}}) para detalhes."
+      "answer": "Todos os três (e o Eul) mostram métricas do sistema na barra de menus. As diferenças: o Stats precisa de um helper root para dados de ventoinhas e térmicos. O iStat Menus custa $14.99 e também precisa de root. O Eul era uma opção leve semelhante, mas sem manutenção ativa. O Better Resource Monitor roda inteiramente no espaço do usuário, usa cerca de 15 MB de RAM e é gratuito. Veja todas as [comparações]({{comparisonUrl}}), ou vá para [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) ou [Eul]({{vsEulUrl}})."
     },
     {
       "id": "battery",

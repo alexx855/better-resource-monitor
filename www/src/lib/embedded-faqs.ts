@@ -37,6 +37,7 @@ const sharedFaqIds = {
     "resource-use",
     "gpu-monitoring",
     "privacy",
+    "comparison",
     "battery",
     "activity-monitor",
   ],
@@ -69,7 +70,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "When should I compare individual apps?",
         answer:
-          "Use the comparison pages when you are deciding between specific tools: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}), or [Eul]({{vsEulUrl}}).",
+          "Use the [comparisons hub]({{comparisonUrl}}) when you are deciding between specific tools: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}), or [Eul]({{vsEulUrl}}).",
       },
     ],
     es: [
@@ -81,7 +82,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "¿Cuándo conviene comparar apps concretas?",
         answer:
-          "Usa las páginas de comparación cuando estés decidiendo entre herramientas específicas: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) o [Eul]({{vsEulUrl}}).",
+          "Usa el [índice de comparaciones]({{comparisonUrl}}) cuando estés decidiendo entre herramientas específicas: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) o [Eul]({{vsEulUrl}}).",
       },
     ],
     "pt-br": [
@@ -93,7 +94,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "Quando devo comparar aplicativos específicos?",
         answer:
-          "Use as páginas de comparação quando estiver decidindo entre ferramentas específicas: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) ou [Eul]({{vsEulUrl}}).",
+          "Use o [índice de comparações]({{comparisonUrl}}) quando estiver decidindo entre ferramentas específicas: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) ou [Eul]({{vsEulUrl}}).",
       },
     ],
     "zh-cn": [
@@ -105,7 +106,7 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
       {
         question: "什么时候需要查看具体应用的对比？",
         answer:
-          "当你正在具体比较工具时，可以查看这些页面：[Stats]({{vsStatsUrl}})、[iStat Menus]({{vsIstatMenusUrl}}) 或 [Eul]({{vsEulUrl}})。",
+          "当你正在具体比较工具时，可以先看[对比总览]({{comparisonUrl}})，再查看：[Stats]({{vsStatsUrl}})、[iStat Menus]({{vsIstatMenusUrl}}) 或 [Eul]({{vsEulUrl}})。",
       },
     ],
   } satisfies Record<SupportedLocale, FaqItem[]>;

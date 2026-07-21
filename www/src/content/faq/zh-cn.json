@@ -33,7 +33,7 @@
     {
       "id": "comparison",
       "question": "它与 iStat Menus 和 Stats 相比如何？",
-      "answer": "这三者都在菜单栏显示系统指标。区别在于：Stats 需要 root 辅助工具来获取风扇和温度数据。iStat Menus 售价 $14.99 且同样需要 root 权限。Better Resource Monitor 完全在用户空间运行，内存占用约 15 MB，且完全免费。详情请参阅 [Stats 对比页面]({{vsStatsUrl}}) 和 [iStat Menus 对比页面]({{vsIstatMenusUrl}})。"
+      "answer": "它们都在菜单栏显示系统指标。区别在于：Stats 需要 root 辅助工具来获取风扇和温度数据。iStat Menus 售价 $14.99 且同样需要 root 权限。Eul 也曾是类似的轻量选择，但已不再积极维护。Better Resource Monitor 完全在用户空间运行，内存占用约 15 MB，且完全免费。查看全部[对比页面]({{comparisonUrl}})，或直接前往 [Stats]({{vsStatsUrl}})、[iStat Menus]({{vsIstatMenusUrl}}) 或 [Eul]({{vsEulUrl}})。"
     },
     {
       "id": "battery",
