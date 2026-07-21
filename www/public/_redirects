@@ -1,51 +1,61 @@
-# Legacy comparison URLs (English, no locale prefix)
-/vs-stats /comparison/vs-stats/ 301
-/vs-stats/ /comparison/vs-stats/ 301
-/vs-eul /comparison/vs-eul/ 301
-/vs-eul/ /comparison/vs-eul/ 301
-/vs-istat-menus /comparison/vs-istat-menus/ 301
-/vs-istat-menus/ /comparison/vs-istat-menus/ 301
+# Hand-maintained Cloudflare Pages redirects — source of truth.
+# Do not generate this file. Edit rules here when legacy URLs change.
+# Slash and non-slash source variants are listed explicitly.
+# Query strings are preserved by Pages for these static redirects.
 
-# /en/ prefix → unprefixed English paths
-/en/vs-stats /comparison/vs-stats/ 301
-/en/vs-stats/ /comparison/vs-stats/ 301
+/en / 301
+/en/ / 301
+/en/comparison /comparison/ 301
+/en/comparison/ /comparison/ 301
+/en/comparison/vs-eul /comparison/vs-eul/ 301
+/en/comparison/vs-eul/ /comparison/vs-eul/ 301
+/en/comparison/vs-istat-menus /comparison/vs-istat-menus/ 301
+/en/comparison/vs-istat-menus/ /comparison/vs-istat-menus/ 301
+/en/comparison/vs-stats /comparison/vs-stats/ 301
+/en/comparison/vs-stats/ /comparison/vs-stats/ 301
+/en/faq / 301
+/en/faq/ / 301
+/en/privacy-policy /privacy-policy/ 301
+/en/privacy-policy/ /privacy-policy/ 301
+/en/terms /terms/ 301
+/en/terms/ /terms/ 301
 /en/vs-eul /comparison/vs-eul/ 301
 /en/vs-eul/ /comparison/vs-eul/ 301
 /en/vs-istat-menus /comparison/vs-istat-menus/ 301
 /en/vs-istat-menus/ /comparison/vs-istat-menus/ 301
-
-# Localized legacy comparison URLs (es)
-/es/vs-stats /es/comparison/vs-stats/ 301
-/es/vs-stats/ /es/comparison/vs-stats/ 301
+/en/vs-stats /comparison/vs-stats/ 301
+/en/vs-stats/ /comparison/vs-stats/ 301
+/es/faq /es/ 301
+/es/faq/ /es/ 301
 /es/vs-eul /es/comparison/vs-eul/ 301
 /es/vs-eul/ /es/comparison/vs-eul/ 301
 /es/vs-istat-menus /es/comparison/vs-istat-menus/ 301
 /es/vs-istat-menus/ /es/comparison/vs-istat-menus/ 301
-
-# Localized legacy comparison URLs (pt-br)
-/pt-br/vs-stats /pt-br/comparison/vs-stats/ 301
-/pt-br/vs-stats/ /pt-br/comparison/vs-stats/ 301
+/es/vs-stats /es/comparison/vs-stats/ 301
+/es/vs-stats/ /es/comparison/vs-stats/ 301
+/faq / 301
+/faq/ / 301
+/pt-br/faq /pt-br/ 301
+/pt-br/faq/ /pt-br/ 301
 /pt-br/vs-eul /pt-br/comparison/vs-eul/ 301
 /pt-br/vs-eul/ /pt-br/comparison/vs-eul/ 301
 /pt-br/vs-istat-menus /pt-br/comparison/vs-istat-menus/ 301
 /pt-br/vs-istat-menus/ /pt-br/comparison/vs-istat-menus/ 301
-
-# Localized legacy comparison URLs (zh-cn)
-/zh-cn/vs-stats /zh-cn/comparison/vs-stats/ 301
-/zh-cn/vs-stats/ /zh-cn/comparison/vs-stats/ 301
+/pt-br/vs-stats /pt-br/comparison/vs-stats/ 301
+/pt-br/vs-stats/ /pt-br/comparison/vs-stats/ 301
+/sitemap.xml /sitemap-index.xml 301
+/sitemap.xml/ /sitemap-index.xml 301
+/vs-eul /comparison/vs-eul/ 301
+/vs-eul/ /comparison/vs-eul/ 301
+/vs-istat-menus /comparison/vs-istat-menus/ 301
+/vs-istat-menus/ /comparison/vs-istat-menus/ 301
+/vs-stats /comparison/vs-stats/ 301
+/vs-stats/ /comparison/vs-stats/ 301
+/zh-cn/faq /zh-cn/ 301
+/zh-cn/faq/ /zh-cn/ 301
 /zh-cn/vs-eul /zh-cn/comparison/vs-eul/ 301
 /zh-cn/vs-eul/ /zh-cn/comparison/vs-eul/ 301
 /zh-cn/vs-istat-menus /zh-cn/comparison/vs-istat-menus/ 301
 /zh-cn/vs-istat-menus/ /zh-cn/comparison/vs-istat-menus/ 301
-
-# Retired FAQ pages → homepage FAQs
-/faq / 301
-/faq/ / 301
-/en/faq / 301
-/en/faq/ / 301
-/es/faq /es/ 301
-/es/faq/ /es/ 301
-/pt-br/faq /pt-br/ 301
-/pt-br/faq/ /pt-br/ 301
-/zh-cn/faq /zh-cn/ 301
-/zh-cn/faq/ /zh-cn/ 301
+/zh-cn/vs-stats /zh-cn/comparison/vs-stats/ 301
+/zh-cn/vs-stats/ /zh-cn/comparison/vs-stats/ 301
