@@ -1,5 +1,5 @@
 {
-  "title": "Alternativa a iStat Menus para macOS | Better Resource Monitor",
-  "description": "Monitor ligero de la barra de menús de Mac para CPU, memoria, almacenamiento, GPU y red. Una alternativa ágil y de código abierto a iStat Menus.",
+  "title": "Better Resource Monitor | Monitor ligero de barra de menús para macOS",
+  "description": "Monitor gratuito y de código abierto para la barra de menús de Mac: CPU, memoria, almacenamiento, GPU y red. Pensado para Apple Silicon con muy bajo consumo.",
   "ogImage": "/images/og-index-es.png"
 }

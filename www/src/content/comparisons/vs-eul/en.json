@@ -1,11 +1,11 @@
 {
-  "title": "Eul Alternative for macOS | Better Resource Monitor",
-  "description": "Compare Eul and Better Resource Monitor for macOS. Keep CPU, memory, storage, GPU, and network visible with active support and low overhead.",
+  "title": "Eul Alternative for macOS | Actively Maintained Menu Bar Monitor",
+  "description": "Looking for an Eul alternative on Mac? Compare Eul for macOS with Better Resource Monitor — a maintained menu bar monitor for CPU, memory, storage, GPU, and network.",
   "ogImage": "/images/og-vs-eul-en.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Eul",
-  "intro": "A lot of people liked Eul because it was small, simple, and easy to keep in the menu bar. Better Resource Monitor aims for that same kind of everyday usefulness, but with active maintenance, support for current Macs, and lower overhead on Apple Silicon.",
+  "intro": "If you used Eul on Mac or are searching for an Eul macOS alternative, this is the comparison to read. Eul was small, simple, and easy to keep in the menu bar. Better Resource Monitor aims for that same everyday usefulness, but with active maintenance, support for current Macs, and lower overhead on Apple Silicon.",
   "table": {
     "featureLabel": "Feature",
     "productLabel": "Better Resource Monitor",
