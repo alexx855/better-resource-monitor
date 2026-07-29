@@ -89,7 +89,7 @@ The home page should stay document-like: tray image, badges, compact links, prac
 
 ## Components
 
-**Links / buttons:** one style for all text links and text buttons — solid brand fill (`#D14715`), white text, tight padding, no underline, and a 2px inset bottom edge (`inset 0 -2px 0` darkened brand). Hover lifts `1px` with no color change (fine-pointer only). Active states scale to `0.97` — declare `:active` after `:hover` so press beats lift at the same specificity. Keep transitions short (`~120ms`) and transform-only (`transform`, not `all`). Same treatment for same-origin `/` links, outbound `http(s)` / `target="_blank"` links, language switcher, footer nav, and body/README content links.
+**Links / buttons:** one style for all text links and text buttons — solid brand fill (`#D14715`), white text, tight padding, and no underline or decorative bottom edge. Hover lifts `1px` with no color change (fine-pointer only). Active states scale to `0.97` — declare `:active` after `:hover` so press beats lift at the same specificity. Keep transitions short (`~120ms`) and transform-only (`transform`, not `all`). Same treatment for same-origin `/` links, outbound `http(s)` / `target="_blank"` links, language switcher, footer nav, and body/README content links.
 
 **Exception:** image badge download links (`a:has(img)`) stay undecorated (transparent, no box-shadow, no orange fill). Comparison index cards (`.comparison-card`) keep their own panel treatment; the nested `.card-link` label reuses the same brand-pill look.
 
@@ -109,7 +109,7 @@ Footer nav uses the same orange filled link style for internal and external link
 - Do use `#D14715` as the only brand color.
 - Do preserve square corners and 1px structure.
 - Do keep tables readable and horizontally scrollable.
-- Do style all text links and text buttons as brand-filled pills (white text, inset bottom edge) — same for `_self` `/` and `_blank` `http(s)` links.
+- Do style all text links and text buttons as compact brand-filled labels (white text, no decorative bottom edge) — same for `_self` `/` and `_blank` `http(s)` links.
 - Don't use a separate underline style for outbound or language-switcher links.
 - Don't orange-fill image badge download links (`a:has(img)`); keep those transparent with no box-shadow.
 - Don't add rounded cards, pastel gradients, glass effects, or soft shadows.

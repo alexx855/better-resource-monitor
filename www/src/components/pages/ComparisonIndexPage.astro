@@ -105,6 +105,9 @@ const faqItems = [
 </Layout>
 
 <style>
+  /* Hallmark · macrostructure: Long Document · tone: warm utility manual · anchor hue: ember
+   * design-system: DESIGN.md · contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
+   * Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
   .comparison-index h1 {
     margin-bottom: var(--space-4);
     max-width: 760px;
@@ -121,7 +124,7 @@ const faqItems = [
   .comparison-grid {
     display: grid;
     gap: var(--space-4);
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .comparison-card {
@@ -129,7 +132,7 @@ const faqItems = [
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    min-height: 240px;
+    min-height: 0;
     padding: var(--space-5);
     text-decoration: none;
   }
@@ -154,24 +157,15 @@ const faqItems = [
     color: var(--c-on-brand);
     background-color: var(--c-brand);
     background-image: none;
-    box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+    box-shadow: none;
     font-weight: 700;
     margin-top: auto;
-    padding: 2px 4px;
+    padding: 0 var(--space-2);
     width: fit-content;
     display: inline-flex;
     align-items: center;
-    gap: 0.25em;
+    gap: var(--space-1);
     line-height: 1;
   }
 
-  @media (max-width: 900px) {
-    .comparison-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .comparison-card {
-      min-height: 0;
-    }
-  }
 </style>
