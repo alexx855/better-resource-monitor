@@ -48,7 +48,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <meta name="author" content="Alex Pedersen" />
     <meta name="application-name" content="Better Resource Monitor" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#101214" />
+    <meta name="theme-color" content="#18120f" />
     <meta name="color-scheme" content="dark" />
 
     <!-- Open Graph -->
@@ -128,16 +128,19 @@ const siteUrl = new URL("/", Astro.site).href;
     })} />
 
     <style is:global>
+      /* Hallmark · macrostructure: Long Document · tone: warm utility manual · anchor hue: ember
+       * design-system: DESIGN.md · contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
+       * Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
       :root {
         /* Colors */
-        --c-bg: #101214;
-        --c-surface: #171a1d;
-        --c-surface-alt: #22272f;
-        --c-border: #3a414a;
+        --c-bg: #18120f;
+        --c-surface: #211914;
+        --c-surface-alt: #2a211c;
+        --c-border: #4a382e;
         --c-brand: #d14715;
         --c-on-brand: #ffffff;
-        --c-text: #f8fafc;
-        --c-text-dim: #c6ced8;
+        --c-text: #fff8f2;
+        --c-text-dim: #dcc9bc;
 
         /* Spacing */
         --space-1: 4px;
@@ -147,6 +150,8 @@ const siteUrl = new URL("/", Astro.site).href;
         --space-5: 24px;
         --space-6: 32px;
         --space-10: 64px;
+        --space-inline-x: 0.4em;
+        --space-inline-y: 0.2em;
 
         /* Layout */
         --max-width: 900px;
@@ -186,7 +191,7 @@ const siteUrl = new URL("/", Astro.site).href;
       body {
         margin: 0;
         padding: 0;
-        overflow-x: hidden;
+        overflow-x: clip;
       }
 
       html {
@@ -218,7 +223,7 @@ const siteUrl = new URL("/", Astro.site).href;
         inset: 0;
         z-index: -1;
         pointer-events: none;
-        background-image: url("data:image/svg+xml,%3Csvg width='56' height='56' viewBox='0 0 56 56' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 55.5H56M55.5 0V56' stroke='%2322272F' stroke-width='1'/%3E%3C/svg%3E");
+        background-image: linear-gradient(90deg, color-mix(in srgb, var(--c-border) 28%, transparent) 1px, transparent 1px), linear-gradient(color-mix(in srgb, var(--c-border) 28%, transparent) 1px, transparent 1px);
         background-size: 56px 56px;
         opacity: 0.62;
       }
@@ -253,6 +258,8 @@ const siteUrl = new URL("/", Astro.site).href;
         margin: 0 0 var(--space-5);
         padding-top: var(--space-5);
         text-wrap: balance;
+        overflow-wrap: anywhere;
+        min-width: 0;
       }
 
       h1 {
@@ -292,20 +299,22 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       /*
-        Links — one pill style for all text links: brand fill + white text +
-        inset bottom edge. Exceptions: badge image links (`a:has(img)`) and
+        Links — one compact style for all text links: brand fill + white text,
+        with no decorative bottom edge. Exceptions: badge image links (`a:has(img)`) and
         `.comparison-card` keep their own undecorated / card treatment.
       */
       a:not(:has(img)):not(.comparison-card) {
         color: var(--c-on-brand);
         background-color: var(--c-brand);
         background-image: none;
-        box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+        box-shadow: none;
         text-decoration: none;
-        padding: 2px 4px;
-        margin: 0 -4px;
+        border: var(--border-width) solid transparent;
+        padding: 0 var(--space-inline-x);
+        margin: 0;
         overflow-wrap: anywhere;
         display: inline-block;
+        font-size: 0.95em;
         transform: translateY(0) scale(1);
         transition: transform 120ms var(--ease-out);
         vertical-align: baseline;
@@ -327,6 +336,12 @@ const siteUrl = new URL("/", Astro.site).href;
       /* Touch / non-hover pointers: press scale without needing :hover */
       a:not(:has(img)):not(.comparison-card):active {
         transform: scale(0.97);
+      }
+
+      a[aria-disabled="true"] {
+        cursor: not-allowed;
+        opacity: 0.55;
+        pointer-events: none;
       }
 
       @media (hover: hover) and (pointer: fine) {
@@ -405,13 +420,13 @@ const siteUrl = new URL("/", Astro.site).href;
       ul,
       ol {
         margin-bottom: var(--space-5);
-        padding-left: var(--space-5);
+        padding-left: 0;
         color: var(--c-text-dim);
       }
 
       li {
         margin-bottom: var(--space-2);
-        padding-left: var(--space-2);
+        padding-left: 0;
       }
 
       /* Code Blocks */
@@ -438,14 +453,14 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       pre.astro-code span[style*="6A737D" i] {
-        color: #ffad75 !important;
+        color: color-mix(in srgb, var(--c-brand) 48%, var(--c-text)) !important;
       }
 
       /* Inline code */
       p code,
       li code {
         background: var(--c-surface-alt);
-        padding: 0.2em 0.4em;
+        padding: var(--space-inline-y) var(--space-inline-x);
         color: var(--c-text);
         border: var(--border-width) solid var(--c-border);
       }
@@ -575,7 +590,7 @@ const siteUrl = new URL("/", Astro.site).href;
           color: var(--c-on-brand);
           background-color: var(--c-brand);
           background-image: none;
-          box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+          box-shadow: none;
           text-decoration: none;
         }
 
@@ -592,7 +607,7 @@ const siteUrl = new URL("/", Astro.site).href;
         color: var(--c-on-brand);
         background-color: var(--c-brand);
         background-image: none;
-        box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 28%, var(--c-brand));
+        box-shadow: none;
         text-decoration: none;
       }
 
@@ -633,7 +648,7 @@ const siteUrl = new URL("/", Astro.site).href;
 
         .footer-links {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: minmax(0, 1fr);
           justify-content: flex-start;
           text-align: left;
           gap: var(--space-2) var(--space-3);
@@ -642,6 +657,12 @@ const siteUrl = new URL("/", Astro.site).href;
         .footer-link {
           justify-content: flex-start;
           text-align: left;
+        }
+      }
+
+      @media (max-width: 360px) {
+        a.home-link:not(:has(img)) {
+          font-size: var(--fs-sm);
         }
       }
 

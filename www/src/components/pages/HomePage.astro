@@ -28,6 +28,27 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
   preloadImage="/better-resource-monitor.png"
 >
   <style is:global>
+    /* Hallmark · macrostructure: Long Document · tone: warm utility manual · anchor hue: ember
+     * design-system: DESIGN.md · contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
+     * Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+    .home-document {
+      padding-top: clamp(var(--space-5), 7vw, var(--space-10));
+    }
+
+    .home-document article > h1 {
+      max-width: 16ch;
+      margin: 0 0 var(--space-4);
+      padding: var(--space-4) 0 0;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .home-document article > h1 + p {
+      max-width: 64ch;
+      margin-bottom: var(--space-6);
+      text-align: left;
+    }
+
     p[align="center"] img[alt="Better Resource Monitor"] {
       width: 100%;
       max-width: 100%;
@@ -46,12 +67,13 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       width: 100%;
       max-width: 100%;
       height: auto;
-      border-radius: 8px;
+      border: var(--border-width) solid var(--c-border);
     }
 
     p[align="center"]:has(img[src*="/badges/"]) {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
+      align-items: center;
       gap: var(--space-5);
       padding-top: var(--space-5);
     }
@@ -60,18 +82,40 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       line-height: 1;
     }
 
+    .home-document article > p[align="center"]:not(:has(img)):has(a) {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: var(--space-2);
+      font-size: 0;
+      text-align: left;
+    }
+
+    .home-document article > p[align="center"]:not(:has(img)):has(a) a,
+    .home-document article > p[align="center"]:not(:has(img)):has(a) span {
+      font-size: var(--fs-sm);
+    }
+
+    .home-document article > h2 {
+      margin-top: var(--space-10);
+      padding-top: var(--space-5);
+      scroll-margin-top: var(--space-5);
+    }
+
+    .home-document article > h2 + p {
+      max-width: 68ch;
+    }
+
+    .home-document .faq-section {
+      padding-top: var(--space-6);
+    }
+
     @media (max-width: 600px) {
       p[align="center"]:has(img[src*="/badges/"]) {
-        gap: var(--space-5);
+        justify-content: flex-start;
+        gap: var(--space-3);
         flex-wrap: wrap;
-      }
-
-      p[align="center"]:not(:has(img)):has(a) {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: var(--space-2);
-        font-size: 0;
       }
 
       p[align="center"]:not(:has(img)):has(a) a {
@@ -81,7 +125,7 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
     }
   </style>
 
-  <main class="container">
+  <main class="container home-document">
     <article>
       <Content />
     </article>
