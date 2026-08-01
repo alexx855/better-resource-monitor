@@ -49,13 +49,22 @@ certificate import, entitlement checks, `CFBundleVersion` assignment, embedded
 commit verification, private API scanning, `productbuild`, and `xcrun altool`
 upload behavior.
 
-The direct-download workflow uses `.github/actions/build-direct-download` and
-`scripts/setup-developer-id-signing.sh`. Keep it separate from the App Store
-action because direct downloads need Developer ID Application signing,
-notarization, stapling, and user-installable artifacts rather than App Store
-provisioning profiles or App Store installer packages.
+The direct-download workflow is split at the app-bundle artifact boundary.
+Its unprivileged build job resolves an exact semver tag to a commit reachable
+from `main`, checks out that immutable commit into `source/`, and builds an
+unsigned app archive without Apple credentials. Its fresh signing job checks
+out only trusted `main` tooling, verifies the archive contains the expected app
+bundle and embedded commit, then signs and notarizes it with
+`.github/actions/sign-direct-download` and
+`scripts/setup-developer-id-signing.sh`. Do not move a source checkout, package
+install, or app build into the signing job.
 
-## Protected TestFlight Environment
+Direct downloads remain separate from the App Store action because they need
+Developer ID Application signing, notarization, stapling, and user-installable
+artifacts rather than App Store provisioning profiles or App Store installer
+packages.
+
+## Protected Signing Environment
 
 The `TestFlight` workflow must be dispatched from `main`. To test a PR or
 release tag, pass that ref as `source_ref` so reviewed workflow code and trusted
@@ -73,15 +82,9 @@ downloaded artifact, and only then materializes Apple signing secrets to embed
 the CI-provided provisioning profile, sign, package, and upload. No step in
 the signing job executes code from the `source_ref` checkout or the artifact.
 
-The `sign-upload` job declares the protected `testflight` environment;
-configure that environment with an owner reviewer before allowing the job to
-run.
-
-The `Direct Download` workflow follows the same trust rule: the composite
-action `.github/actions/build-direct-download` and the Developer ID signing
-script are always loaded from the trusted `main` checkout at the workspace
-root, never from the tag checkout in `source/`. The build still compiles
-tag-controlled code, so pushing tags must remain maintainer-only.
+The `sign-upload` and `sign-notarize-direct-download` jobs declare the protected
+`testflight` environment. Keep its owner-reviewer protection in place before
+allowing either job to run; it gates the jobs that materialize Apple credentials.
 
 Branch protection and rulesets protect changes that reach `main`. They do not
 turn repository-level Apple signing secrets into owner-only secrets for every

@@ -1,0 +1,212 @@
+name: Sign and notarize direct-download artifacts
+description: Sign a verified app bundle and package Developer ID release artifacts.
+
+inputs:
+  app-bundle-path:
+    description: Absolute path to the verified app bundle extracted from the build artifact.
+    required: true
+  build-commit:
+    description: Full commit SHA embedded in the app bundle.
+    required: true
+  release-version:
+    description: Release version used for artifact names.
+    required: true
+  apple-api-key-id:
+    description: App Store Connect API key id used for notarization.
+    required: true
+  apple-api-issuer:
+    description: App Store Connect API issuer used for notarization.
+    required: true
+  appstore-connect-api-key-p8:
+    description: Raw App Store Connect API private key content.
+    required: true
+  developer-id-application-identity:
+    description: Developer ID Application signing identity.
+    required: true
+  developer-id-application-cert-p12-base64:
+    description: Base64-encoded Developer ID Application certificate.
+    required: true
+  developer-id-application-cert-password:
+    description: Password for the Developer ID Application certificate.
+    required: true
+
+outputs:
+  dmg_path:
+    description: Path to the notarized DMG artifact.
+    value: ${{ steps.package.outputs.dmg_path }}
+  zip_path:
+    description: Path to the ZIP artifact containing the notarized app bundle.
+    value: ${{ steps.package.outputs.zip_path }}
+
+runs:
+  using: composite
+  steps:
+    # This action is invoked only after a fresh runner has checked out trusted
+    # main tooling and verified the downloaded app bundle's embedded commit.
+    - name: Prepare Developer ID credentials
+      shell: bash
+      env:
+        APPLE_API_KEY_ID: ${{ inputs.apple-api-key-id }}
+        APPLE_API_ISSUER: ${{ inputs.apple-api-issuer }}
+        APPSTORE_CONNECT_API_KEY_P8: ${{ inputs.appstore-connect-api-key-p8 }}
+        DEVELOPER_ID_APPLICATION_CERT_P12_BASE64: ${{ inputs.developer-id-application-cert-p12-base64 }}
+        DEVELOPER_ID_APPLICATION_CERT_PASSWORD: ${{ inputs.developer-id-application-cert-password }}
+      run: |
+        set -euo pipefail
+
+        SETUP_SCRIPT="$GITHUB_ACTION_PATH/../../../scripts/setup-developer-id-signing.sh"
+        if [ ! -f "$SETUP_SCRIPT" ]; then
+          echo "Error: Developer ID signing setup script not found at $SETUP_SCRIPT"
+          exit 1
+        fi
+        bash "$SETUP_SCRIPT"
+
+    - name: Sign, notarize, and package
+      id: package
+      shell: bash
+      env:
+        APP_BUNDLE_PATH_INPUT: ${{ inputs.app-bundle-path }}
+        BRM_BUILD_COMMIT_INPUT: ${{ inputs.build-commit }}
+        RELEASE_VERSION_INPUT: ${{ inputs.release-version }}
+        APPLE_API_KEY_ID: ${{ inputs.apple-api-key-id }}
+        APPLE_API_ISSUER: ${{ inputs.apple-api-issuer }}
+        DEVELOPER_ID_APPLICATION_IDENTITY: ${{ inputs.developer-id-application-identity }}
+      run: |
+        set -euo pipefail
+
+        if ! [[ "$BRM_BUILD_COMMIT_INPUT" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "Error: build-commit must be a 40-character lowercase git SHA"
+          exit 1
+        fi
+        if ! [[ "$RELEASE_VERSION_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: release-version must be a semantic version, got '$RELEASE_VERSION_INPUT'"
+          exit 1
+        fi
+
+        APP_NAME="Better Resource Monitor"
+        APP_PATH="$APP_BUNDLE_PATH_INPUT"
+        APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
+        ARTIFACT_DIR="$RUNNER_TEMP/direct-download-release"
+        DMG_STAGING="$ARTIFACT_DIR/dmg-staging"
+        NOTARY_ZIP="$ARTIFACT_DIR/notary-${RELEASE_VERSION_INPUT}.zip"
+        ZIP_PATH="$ARTIFACT_DIR/Better-Resource-Monitor-${RELEASE_VERSION_INPUT}-macOS-universal.zip"
+        DMG_PATH="$ARTIFACT_DIR/Better-Resource-Monitor-${RELEASE_VERSION_INPUT}-macOS-universal.dmg"
+        KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+        ENTITLEMENTS_PATH="$GITHUB_ACTION_PATH/../../../src-tauri/Entitlements.plist"
+
+        if [ ! -d "$APP_PATH" ] || [ -L "$APP_PATH" ] || [ ! -f "$APP_EXECUTABLE" ]; then
+          echo "Error: verified app bundle or executable not found at $APP_PATH"
+          exit 1
+        fi
+        if [ ! -f "$ENTITLEMENTS_PATH" ]; then
+          echo "Error: trusted entitlements file not found at $ENTITLEMENTS_PATH"
+          exit 1
+        fi
+        if ! strings -a "$APP_EXECUTABLE" | grep -F "${BRM_BUILD_COMMIT_INPUT:0:12}" > /dev/null; then
+          echo "Error: downloaded app bundle does not embed expected commit ${BRM_BUILD_COMMIT_INPUT:0:12}"
+          exit 1
+        fi
+
+        required_vars=("APPLE_API_KEY_ID" "APPLE_API_ISSUER" "DEVELOPER_ID_APPLICATION_IDENTITY")
+        for var in "${required_vars[@]}"; do
+          if [ -z "${!var:-}" ]; then
+            echo "Error: $var is not set"
+            exit 1
+          fi
+        done
+        if [ ! -f "$KEY_PATH" ]; then
+          echo "Error: App Store Connect API key not found at $KEY_PATH"
+          exit 1
+        fi
+
+        mkdir -p "$ARTIFACT_DIR"
+
+        submit_for_notarization() {
+          local package_path="$1"
+          local label="$2"
+          local notary_out
+          local submission_id
+
+          notary_out="$(mktemp "${TMPDIR:-/tmp}/brm-notary.XXXXXX")"
+          if ! xcrun notarytool submit "$package_path" \
+            --key "$KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait > "$notary_out" 2>&1; then
+            cat "$notary_out"
+            submission_id="$(grep -Eo '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$notary_out" | head -n 1 || true)"
+            if [ -n "$submission_id" ]; then
+              echo "=== Notarization log for $label submission $submission_id ==="
+              xcrun notarytool log "$submission_id" \
+                --key "$KEY_PATH" \
+                --key-id "$APPLE_API_KEY_ID" \
+                --issuer "$APPLE_API_ISSUER" || true
+            fi
+            rm -f "$notary_out"
+            exit 1
+          fi
+
+          cat "$notary_out"
+          rm -f "$notary_out"
+        }
+
+        echo "Signing nested code with: $DEVELOPER_ID_APPLICATION_IDENTITY"
+        while IFS= read -r -d '' item; do
+          echo "Signing nested component: $item"
+          codesign --force --options runtime \
+            --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
+            "$item"
+        done < <(find "$APP_PATH/Contents" -depth \( -name "*.dylib" -o -name "*.so" -o -name "*.framework" \) -print0)
+
+        while IFS= read -r -d '' item; do
+          if [ "$item" = "$APP_EXECUTABLE" ]; then
+            continue
+          fi
+          echo "Signing helper executable: $item"
+          codesign --force --options runtime \
+            --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
+            "$item"
+        done < <(find "$APP_PATH/Contents/MacOS" -type f -print0)
+
+        echo "Signing app with: $DEVELOPER_ID_APPLICATION_IDENTITY"
+        codesign --force --options runtime \
+          --sign "$DEVELOPER_ID_APPLICATION_IDENTITY" \
+          --entitlements "$ENTITLEMENTS_PATH" \
+          "$APP_PATH"
+
+        codesign --verify --deep --strict "$APP_PATH"
+        echo "Signature verified."
+
+        echo "Submitting app bundle for notarization..."
+        ditto -c -k --keepParent "$APP_PATH" "$NOTARY_ZIP"
+        submit_for_notarization "$NOTARY_ZIP" "app bundle"
+
+        xcrun stapler staple "$APP_PATH"
+        spctl -a -vv "$APP_PATH"
+
+        echo "Creating ZIP artifact..."
+        ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
+
+        echo "Creating DMG artifact..."
+        mkdir -p "$DMG_STAGING"
+        ditto "$APP_PATH" "$DMG_STAGING/${APP_NAME}.app"
+        ln -s /Applications "$DMG_STAGING/Applications"
+        hdiutil create \
+          -volname "$APP_NAME" \
+          -srcfolder "$DMG_STAGING" \
+          -ov \
+          -format UDZO \
+          "$DMG_PATH"
+
+        echo "Submitting DMG for notarization..."
+        submit_for_notarization "$DMG_PATH" "DMG"
+
+        xcrun stapler staple "$DMG_PATH"
+        xcrun stapler validate "$DMG_PATH"
+
+        echo "dmg_path=$DMG_PATH" >> "$GITHUB_OUTPUT"
+        echo "zip_path=$ZIP_PATH" >> "$GITHUB_OUTPUT"
+
+        echo ""
+        echo "Artifacts ready:"
+        ls -lh "$DMG_PATH" "$ZIP_PATH"

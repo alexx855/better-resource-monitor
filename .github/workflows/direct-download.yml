@@ -1,6 +1,6 @@
 name: Direct Download
 
-# Builds signed and notarized macOS artifacts for a tagged release, then
+# Builds signed and notarized macOS artifacts for an exact release tag, then
 # optionally uploads them to the matching GitHub Release.
 
 on:
@@ -28,20 +28,55 @@ concurrency:
 
 jobs:
   build-direct-download:
-    name: Build direct-download artifacts
+    name: Build unsigned direct-download app bundle
     runs-on: macos-15
+    outputs:
+      source_sha: ${{ steps.release.outputs.commit }}
+      release_version: ${{ steps.release.outputs.version }}
 
+    # This job checks out and builds release source, so it must never receive
+    # signing or notarization credentials. The signing job starts on a fresh
+    # runner after the protected environment approves it.
     steps:
-      - name: Checkout workflow tooling
+      - name: Checkout trusted workflow tooling
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: main
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout release source
+      - name: Resolve exact trusted release tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: tag must be an exact semantic release tag, got '$RELEASE_TAG'"
+            exit 1
+          fi
+
+          git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          RELEASE_COMMIT="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          if ! [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Error: tag '$RELEASE_TAG' did not resolve to a commit"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main; then
+            echo "Error: tag '$RELEASE_TAG' must resolve to a commit reachable from main"
+            exit 1
+          fi
+
+          {
+            echo "commit=$RELEASE_COMMIT"
+            echo "version=${RELEASE_TAG#v}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout validated release source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ steps.release.outputs.commit }}
           path: source
           persist-credentials: false
 
@@ -65,48 +100,89 @@ jobs:
         with:
           node-version: lts/*
           cache: 'pnpm'
+          cache-dependency-path: source/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: source
         run: pnpm install --frozen-lockfile
 
-      - name: Validate scripts
-        run: |
-          set -euo pipefail
-          for script in scripts/setup-appstore-signing.sh scripts/setup-developer-id-signing.sh; do
-            bash -n "$script"
-          done
-
-      - name: Resolve build metadata
-        id: metadata
-        working-directory: source
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
-          case "$RELEASE_TAG" in
-            v[0-9]*)
-              ;;
-            *)
-              echo "Error: tag must look like v1.2.3, got '$RELEASE_TAG'"
-              exit 1
-              ;;
-          esac
-
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "version=$(jq -r '.version' src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
-
-      # Security invariant: the composite action and the signing script it
-      # resolves must come from the trusted main checkout at the workspace
-      # root, never from the tag checkout in source/. The build step inside
-      # the action still compiles tag-controlled code (build.rs, sources), so
-      # pushing tags must remain maintainer-only.
-      - name: Build direct-download artifacts
-        id: package
+      - name: Build unsigned app bundle
         uses: ./.github/actions/build-direct-download
         with:
           source-dir: source
-          build-commit: ${{ steps.metadata.outputs.sha }}
+          build-commit: ${{ steps.release.outputs.commit }}
+          release-version: ${{ steps.release.outputs.version }}
+
+      - name: Upload unsigned app bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: direct-download-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/direct-download-app.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  sign-notarize-direct-download:
+    name: Sign and notarize direct-download artifacts
+    needs: build-direct-download
+    runs-on: macos-15
+    environment: testflight
+
+    # This job must remain free of a source checkout. It starts on a separate
+    # runner, verifies the artifact's expected structure and commit marker, and
+    # only then materializes Apple signing and notarization credentials.
+    steps:
+      - name: Checkout trusted signing tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Validate trusted signing tooling
+        run: |
+          set -euo pipefail
+          bash -n scripts/setup-developer-id-signing.sh
+          test -f .github/actions/sign-direct-download/action.yml
+
+      - name: Download unsigned app bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: direct-download-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/direct-download-artifact
+
+      - name: Extract and verify app bundle
+        env:
+          BUILD_SHA: ${{ needs.build-direct-download.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+
+          ARTIFACT_DIR="$RUNNER_TEMP/direct-download-artifact"
+          ARCHIVE_PATH="$ARTIFACT_DIR/direct-download-app.zip"
+          APP_PATH="$ARTIFACT_DIR/Better Resource Monitor.app"
+          APP_EXECUTABLE="$APP_PATH/Contents/MacOS/better-resource-monitor"
+
+          test -f "$ARCHIVE_PATH"
+          ditto -x -k "$ARCHIVE_PATH" "$ARTIFACT_DIR"
+          if [ -L "$APP_PATH" ] || [ ! -d "$APP_PATH" ] || [ ! -f "$APP_EXECUTABLE" ]; then
+            echo "Error: artifact did not contain the expected app bundle"
+            exit 1
+          fi
+          if [ "$(find "$ARTIFACT_DIR" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d ' ')" != "2" ]; then
+            echo "Error: artifact extraction produced unexpected top-level files"
+            exit 1
+          fi
+          if ! strings -a "$APP_EXECUTABLE" | grep -F "${BUILD_SHA:0:12}" > /dev/null; then
+            echo "Error: downloaded app bundle does not embed expected commit ${BUILD_SHA:0:12}"
+            exit 1
+          fi
+          echo "Downloaded app bundle embeds expected commit ${BUILD_SHA:0:12}"
+
+      - name: Sign, notarize, and package
+        id: package
+        uses: ./.github/actions/sign-direct-download
+        with:
+          app-bundle-path: ${{ runner.temp }}/direct-download-artifact/Better Resource Monitor.app
+          build-commit: ${{ needs.build-direct-download.outputs.source_sha }}
+          release-version: ${{ needs.build-direct-download.outputs.release_version }}
           apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
           apple-api-issuer: ${{ secrets.APPLE_API_ISSUER }}
           appstore-connect-api-key-p8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
@@ -114,10 +190,10 @@ jobs:
           developer-id-application-cert-p12-base64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
           developer-id-application-cert-password: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
 
-      - name: Upload direct-download workflow artifacts
+      - name: Upload signed direct-download artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: direct-download-${{ inputs.tag }}
+          name: direct-download-${{ github.run_id }}
           path: |
             ${{ steps.package.outputs.dmg_path }}
             ${{ steps.package.outputs.zip_path }}
@@ -126,16 +202,16 @@ jobs:
   upload-direct-download-release:
     name: Upload direct-download artifacts to release
     if: ${{ inputs.upload_to_release }}
-    needs: build-direct-download
+    needs: sign-notarize-direct-download
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Download direct-download workflow artifacts
+      - name: Download signed direct-download artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: direct-download-${{ inputs.tag }}
+          name: direct-download-${{ github.run_id }}
           path: artifacts
 
       - name: Upload artifacts to GitHub Release
