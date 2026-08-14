@@ -18,7 +18,7 @@
 - **Priority**: P2
 - **Effort**: S–M
 - **Risk**: LOW
-- **Depends on**: plans/009 recommended first (its CI website steps are where the new check gets wired)
+- **Depends on**: plans/archive/009-enforce-documented-checks-in-ci.md recommended first (its CI website steps are where the new check gets wired)
 - **Category**: tests / tech-debt
 - **Planned at**: commit `85c3e82`, 2026-07-08
 
@@ -249,4 +249,5 @@ Stop and report back (do not improvise) if:
 - Deferred: moving `www/src/lib/embedded-faqs.ts` hardcoded copy into content
   collections (would let the parity check cover it); consolidating the
   redirect locale lists (`www/legacy-redirects.mjs`, `www/public/_redirects`,
-  `www/src/lib/site.ts`) — see the findings table in `plans/README.md`.
+  `www/src/lib/site.ts`) — see the original audit notes in Git history at
+  commit `18c36cc`.
