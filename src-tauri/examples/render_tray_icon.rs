@@ -266,6 +266,8 @@ fn main() {
         show_thermal,
         #[cfg(target_os = "macos")]
         thermal_status,
+        #[cfg(target_os = "macos")]
+        thermal_label: thermal_status.short_label(),
     };
 
     let (width, height, _has_alert) =

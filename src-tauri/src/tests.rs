@@ -61,6 +61,8 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         show_thermal: false,
         #[cfg(target_os = "macos")]
         thermal_status: thermal::ThermalStatus::Nominal,
+        #[cfg(target_os = "macos")]
+        thermal_label: "NOM",
     }
 }
 
@@ -68,6 +70,34 @@ fn assert_render_size(buffer: &[u8], width: u32, height: u32, expected_width: u3
     assert_eq!(width, expected_width);
     assert_eq!(height, APP_SIZING.icon_height);
     assert_eq!(buffer.len(), (width * height * 4) as usize);
+}
+
+#[cfg(target_os = "macos")]
+fn alpha_runs(buffer: &[u8], width: u32, start: u32, end: u32) -> Vec<(u32, u32)> {
+    let mut runs = Vec::new();
+    let mut run_start = None;
+
+    for x in start..end {
+        let has_alpha = (0..APP_SIZING.icon_height).any(|y| {
+            let index = ((y * width + x) * 4 + 3) as usize;
+            buffer[index] > 8
+        });
+
+        match (run_start, has_alpha) {
+            (None, true) => run_start = Some(x),
+            (Some(begin), false) => {
+                runs.push((begin, x - 1));
+                run_start = None;
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(begin) = run_start {
+        runs.push((begin, end - 1));
+    }
+
+    runs
 }
 
 fn assert_sizing(sizing: tray_render::Sizing, expected: (u32, u32, u32, u32, u32, f32)) {
@@ -592,6 +622,47 @@ fn test_thermal_states_keep_fixed_width_and_unavailable_removes_segment() {
 
 #[cfg(target_os = "macos")]
 #[test]
+fn test_thermal_segment_uses_metric_spacing_and_text() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+    let config = tray_render::RenderConfig {
+        show_mem: false,
+        show_thermal: true,
+        thermal_status: thermal::ThermalStatus::Fair,
+        thermal_label: "FAIR",
+        ..base_render_config()
+    };
+
+    let (width, _, _) = renderer.render_tray_icon_into(&font, &mut buffer, &config);
+    let thermal_start = APP_SIZING.edge_padding + APP_SIZING.segment_width + APP_SIZING.segment_gap;
+    let thermal_end = thermal_start + APP_SIZING.segment_width;
+    let runs = alpha_runs(&buffer, width, thermal_start, thermal_end);
+
+    assert!(
+        runs.len() >= 2,
+        "thermal segment must contain icon and label"
+    );
+    assert!(
+        runs.first().unwrap().0 <= thermal_start + 20,
+        "thermal icon should share the metric left edge: {runs:?}"
+    );
+    assert!(
+        runs.last().unwrap().1 >= thermal_end - 8,
+        "thermal label should share the metric right edge: {runs:?}"
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_status_is_opt_in_by_default() {
+    const {
+        assert!(!DEFAULT_SHOW_THERMAL_STATUS);
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[test]
 fn test_thermal_alert_colors_follow_existing_alert_path() {
     let font = load_system_font().expect("test font required");
     let mut buffer = Vec::new();
@@ -732,6 +803,10 @@ fn test_all_languages_have_translations() {
         assert!(!t.thermal_fair.is_empty());
         assert!(!t.thermal_serious.is_empty());
         assert!(!t.thermal_critical.is_empty());
+        assert!(!t.thermal_nominal_short.is_empty());
+        assert!(!t.thermal_fair_short.is_empty());
+        assert!(!t.thermal_serious_short.is_empty());
+        assert!(!t.thermal_critical_short.is_empty());
         assert!(!t.thermal_nominal_explanation.is_empty());
         assert!(!t.thermal_fair_explanation.is_empty());
         assert!(!t.thermal_serious_explanation.is_empty());
@@ -746,4 +821,5 @@ fn test_english_defaults() {
     assert_eq!(t.system_monitor, "System Monitor");
     assert_eq!(t.show_storage, "Show Storage");
     assert_eq!(t.show_thermal_status, "Show Thermal Status");
+    assert_eq!(t.thermal_nominal_short, "NOM");
 }

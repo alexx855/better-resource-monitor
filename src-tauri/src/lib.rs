@@ -118,6 +118,9 @@ fn detect_light_icons_impl() -> bool {
 
 const SETTINGS_FILE: &str = "settings.json";
 
+#[cfg(target_os = "macos")]
+const DEFAULT_SHOW_THERMAL_STATUS: bool = false;
+
 mod menu_id {
     pub const AUTOSTART: &str = "autostart";
     pub const SHOW_CPU: &str = "show_cpu";
@@ -198,7 +201,7 @@ fn load_settings(app: &AppHandle) -> LoadedSettings {
         show_alerts: get_bool("show_alerts", true),
         autostart: get_bool(menu_id::AUTOSTART, false),
         #[cfg(target_os = "macos")]
-        show_thermal: get_bool(menu_id::SHOW_THERMAL, true),
+        show_thermal: get_bool(menu_id::SHOW_THERMAL, DEFAULT_SHOW_THERMAL_STATUS),
     }
 }
 
@@ -631,6 +634,20 @@ fn thermal_copy(
 }
 
 #[cfg(target_os = "macos")]
+fn thermal_tray_label(
+    translations: &i18n::Translations,
+    status: thermal::ThermalStatus,
+) -> &'static str {
+    match status {
+        thermal::ThermalStatus::Nominal => translations.thermal_nominal_short,
+        thermal::ThermalStatus::Fair => translations.thermal_fair_short,
+        thermal::ThermalStatus::Serious => translations.thermal_serious_short,
+        thermal::ThermalStatus::Critical => translations.thermal_critical_short,
+        thermal::ThermalStatus::Unavailable => "",
+    }
+}
+
+#[cfg(target_os = "macos")]
 fn thermal_status_text(
     translations: &i18n::Translations,
     status: thermal::ThermalStatus,
@@ -702,6 +719,8 @@ fn setup_tray(
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     let thermal_status = thermal_runtime.status();
+    #[cfg(target_os = "macos")]
+    let thermal_label = thermal_tray_label(translations, thermal_status);
     #[cfg(target_os = "macos")]
     {
         macos_diag_log(format!(
@@ -866,6 +885,8 @@ fn setup_tray(
             show_thermal: metrics.show_thermal.load(Relaxed),
             #[cfg(target_os = "macos")]
             thermal_status,
+            #[cfg(target_os = "macos")]
+            thermal_label,
         },
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
@@ -1424,6 +1445,8 @@ fn start_monitoring(
                         show_thermal: st,
                         #[cfg(target_os = "macos")]
                         thermal_status,
+                        #[cfg(target_os = "macos")]
+                        thermal_label: thermal_tray_label(translations, thermal_status),
                     },
                 );
 
@@ -1507,7 +1530,7 @@ pub fn run() {
         show_net: Arc::new(AtomicBool::new(true)),
         show_alerts: Arc::new(AtomicBool::new(true)),
         #[cfg(target_os = "macos")]
-        show_thermal: Arc::new(AtomicBool::new(true)),
+        show_thermal: Arc::new(AtomicBool::new(DEFAULT_SHOW_THERMAL_STATUS)),
     };
     let tray_metrics = metrics.clone();
     let second_instance_metrics = metrics.clone();

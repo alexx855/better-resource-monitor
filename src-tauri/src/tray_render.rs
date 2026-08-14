@@ -236,6 +236,8 @@ pub struct RenderConfig<'a> {
     pub show_thermal: bool,
     #[cfg(target_os = "macos")]
     pub thermal_status: ThermalStatus,
+    #[cfg(target_os = "macos")]
+    pub thermal_label: &'a str,
 }
 
 #[derive(Default)]
@@ -280,7 +282,6 @@ impl TrayRenderer {
             value: String,
             width: u32,
             alert: bool,
-            icon_only: bool,
         }
 
         let sizing = config.sizing;
@@ -305,7 +306,6 @@ impl TrayRenderer {
                     value: format!("{:.0}%", cap_percent(value)),
                     width: sizing.segment_width,
                     alert: value >= ALERT_THRESHOLD,
-                    icon_only: false,
                 });
             }
         }
@@ -316,14 +316,12 @@ impl TrayRenderer {
                 value: config.down_str.to_owned(),
                 width: sizing.segment_width_net,
                 alert: false,
-                icon_only: false,
             });
             segments.push(Segment {
                 icon: IconType::ArrowUp,
                 value: config.up_str.to_owned(),
                 width: sizing.segment_width_net,
                 alert: false,
-                icon_only: false,
             });
         }
 
@@ -331,10 +329,9 @@ impl TrayRenderer {
         if config.show_thermal && config.thermal_status.is_available() {
             segments.push(Segment {
                 icon: IconType::Thermal(config.thermal_status),
-                value: String::new(),
+                value: config.thermal_label.to_owned(),
                 width: sizing.segment_width,
                 alert: config.thermal_status.is_alert(),
-                icon_only: true,
             });
         }
 
@@ -453,21 +450,14 @@ impl TrayRenderer {
                 x_offset += sizing.segment_gap;
             }
 
-            let icon_x = if segment.icon_only {
-                x_offset + segment.width.saturating_sub(sizing.icon_height) / 2
-            } else {
-                x_offset
-            };
-            draw_cached_icon(segment.icon, icon_x, segment_color, &mut img);
+            draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
-            if !segment.icon_only {
-                let value_width: f32 = font
-                    .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
-                    .map(|g| g.unpositioned().h_metrics().advance_width)
-                    .sum();
-                let value_x = x_offset as f32 + segment.width as f32 - value_width;
-                draw_text(&segment.value, value_x, segment_color, &mut img);
-            }
+            let value_width: f32 = font
+                .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
+                .map(|g| g.unpositioned().h_metrics().advance_width)
+                .sum();
+            let value_x = x_offset as f32 + segment.width as f32 - value_width;
+            draw_text(&segment.value, value_x, segment_color, &mut img);
 
             x_offset += segment.width;
         }
