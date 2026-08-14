@@ -18,10 +18,10 @@
 - **Priority**: P2
 - **Effort**: S
 - **Risk**: LOW
-- **Depends on**: plans/009 recommended first (so CI catches any build breakage)
+- **Depends on**: plans/archive/009-enforce-documented-checks-in-ci.md recommended first (so CI catches any build breakage)
 - **Category**: perf / security-config
 - **Planned at**: commit `85c3e82`, 2026-07-08
-- **Supersedes**: `plans/004-fix-website-csp-client-router.md` — that plan
+- **Supersedes**: `plans/archive/004-fix-website-csp-client-router.md` — that plan
   proposed loosening CSP (`connect-src 'none'` → `'self'`) so ClientRouter's
   same-origin fetches work. This plan takes the opposite, strictly better
   trade: remove ClientRouter, keep the maximally strict CSP.

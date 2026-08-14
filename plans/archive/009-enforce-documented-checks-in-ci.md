@@ -21,7 +21,7 @@
 - **Depends on**: none
 - **Category**: dx / tests
 - **Planned at**: commit `85c3e82`, 2026-07-08
-- **Supersedes**: `plans/002-add-website-build-to-ci.md` (same goal, extended
+- **Supersedes**: `plans/archive/002-add-website-build-to-ci.md` (same goal, extended
   to also cover clippy and astro check; read it only if you want extra context)
 
 ## Why this matters
@@ -69,7 +69,7 @@ small pre-fix.
   3. `astro.config.mjs:39:18` ts(2322) — `external: [/^@resvg\/resvg-js(?:-.+)?$/, ...]` — RegExp in a `string[]`-typed field.
 - `AGENTS.md:17` warns: `www/src/lib/renderer.ts` fetches fonts from Google
   during build, so the website build needs network access. GitHub-hosted
-  runners have network, so this is fine today; `plans/005-vendor-generated-image-fonts.md`
+  runners have network, so this is fine today; `plans/archive/005-vendor-generated-image-fonts.md`
   removes the dependency later.
 - Convention: CI steps use SHA-pinned actions with version comments; job runs
   on `macos-15-intel`.

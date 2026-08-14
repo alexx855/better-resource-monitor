@@ -252,8 +252,8 @@ Stop and report back (do not improvise) if:
   but that's a dashboard change outside this repo.
 - Deliberately deferred: hardening `pnpm install` in the build job with
   `--ignore-scripts` (the tauri CLI may need its postinstall; investigate
-  separately), and pinning the Rust toolchain (see plans/README.md rejected
-  findings).
+  separately), and pinning the Rust toolchain (see the original audit notes in
+  Git history at commit `18c36cc`).
 - Local hygiene reminder for the maintainer (not part of this plan): the
   working tree contains `Certificates.p12` and `private_keys/*.p8` at mode
   644 — move them out of the repo and `chmod 600`.
