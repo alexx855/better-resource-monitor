@@ -21,7 +21,7 @@
 - **Depends on**: none (but read plan 007 first if you touch `direct-download.yml`; it changes the same file)
 - **Category**: bug / direction
 - **Planned at**: commit `85c3e82`, 2026-07-08
-- **Supersedes**: `plans/001-align-public-distribution-copy.md` (written before the
+- **Supersedes**: `plans/archive/001-align-public-distribution-copy.md` (written before the
   `direct-download.yml` workflow and the runtime-guard incompatibility were known)
 
 ## Decision gate — read this first
