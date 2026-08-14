@@ -57,6 +57,10 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         show_alerts: true,
         use_light_icons: true,
         background: None,
+        #[cfg(target_os = "macos")]
+        show_thermal: false,
+        #[cfg(target_os = "macos")]
+        thermal_status: thermal::ThermalStatus::Nominal,
     }
 }
 
@@ -545,6 +549,86 @@ fn test_render_all_default_visible_metrics_width() {
     assert_render_size(&buffer, width, height, expected_width);
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_states_keep_fixed_width_and_unavailable_removes_segment() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+    let expected_with_thermal =
+        APP_SIZING.edge_padding * 2 + APP_SIZING.segment_width * 3 + APP_SIZING.segment_gap * 2;
+    let expected_without_thermal =
+        APP_SIZING.edge_padding * 2 + APP_SIZING.segment_width * 2 + APP_SIZING.segment_gap;
+
+    for status in [
+        thermal::ThermalStatus::Nominal,
+        thermal::ThermalStatus::Fair,
+        thermal::ThermalStatus::Serious,
+        thermal::ThermalStatus::Critical,
+    ] {
+        let (width, height, _) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                show_thermal: true,
+                thermal_status: status,
+                ..base_render_config()
+            },
+        );
+        assert_render_size(&buffer, width, height, expected_with_thermal);
+    }
+
+    let (width, height, _) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        &tray_render::RenderConfig {
+            show_thermal: true,
+            thermal_status: thermal::ThermalStatus::Unavailable,
+            ..base_render_config()
+        },
+    );
+    assert_render_size(&buffer, width, height, expected_without_thermal);
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_alert_colors_follow_existing_alert_path() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    for (status, expected_alert) in [
+        (thermal::ThermalStatus::Nominal, false),
+        (thermal::ThermalStatus::Fair, false),
+        (thermal::ThermalStatus::Serious, true),
+        (thermal::ThermalStatus::Critical, true),
+    ] {
+        let (_, _, has_alert) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                show_thermal: true,
+                thermal_status: status,
+                show_alerts: true,
+                ..base_render_config()
+            },
+        );
+        assert_eq!(has_alert, expected_alert, "status={status:?}");
+
+        let (_, _, has_alert) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                show_thermal: true,
+                thermal_status: status,
+                show_alerts: false,
+                ..base_render_config()
+            },
+        );
+        assert!(!has_alert, "status={status:?} with alert colors disabled");
+    }
+}
+
 #[test]
 fn test_render_buffer_matches_rgba_dimensions() {
     // The monitor loop skips a frame when the rendered buffer is not exactly
@@ -639,9 +723,19 @@ fn test_all_languages_have_translations() {
         assert!(!t.show_storage.is_empty());
         assert!(!t.show_gpu.is_empty());
         assert!(!t.show_network.is_empty());
+        assert!(!t.show_thermal_status.is_empty());
         assert!(!t.show_alert_colors.is_empty());
         assert!(!t.quit.is_empty());
         assert!(!t.system_monitor.is_empty());
+        assert!(!t.thermal_status.is_empty());
+        assert!(!t.thermal_nominal.is_empty());
+        assert!(!t.thermal_fair.is_empty());
+        assert!(!t.thermal_serious.is_empty());
+        assert!(!t.thermal_critical.is_empty());
+        assert!(!t.thermal_nominal_explanation.is_empty());
+        assert!(!t.thermal_fair_explanation.is_empty());
+        assert!(!t.thermal_serious_explanation.is_empty());
+        assert!(!t.thermal_critical_explanation.is_empty());
     }
 }
 
@@ -651,4 +745,5 @@ fn test_english_defaults() {
     assert_eq!(t.quit, "Quit");
     assert_eq!(t.system_monitor, "System Monitor");
     assert_eq!(t.show_storage, "Show Storage");
+    assert_eq!(t.show_thermal_status, "Show Thermal Status");
 }
