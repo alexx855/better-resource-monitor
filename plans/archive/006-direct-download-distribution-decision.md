@@ -21,7 +21,7 @@
 - **Depends on**: none (but read plan 007 first if you touch `direct-download.yml`; it changes the same file)
 - **Category**: bug / direction
 - **Planned at**: commit `85c3e82`, 2026-07-08
-- **Supersedes**: `plans/001-align-public-distribution-copy.md` (written before the
+- **Supersedes**: `plans/archive/001-align-public-distribution-copy.md` (written before the
   `direct-download.yml` workflow and the runtime-guard incompatibility were known)
 
 ## Decision gate — read this first
@@ -259,7 +259,7 @@ GitHub Releases (manual updates)":
 Add a comment block at the top of `.github/workflows/direct-download.yml`:
 "Dormant: direct-download DMGs are not currently published. The runtime guard
 in src-tauri/src/lib.rs (should_exit_unsupported_macos_bundle) exits non-App-Store
-builds with the production bundle ID; see plans/006 for the reactivation path."
+builds with the production bundle ID; see plans/archive/006-direct-download-distribution-decision.md for the reactivation path."
 Do not delete the workflow. Update `docs/github-release-workflows.md` to note
 the dormant status.
 
