@@ -1,7 +1,7 @@
 # Plans
 
-This directory now contains only active work. Historical implementation plans
-and superseded alternatives are preserved in [`archive/`](archive/).
+This directory contains only active work. Completed and superseded plan
+specifications were removed after their outcomes were recorded here.
 
 ## Why there were so many plans
 
@@ -22,25 +22,20 @@ directory. That made completed work look active.
 | [012 — App Store-safe Thermal Status](012-add-app-store-safe-temperature-metric.md) | TODO — qualitative implementation | The numeric Celsius requirement is blocked by the App Sandbox/public-API boundary. A qualitative `ProcessInfo.thermalState` feature is feasible, but implementation has not started. |
 | Plan 003 follow-up | TODO — refresh dependency remediation | The original advisory cleanup landed, but the current audit reports 8 transitive advisories: 3 high and 5 moderate. Create a new narrowly scoped remediation plan before changing dependencies. |
 
-## Implemented and archived
+## Removed plan history
 
-These plans' source changes are present in the current `main` history:
+The old specifications are intentionally gone. Their outcomes were:
 
-| Plan | Result | Evidence / remaining proof |
-| --- | --- | --- |
-| 005 | Implemented vendored generated-image fonts | Local website build passes; fonts are under `www/src/assets/fonts`. |
-| 006 | Implemented Path A: signed direct-download DMGs | Merged in PR #142 / commit `18c36cc`; a real end-to-end DMG install smoke test remains useful. |
-| 007 | Implemented signing isolation | Trusted workflow split is in `main`; post-merge TestFlight dispatch proof remains an operational gate. |
-| 008 | Implemented tray-update error handling | Current Rust tests pass; a real macOS sleep/wake smoke test remains useful. |
-| 009 | Implemented documented CI checks | CI contains locale parity, Astro check, site build, and clippy; local Astro check and site build pass. |
-| 010 | Implemented locale parity enforcement | `node scripts/check-locale-parity.mjs` passes for all four locales. |
-| 011 | Implemented ClientRouter removal | The strict `connect-src 'none'` CSP remains; the local site build passes without ClientRouter. |
+| Plan | Outcome |
+| --- | --- |
+| 001 | Superseded by 006; removed. |
+| 002 | Superseded by 009; removed. |
+| 003 | Original advisory cleanup landed; the current dependency audit follow-up remains open; removed. |
+| 004 | Superseded by 011; removed. |
+| 005–011 | Implemented in `main` by the later audit stack; removed. |
 
-## Superseded and archived
-
-- Plan 001 is superseded by Plan 006.
-- Plan 002 is superseded by Plan 009.
-- Plan 004 is superseded by Plan 011.
+Plan 006's implementation was merged in PR #142 / commit `18c36cc`. The
+remaining evidence gaps are operational smoke tests, not active plan files.
 
 ## Current verification snapshot
 
