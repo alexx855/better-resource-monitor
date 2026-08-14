@@ -12,6 +12,7 @@ that is no longer an active plan. The active index is one directory up at
 
 ## Implemented
 
+- [003 — Website dependency advisories](003-upgrade-www-security-advisories.md) — original remediation landed; the current audit follow-up remains active in the [main index](../README.md).
 - [005 — Vendor generated-image fonts](005-vendor-generated-image-fonts.md)
 - [006 — Direct-download distribution](006-direct-download-distribution-decision.md)
 - [007 — Signing isolation](007-isolate-signing-from-untrusted-code.md)
