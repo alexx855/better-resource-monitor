@@ -259,7 +259,7 @@ GitHub Releases (manual updates)":
 Add a comment block at the top of `.github/workflows/direct-download.yml`:
 "Dormant: direct-download DMGs are not currently published. The runtime guard
 in src-tauri/src/lib.rs (should_exit_unsupported_macos_bundle) exits non-App-Store
-builds with the production bundle ID; see plans/006 for the reactivation path."
+builds with the production bundle ID; see plans/archive/006-direct-download-distribution-decision.md for the reactivation path."
 Do not delete the workflow. Update `docs/github-release-workflows.md` to note
 the dormant status.
 
