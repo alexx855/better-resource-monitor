@@ -19,7 +19,7 @@ directory. That made completed work look active.
 
 | Item | Status | Current meaning |
 | --- | --- | --- |
-| [012 — App Store-safe Thermal Status](012-add-app-store-safe-temperature-metric.md) | TODO — qualitative implementation | The numeric Celsius requirement is blocked by the App Sandbox/public-API boundary. A qualitative `ProcessInfo.thermalState` feature is feasible, but implementation has not started. |
+| 012 — App Store-safe Thermal Status | IMPLEMENTED — menu-only qualitative status | The numeric Celsius requirement remains blocked by the App Sandbox/public-API boundary. The replacement uses public qualitative APIs and exposes a dimmed localized status row in the macOS tray menu (`src-tauri/src/thermal.rs`). |
 | Plan 003 follow-up | TODO — refresh dependency remediation | The original advisory cleanup landed, but the current audit reports 8 transitive advisories: 3 high and 5 moderate. Create a new narrowly scoped remediation plan before changing dependencies. |
 
 ## Implemented and archived
@@ -47,7 +47,7 @@ These plans' source changes are present in the current `main` history:
 Verified 2026-08-14 in the current worktree:
 
 - `cargo fmt --manifest-path src-tauri/Cargo.toml --check` — passed.
-- `cargo test --manifest-path src-tauri/Cargo.toml` — passed, 28 tests.
+- `cargo test --manifest-path src-tauri/Cargo.toml` — passed, 37 tests (38 with the `app-store` feature).
 - `node scripts/check-locale-parity.mjs` — passed.
 - `pnpm --filter www check` — passed, 0 errors/warnings/hints.
 - `pnpm build:www` — passed, 29 pages.

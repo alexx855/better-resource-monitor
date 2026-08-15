@@ -657,7 +657,7 @@ fn test_thermal_translations_match_supported_locales() {
         (
             i18n::Language::English,
             [
-                "Thermal Status",
+                "Status",
                 "Unavailable",
                 "Nominal",
                 "Fair",
@@ -668,7 +668,7 @@ fn test_thermal_translations_match_supported_locales() {
         (
             i18n::Language::Spanish,
             [
-                "Estado térmico",
+                "Estado",
                 "No disponible",
                 "Normal",
                 "Elevado",
@@ -679,7 +679,7 @@ fn test_thermal_translations_match_supported_locales() {
         (
             i18n::Language::Portuguese,
             [
-                "Estado térmico",
+                "Estado",
                 "Indisponível",
                 "Normal",
                 "Elevado",
@@ -689,7 +689,7 @@ fn test_thermal_translations_match_supported_locales() {
         ),
         (
             i18n::Language::Chinese,
-            ["热状态", "不可用", "正常", "偏高", "高", "危急"],
+            ["状态", "不可用", "正常", "偏高", "高", "危急"],
         ),
     ];
 
@@ -714,7 +714,7 @@ fn test_english_defaults() {
     assert_eq!(t.quit, "Quit");
     assert_eq!(t.system_monitor, "System Monitor");
     assert_eq!(t.show_storage, "Show Storage");
-    assert_eq!(t.thermal_status, "Thermal Status");
+    assert_eq!(t.thermal_status, "Status");
     assert_eq!(t.thermal_unavailable, "Unavailable");
 }
 
@@ -725,41 +725,41 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
         (
             i18n::Language::English,
             [
-                "Thermal Status: Nominal",
-                "Thermal Status: Fair",
-                "Thermal Status: Serious",
-                "Thermal Status: Critical",
-                "Thermal Status: Unavailable",
+                "Status: Nominal",
+                "Status: Fair",
+                "Status: Serious",
+                "Status: Critical",
+                "Status: Unavailable",
             ],
         ),
         (
             i18n::Language::Spanish,
             [
-                "Estado térmico: Normal",
-                "Estado térmico: Elevado",
-                "Estado térmico: Alto",
-                "Estado térmico: Crítico",
-                "Estado térmico: No disponible",
+                "Estado: Normal",
+                "Estado: Elevado",
+                "Estado: Alto",
+                "Estado: Crítico",
+                "Estado: No disponible",
             ],
         ),
         (
             i18n::Language::Portuguese,
             [
-                "Estado térmico: Normal",
-                "Estado térmico: Elevado",
-                "Estado térmico: Alto",
-                "Estado térmico: Crítico",
-                "Estado térmico: Indisponível",
+                "Estado: Normal",
+                "Estado: Elevado",
+                "Estado: Alto",
+                "Estado: Crítico",
+                "Estado: Indisponível",
             ],
         ),
         (
             i18n::Language::Chinese,
             [
-                "热状态: 正常",
-                "热状态: 偏高",
-                "热状态: 高",
-                "热状态: 危急",
-                "热状态: 不可用",
+                "状态: 正常",
+                "状态: 偏高",
+                "状态: 高",
+                "状态: 危急",
+                "状态: 不可用",
             ],
         ),
     ];
