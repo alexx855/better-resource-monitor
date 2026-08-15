@@ -48,7 +48,8 @@ core-foundation-sys = "0.8"
 libc = "0.2"
 objc2 = "0.6.3"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSActionCell", "NSButton", "NSButtonCell", "NSCell", "NSControl", "NSResponder", "NSStatusBarButton", "NSStatusItem", "NSView"] }
-objc2-foundation = { version = "0.3.2", features = ["NSBundle", "NSString"] }
+objc2-foundation = { version = "0.3.2", features = ["NSBundle", "NSString", "NSProcessInfo"] }
+objc2-io-kit = { version = "0.3.2", default-features = false, features = ["pwr_mgt"] }
 objc2-service-management = "0.3.2"
 
 # Linux-specific dependencies

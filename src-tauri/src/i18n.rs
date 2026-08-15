@@ -8,6 +8,12 @@ pub struct Translations {
     pub show_alert_colors: &'static str,
     pub quit: &'static str,
     pub system_monitor: &'static str,
+    pub thermal_status: &'static str,
+    pub thermal_unavailable: &'static str,
+    pub thermal_nominal: &'static str,
+    pub thermal_fair: &'static str,
+    pub thermal_serious: &'static str,
+    pub thermal_critical: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,6 +34,12 @@ const ENGLISH: Translations = Translations {
     show_alert_colors: "Show Alert Colors",
     quit: "Quit",
     system_monitor: "System Monitor",
+    thermal_status: "Status",
+    thermal_unavailable: "Unavailable",
+    thermal_nominal: "Nominal",
+    thermal_fair: "Fair",
+    thermal_serious: "Serious",
+    thermal_critical: "Critical",
 };
 
 const SPANISH: Translations = Translations {
@@ -40,6 +52,12 @@ const SPANISH: Translations = Translations {
     show_alert_colors: "Mostrar colores de alerta",
     quit: "Salir",
     system_monitor: "Monitor del sistema",
+    thermal_status: "Estado",
+    thermal_unavailable: "No disponible",
+    thermal_nominal: "Normal",
+    thermal_fair: "Elevado",
+    thermal_serious: "Alto",
+    thermal_critical: "Crítico",
 };
 
 const PORTUGUESE: Translations = Translations {
@@ -52,6 +70,12 @@ const PORTUGUESE: Translations = Translations {
     show_alert_colors: "Mostrar alertas de cor",
     quit: "Sair",
     system_monitor: "Monitor do sistema",
+    thermal_status: "Estado",
+    thermal_unavailable: "Indisponível",
+    thermal_nominal: "Normal",
+    thermal_fair: "Elevado",
+    thermal_serious: "Alto",
+    thermal_critical: "Crítico",
 };
 
 const CHINESE: Translations = Translations {
@@ -64,6 +88,12 @@ const CHINESE: Translations = Translations {
     show_alert_colors: "显示警报颜色",
     quit: "退出",
     system_monitor: "系统监控器",
+    thermal_status: "状态",
+    thermal_unavailable: "不可用",
+    thermal_nominal: "正常",
+    thermal_fair: "偏高",
+    thermal_serious: "高",
+    thermal_critical: "危急",
 };
 
 impl Language {
