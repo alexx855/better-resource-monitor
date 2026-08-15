@@ -1,5 +1,5 @@
 {
   "title": "Better Resource Monitor | Monitor ligero de barra de menús para macOS",
-  "description": "Monitor gratuito y de código abierto para la barra de menús de Mac: CPU, memoria, almacenamiento, GPU y red. Pensado para Apple Silicon con muy bajo consumo.",
+  "description": "Monitor gratuito y de código abierto para la barra de menús de macOS: CPU, memoria, almacenamiento, GPU y red. Funciona en Intel y Apple Silicon con bajo consumo.",
   "ogImage": "/images/og-index-es.png"
 }
