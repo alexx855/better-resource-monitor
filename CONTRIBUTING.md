@@ -47,7 +47,7 @@ subset locally before opening a pull request.
 Docs-only changes still need enough proof for the claims they make. A wording
 fix can usually be reviewed with a focused diff check. A docs change that
 describes Rust/Tauri behavior, release packaging, CI gates, App Store signing,
-Start at Login, GPU sampling, or bundle layout should wait for the relevant CI
+Start at login, GPU sampling, or bundle layout should wait for the relevant CI
 or Rust proof before merge.
 
 ### Generated Assets And Screenshots
