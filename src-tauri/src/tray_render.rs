@@ -9,7 +9,6 @@ const SVG_STORAGE: &str = include_str!("../assets/icons/svg/fill/disc-fill.svg")
 const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
 const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
-
 type Color = (u8, u8, u8);
 
 const ALERT_THRESHOLD: f32 = 81.0;

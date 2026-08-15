@@ -55,7 +55,10 @@
     "overrides": {
       "esbuild": "0.28.1",
       "sharp": "0.35.3",
-      "undici": "7.28.0",
+      "js-yaml": "4.3.1",
+      "nanoid": "3.3.18",
+      "undici": "7.29.0",
+      "postcss": "8.5.23",
       "ws": "8.21.0"
     }
   }
