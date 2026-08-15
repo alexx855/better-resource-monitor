@@ -3,10 +3,12 @@ pub mod i18n;
 #[cfg(target_os = "macos")]
 mod macos_autostart;
 mod storage;
+#[cfg(target_os = "macos")]
+pub mod thermal;
 pub mod tray_render;
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -123,6 +125,8 @@ mod menu_id {
     pub const SHOW_STORAGE: &str = "show_storage";
     pub const SHOW_GPU: &str = "show_gpu";
     pub const SHOW_NET: &str = "show_net";
+    #[cfg(target_os = "macos")]
+    pub const THERMAL_STATUS: &str = "thermal_status";
     pub const SHOW_ALERTS: &str = "show_alerts";
     pub const QUIT: &str = "quit";
 }
@@ -139,7 +143,17 @@ struct MetricToggles {
     show_alerts: Arc<AtomicBool>,
 }
 
-fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool, bool) {
+struct LoadedSettings {
+    show_cpu: bool,
+    show_mem: bool,
+    show_storage: bool,
+    show_gpu: bool,
+    show_net: bool,
+    show_alerts: bool,
+    autostart: bool,
+}
+
+fn load_settings(app: &AppHandle) -> LoadedSettings {
     let store = match app.store(SETTINGS_FILE) {
         Ok(s) => Some(s),
         Err(e) => {
@@ -169,15 +183,15 @@ fn load_settings(app: &AppHandle) -> (bool, bool, bool, bool, bool, bool, bool) 
         has_legacy_metric_settings,
     );
 
-    (
-        get_bool("show_cpu", true),
-        get_bool("show_mem", true),
+    LoadedSettings {
+        show_cpu: get_bool("show_cpu", true),
+        show_mem: get_bool("show_mem", true),
         show_storage,
-        get_bool("show_gpu", true),
-        get_bool("show_net", true),
-        get_bool("show_alerts", true),
-        get_bool(menu_id::AUTOSTART, false),
-    )
+        show_gpu: get_bool("show_gpu", true),
+        show_net: get_bool("show_net", true),
+        show_alerts: get_bool("show_alerts", true),
+        autostart: get_bool(menu_id::AUTOSTART, false),
+    }
 }
 
 fn migrate_storage_setting(stored_storage: Option<bool>, has_legacy_metric_settings: bool) -> bool {
@@ -532,6 +546,89 @@ fn toggle_setting(
     }
 }
 
+#[cfg(target_os = "macos")]
+#[derive(Clone)]
+struct ThermalUiHandle(Arc<Mutex<Option<ThermalUi>>>);
+
+#[cfg(target_os = "macos")]
+impl Default for ThermalUiHandle {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(None)))
+    }
+}
+
+#[cfg(target_os = "macos")]
+struct ThermalUi {
+    status_item: MenuItem<tauri::Wry>,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone)]
+struct ThermalRuntime {
+    status: Arc<Mutex<thermal::ThermalStatus>>,
+    ui: ThermalUiHandle,
+}
+
+#[cfg(target_os = "macos")]
+impl ThermalRuntime {
+    fn new() -> Self {
+        Self {
+            status: Arc::new(Mutex::new(thermal::ThermalStatus::Unavailable)),
+            ui: ThermalUiHandle::default(),
+        }
+    }
+
+    fn status(&self) -> thermal::ThermalStatus {
+        *self
+            .status
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn set_status(&self, status: thermal::ThermalStatus) {
+        *self
+            .status
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = status;
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn thermal_status_text(
+    translations: &i18n::Translations,
+    status: thermal::ThermalStatus,
+) -> String {
+    let state = match status {
+        thermal::ThermalStatus::Nominal => translations.thermal_nominal,
+        thermal::ThermalStatus::Fair => translations.thermal_fair,
+        thermal::ThermalStatus::Serious => translations.thermal_serious,
+        thermal::ThermalStatus::Critical => translations.thermal_critical,
+        thermal::ThermalStatus::Unavailable => translations.thermal_unavailable,
+    };
+
+    format!("{}: {}", translations.thermal_status, state)
+}
+
+#[cfg(target_os = "macos")]
+fn update_thermal_ui(
+    ui_handle: &ThermalUiHandle,
+    translations: &'static i18n::Translations,
+    status: thermal::ThermalStatus,
+) {
+    let status_text = thermal_status_text(translations, status);
+    let mut guard = ui_handle
+        .0
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some(ui) = guard.as_mut() else {
+        return;
+    };
+
+    if let Err(error) = ui.status_item.set_text(&status_text) {
+        eprintln!("Failed to update thermal status menu text: {error}");
+    }
+}
+
 fn setup_tray(
     app: &AppHandle,
     font: &Font,
@@ -539,7 +636,10 @@ fn setup_tray(
     gpu_available: bool,
     is_autostart_enabled: bool,
     translations: &i18n::Translations,
+    #[cfg(target_os = "macos")] thermal_runtime: &ThermalRuntime,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    let thermal_status = thermal_runtime.status();
     #[cfg(target_os = "macos")]
     {
         macos_diag_log(format!(
@@ -558,17 +658,6 @@ fn setup_tray(
             eprintln!("Failed to disable autostart: {e}");
         }
     }
-
-    let autostart_item = CheckMenuItem::with_id(
-        app,
-        menu_id::AUTOSTART,
-        translations.start_at_login,
-        true,
-        is_autostart_enabled,
-        None::<&str>,
-    )?;
-
-    let separator1 = PredefinedMenuItem::separator(app)?;
 
     let show_mem_item = CheckMenuItem::with_id(
         app,
@@ -606,7 +695,28 @@ fn setup_tray(
         None::<&str>,
     )?;
 
-    let separator2 = PredefinedMenuItem::separator(app)?;
+    #[cfg(target_os = "macos")]
+    let thermal_separator = PredefinedMenuItem::separator(app)?;
+
+    #[cfg(target_os = "macos")]
+    let thermal_status_item = MenuItem::with_id(
+        app,
+        menu_id::THERMAL_STATUS,
+        thermal_status_text(translations, thermal_status),
+        false,
+        None::<&str>,
+    )?;
+
+    let settings_separator = PredefinedMenuItem::separator(app)?;
+
+    let autostart_item = CheckMenuItem::with_id(
+        app,
+        menu_id::AUTOSTART,
+        translations.start_at_login,
+        true,
+        is_autostart_enabled,
+        None::<&str>,
+    )?;
 
     let show_alerts_item = CheckMenuItem::with_id(
         app,
@@ -617,7 +727,7 @@ fn setup_tray(
         None::<&str>,
     )?;
 
-    let separator3 = PredefinedMenuItem::separator(app)?;
+    let quit_separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, menu_id::QUIT, translations.quit, true, None::<&str>)?;
 
     let show_gpu_item = CheckMenuItem::with_id(
@@ -630,8 +740,6 @@ fn setup_tray(
     )?;
 
     let menu = Menu::new(app)?;
-    menu.append(&autostart_item)?;
-    menu.append(&separator1)?;
     menu.append(&show_mem_item)?;
     menu.append(&show_cpu_item)?;
     menu.append(&show_storage_item)?;
@@ -639,9 +747,14 @@ fn setup_tray(
         menu.append(&show_gpu_item)?;
     }
     menu.append(&show_net_item)?;
-    menu.append(&separator2)?;
+    #[cfg(target_os = "macos")]
+    menu.append(&thermal_separator)?;
+    #[cfg(target_os = "macos")]
+    menu.append(&thermal_status_item)?;
+    menu.append(&settings_separator)?;
+    menu.append(&autostart_item)?;
     menu.append(&show_alerts_item)?;
-    menu.append(&separator3)?;
+    menu.append(&quit_separator)?;
     menu.append(&quit_item)?;
 
     #[cfg(target_os = "linux")]
@@ -674,6 +787,18 @@ fn setup_tray(
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
 
+    #[cfg(target_os = "macos")]
+    {
+        thermal_runtime.set_status(thermal_status);
+        *thermal_runtime
+            .ui
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(ThermalUi {
+            status_item: thermal_status_item.clone(),
+        });
+    }
+
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
     #[cfg(target_os = "macos")]
@@ -686,10 +811,15 @@ fn setup_tray(
     let net_item = show_net_item.clone();
     let autostart_menu_item = autostart_item.clone();
 
+    #[cfg(target_os = "macos")]
+    let initial_tooltip = translations.system_monitor.to_string();
+    #[cfg(not(target_os = "macos"))]
+    let initial_tooltip = translations.system_monitor.to_string();
+
     let _tray = tray_builder
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .tooltip(translations.system_monitor)
+        .tooltip(initial_tooltip)
         .on_menu_event(move |app, event| {
             let flags = [
                 metrics.show_cpu.load(Relaxed),
@@ -819,6 +949,8 @@ fn setup_initial_tray(
     gpu_available: bool,
     autostart: bool,
     translations: &'static i18n::Translations,
+    #[cfg(target_os = "macos")] thermal_runtime: &ThermalRuntime,
+    #[cfg(target_os = "macos")] thermal_status: thermal::ThermalStatus,
 ) -> Result<Font<'static>, Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     let attempts = MACOS_TRAY_SETUP_ATTEMPTS;
@@ -831,6 +963,8 @@ fn setup_initial_tray(
         match load_system_font()
             .map_err(|e| format!("Font required for tray icon: {e}"))
             .and_then(|font| {
+                #[cfg(target_os = "macos")]
+                thermal_runtime.set_status(thermal_status);
                 setup_tray(
                     app,
                     &font,
@@ -838,6 +972,8 @@ fn setup_initial_tray(
                     gpu_available,
                     autostart,
                     translations,
+                    #[cfg(target_os = "macos")]
+                    thermal_runtime,
                 )
                 .map(|()| font)
                 .map_err(|e| e.to_string())
@@ -873,7 +1009,12 @@ fn setup_initial_tray(
     Err(last_error.into())
 }
 
-fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_available: bool) {
+fn handle_second_instance_launch(
+    app: &AppHandle,
+    metrics: MetricToggles,
+    gpu_available: bool,
+    #[cfg(target_os = "macos")] thermal_runtime: ThermalRuntime,
+) {
     #[cfg(target_os = "macos")]
     {
         macos_diag_log("second_instance launch received");
@@ -900,20 +1041,37 @@ fn handle_second_instance_launch(app: &AppHandle, metrics: MetricToggles, gpu_av
             }
         } else {
             macos_diag_log("second_instance tray missing; rebuilding");
-            let (cpu, mem, storage, gpu, net, alerts, _) = load_settings(app);
-            let (cpu, mem, storage, gpu, net) =
-                normalize_metric_flags(cpu, mem, storage, gpu, net, gpu_available);
+            let settings = load_settings(app);
+            let (cpu, mem, storage, gpu, net) = normalize_metric_flags(
+                settings.show_cpu,
+                settings.show_mem,
+                settings.show_storage,
+                settings.show_gpu,
+                settings.show_net,
+                gpu_available,
+            );
             metrics.show_cpu.store(cpu, Relaxed);
             metrics.show_mem.store(mem, Relaxed);
             metrics.show_storage.store(storage, Relaxed);
             metrics.show_gpu.store(gpu, Relaxed);
             metrics.show_net.store(net, Relaxed);
-            metrics.show_alerts.store(alerts, Relaxed);
+            metrics.show_alerts.store(settings.show_alerts, Relaxed);
 
             let translations = i18n::detect_language().translations();
             let autostart = macos_autostart::is_enabled();
-            if let Err(e) = setup_initial_tray(app, metrics, gpu_available, autostart, translations)
-            {
+            #[cfg(target_os = "macos")]
+            let thermal_status = thermal::sample();
+            if let Err(e) = setup_initial_tray(
+                app,
+                metrics,
+                gpu_available,
+                autostart,
+                translations,
+                #[cfg(target_os = "macos")]
+                &thermal_runtime,
+                #[cfg(target_os = "macos")]
+                thermal_status,
+            ) {
                 eprintln!("Failed to restore tray icon on second launch: {e}");
                 macos_diag_log(format!("second_instance tray rebuild failed error={e}"));
             } else {
@@ -928,6 +1086,8 @@ fn start_monitoring(
     font: Font<'static>,
     metrics: MetricToggles,
     mut gpu_sampler: Option<GpuSampler>,
+    #[cfg(target_os = "macos")] thermal_runtime: ThermalRuntime,
+    #[cfg(target_os = "macos")] translations: &'static i18n::Translations,
 ) {
     thread::spawn(move || {
         let mut sys = System::new();
@@ -951,6 +1111,12 @@ fn start_monitoring(
         let mut prev_up_speed: f64 = -1.0;
         let mut prev_flags: (bool, bool, bool, bool, bool, bool, bool) =
             (false, false, false, false, false, false, false);
+        #[cfg(target_os = "macos")]
+        let mut thermal_tracker = thermal::ThermalTracker::new(thermal_runtime.status());
+        #[cfg(target_os = "macos")]
+        let mut thermal_last_sample: Option<std::time::Instant> = None;
+        #[cfg(target_os = "macos")]
+        let mut prev_thermal_status = thermal_tracker.displayed();
         let update_interval = get_update_interval_ms();
         let mut tick_count: u32 = 0;
 
@@ -984,6 +1150,24 @@ fn start_monitoring(
 
             let flags_changed = prev_flags != current_flags;
             let net_was_enabled = prev_flags.4;
+
+            #[cfg(target_os = "macos")]
+            if thermal::should_poll(true, thermal_last_sample, now) {
+                let sampled = thermal::sample();
+                thermal_last_sample = Some(now);
+                thermal_tracker.observe(sampled);
+                thermal_runtime.set_status(thermal_tracker.displayed());
+            } else {
+                let shared = thermal_runtime.status();
+                if shared != thermal_tracker.displayed() {
+                    thermal_tracker = thermal::ThermalTracker::new(shared);
+                }
+            }
+            #[cfg(target_os = "macos")]
+            if thermal_tracker.displayed() != prev_thermal_status {
+                prev_thermal_status = thermal_tracker.displayed();
+                update_thermal_ui(&thermal_runtime.ui, translations, prev_thermal_status);
+            }
 
             // Refresh only metrics currently visible in the tray
             if sc {
@@ -1083,7 +1267,6 @@ fn start_monitoring(
                     prev_up_speed = up_speed;
                 }
                 prev_flags = current_flags;
-
                 let (width, height, _has_active_alert) = renderer.render_tray_icon_into(
                     &font,
                     &mut render_buffer,
@@ -1189,13 +1372,24 @@ pub fn run() {
     let tray_metrics = metrics.clone();
     let second_instance_metrics = metrics.clone();
 
+    #[cfg(target_os = "macos")]
+    let thermal_runtime = ThermalRuntime::new();
+    #[cfg(target_os = "macos")]
+    let second_instance_thermal_runtime = thermal_runtime.clone();
+
     let gpu_sampler = GpuSampler::new();
     let gpu_available = gpu_sampler.is_some();
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(
             move |app, _args, _cwd| {
-                handle_second_instance_launch(app, second_instance_metrics.clone(), gpu_available);
+                handle_second_instance_launch(
+                    app,
+                    second_instance_metrics.clone(),
+                    gpu_available,
+                    #[cfg(target_os = "macos")]
+                    second_instance_thermal_runtime.clone(),
+                );
             },
         ))
         .plugin(tauri_plugin_store::Builder::new().build());
@@ -1225,27 +1419,37 @@ pub fn run() {
             #[cfg(target_os = "linux")]
             start_theme_detection_thread();
 
-            let (cpu, mem, storage, gpu, net, alerts, stored_autostart) =
-                load_settings(app.handle());
+            let settings = load_settings(app.handle());
             let (cpu, mem, storage, gpu, net) =
-                normalize_metric_flags(cpu, mem, storage, gpu, net, gpu_available);
+                normalize_metric_flags(
+                    settings.show_cpu,
+                    settings.show_mem,
+                    settings.show_storage,
+                    settings.show_gpu,
+                    settings.show_net,
+                    gpu_available,
+                );
             #[cfg(target_os = "macos")]
             // The macOS menu reflects live SMAppService state only.
             let autostart = macos_autostart::is_enabled();
             #[cfg(not(target_os = "macos"))]
-            let autostart = stored_autostart;
+            let autostart = settings.autostart;
             #[cfg(target_os = "macos")]
             macos_diag_log(format!(
-                "settings loaded stored_autostart={stored_autostart} system_autostart={autostart} metrics cpu={cpu} mem={mem} storage={storage} gpu={gpu} net={net} alerts={alerts} gpu_available={gpu_available}"
+                "settings loaded stored_autostart={} system_autostart={autostart} metrics cpu={cpu} mem={mem} storage={storage} gpu={gpu} net={net} alerts={} gpu_available={gpu_available}",
+                settings.autostart,
+                settings.show_alerts,
             ));
             tray_metrics.show_cpu.store(cpu, Relaxed);
             tray_metrics.show_mem.store(mem, Relaxed);
             tray_metrics.show_storage.store(storage, Relaxed);
             tray_metrics.show_gpu.store(gpu, Relaxed);
             tray_metrics.show_net.store(net, Relaxed);
-            tray_metrics.show_alerts.store(alerts, Relaxed);
-
+            tray_metrics.show_alerts.store(settings.show_alerts, Relaxed);
             let translations = i18n::detect_language().translations();
+
+            #[cfg(target_os = "macos")]
+            let thermal_status = thermal::sample();
 
             let font = setup_initial_tray(
                 app.handle(),
@@ -1253,9 +1457,22 @@ pub fn run() {
                 gpu_available,
                 autostart,
                 translations,
+                #[cfg(target_os = "macos")]
+                &thermal_runtime,
+                #[cfg(target_os = "macos")]
+                thermal_status,
             )?;
 
-            start_monitoring(app.handle().clone(), font, metrics, gpu_sampler);
+            start_monitoring(
+                app.handle().clone(),
+                font,
+                metrics,
+                gpu_sampler,
+                #[cfg(target_os = "macos")]
+                thermal_runtime,
+                #[cfg(target_os = "macos")]
+                translations,
+            );
 
             Ok(())
         })

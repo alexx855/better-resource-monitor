@@ -642,6 +642,69 @@ fn test_all_languages_have_translations() {
         assert!(!t.show_alert_colors.is_empty());
         assert!(!t.quit.is_empty());
         assert!(!t.system_monitor.is_empty());
+        assert!(!t.thermal_status.is_empty());
+        assert!(!t.thermal_unavailable.is_empty());
+        assert!(!t.thermal_nominal.is_empty());
+        assert!(!t.thermal_fair.is_empty());
+        assert!(!t.thermal_serious.is_empty());
+        assert!(!t.thermal_critical.is_empty());
+    }
+}
+
+#[test]
+fn test_thermal_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Status",
+                "Unavailable",
+                "Nominal",
+                "Fair",
+                "Serious",
+                "Critical",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Estado",
+                "No disponible",
+                "Normal",
+                "Elevado",
+                "Alto",
+                "Crítico",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Estado",
+                "Indisponível",
+                "Normal",
+                "Elevado",
+                "Alto",
+                "Crítico",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            ["状态", "不可用", "正常", "偏高", "高", "危急"],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let translations = language.translations();
+        let actual = [
+            translations.thermal_status,
+            translations.thermal_unavailable,
+            translations.thermal_nominal,
+            translations.thermal_fair,
+            translations.thermal_serious,
+            translations.thermal_critical,
+        ];
+
+        assert_eq!(actual, expected, "language={language:?}");
     }
 }
 
@@ -651,4 +714,66 @@ fn test_english_defaults() {
     assert_eq!(t.quit, "Quit");
     assert_eq!(t.system_monitor, "System Monitor");
     assert_eq!(t.show_storage, "Show Storage");
+    assert_eq!(t.thermal_status, "Status");
+    assert_eq!(t.thermal_unavailable, "Unavailable");
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_menu_status_text_is_localized_for_every_locale() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Status: Nominal",
+                "Status: Fair",
+                "Status: Serious",
+                "Status: Critical",
+                "Status: Unavailable",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Estado: Normal",
+                "Estado: Elevado",
+                "Estado: Alto",
+                "Estado: Crítico",
+                "Estado: No disponible",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Estado: Normal",
+                "Estado: Elevado",
+                "Estado: Alto",
+                "Estado: Crítico",
+                "Estado: Indisponível",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            [
+                "状态: 正常",
+                "状态: 偏高",
+                "状态: 高",
+                "状态: 危急",
+                "状态: 不可用",
+            ],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let translations = language.translations();
+        let actual = [
+            thermal_status_text(translations, thermal::ThermalStatus::Nominal),
+            thermal_status_text(translations, thermal::ThermalStatus::Fair),
+            thermal_status_text(translations, thermal::ThermalStatus::Serious),
+            thermal_status_text(translations, thermal::ThermalStatus::Critical),
+            thermal_status_text(translations, thermal::ThermalStatus::Unavailable),
+        ];
+
+        assert_eq!(actual, expected, "language={language:?}");
+    }
 }

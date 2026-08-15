@@ -17,7 +17,7 @@
 - **Priority**: P1
 - **Effort**: M
 - **Risk**: MED
-- **Depends on**: plans/002-add-website-build-to-ci.md recommended first
+- **Depends on**: plans/archive/002-add-website-build-to-ci.md recommended first
 - **Category**: security
 - **Planned at**: commit `d3646b8`, 2026-06-11
 
