@@ -642,6 +642,148 @@ fn test_all_languages_have_translations() {
         assert!(!t.show_alert_colors.is_empty());
         assert!(!t.quit.is_empty());
         assert!(!t.system_monitor.is_empty());
+        assert!(!t.thermal_status.is_empty());
+        assert!(!t.thermal_unavailable.is_empty());
+        assert!(!t.thermal_nominal.is_empty());
+        assert!(!t.thermal_fair.is_empty());
+        assert!(!t.thermal_serious.is_empty());
+        assert!(!t.thermal_critical.is_empty());
+    }
+}
+
+#[test]
+fn test_menu_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Start at login",
+                "Show memory",
+                "Show CPU",
+                "Show storage",
+                "Show GPU",
+                "Show network",
+                "Show warning colors",
+                "Quit",
+                "System monitor",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Abrir al iniciar sesión",
+                "Mostrar memoria",
+                "Mostrar CPU",
+                "Mostrar almacenamiento",
+                "Mostrar GPU",
+                "Mostrar uso de red",
+                "Mostrar colores de advertencia",
+                "Salir",
+                "Monitor del sistema",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Iniciar com o sistema",
+                "Mostrar memória",
+                "Mostrar CPU",
+                "Mostrar armazenamento",
+                "Mostrar GPU",
+                "Mostrar rede",
+                "Mostrar cores de aviso",
+                "Sair",
+                "Monitor do sistema",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            [
+                "登录时启动",
+                "显示内存",
+                "显示 CPU",
+                "显示存储空间",
+                "显示 GPU",
+                "显示网络",
+                "显示警告颜色",
+                "退出",
+                "系统监控器",
+            ],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let translations = language.translations();
+        let actual = [
+            translations.start_at_login,
+            translations.show_memory,
+            translations.show_cpu,
+            translations.show_storage,
+            translations.show_gpu,
+            translations.show_network,
+            translations.show_alert_colors,
+            translations.quit,
+            translations.system_monitor,
+        ];
+
+        assert_eq!(actual, expected, "language={language:?}");
+    }
+}
+
+#[test]
+fn test_thermal_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Thermal status",
+                "unavailable",
+                "nominal",
+                "fair",
+                "serious",
+                "critical",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Estado térmico",
+                "no disponible",
+                "normal",
+                "elevado",
+                "alto",
+                "crítico",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Estado térmico",
+                "indisponível",
+                "normal",
+                "elevado",
+                "alto",
+                "crítico",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            ["温度状态", "不可用", "正常", "偏高", "高", "危急"],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let translations = language.translations();
+        let actual = [
+            translations.thermal_status,
+            translations.thermal_unavailable,
+            translations.thermal_nominal,
+            translations.thermal_fair,
+            translations.thermal_serious,
+            translations.thermal_critical,
+        ];
+
+        assert_eq!(actual, expected, "language={language:?}");
     }
 }
 
@@ -649,6 +791,74 @@ fn test_all_languages_have_translations() {
 fn test_english_defaults() {
     let t = i18n::Language::English.translations();
     assert_eq!(t.quit, "Quit");
-    assert_eq!(t.system_monitor, "System Monitor");
-    assert_eq!(t.show_storage, "Show Storage");
+    assert_eq!(t.start_at_login, "Start at login");
+    assert_eq!(t.show_memory, "Show memory");
+    assert_eq!(t.show_cpu, "Show CPU");
+    assert_eq!(t.show_storage, "Show storage");
+    assert_eq!(t.show_gpu, "Show GPU");
+    assert_eq!(t.show_network, "Show network");
+    assert_eq!(t.show_alert_colors, "Show warning colors");
+    assert_eq!(t.system_monitor, "System monitor");
+    assert_eq!(t.thermal_status, "Thermal status");
+    assert_eq!(t.thermal_unavailable, "unavailable");
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_menu_status_text_is_localized_for_every_locale() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Thermal status: nominal",
+                "Thermal status: fair",
+                "Thermal status: serious",
+                "Thermal status: critical",
+                "Thermal status: unavailable",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Estado térmico: normal",
+                "Estado térmico: elevado",
+                "Estado térmico: alto",
+                "Estado térmico: crítico",
+                "Estado térmico: no disponible",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Estado térmico: normal",
+                "Estado térmico: elevado",
+                "Estado térmico: alto",
+                "Estado térmico: crítico",
+                "Estado térmico: indisponível",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            [
+                "温度状态: 正常",
+                "温度状态: 偏高",
+                "温度状态: 高",
+                "温度状态: 危急",
+                "温度状态: 不可用",
+            ],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let translations = language.translations();
+        let actual = [
+            thermal_status_text(translations, thermal::ThermalStatus::Nominal),
+            thermal_status_text(translations, thermal::ThermalStatus::Fair),
+            thermal_status_text(translations, thermal::ThermalStatus::Serious),
+            thermal_status_text(translations, thermal::ThermalStatus::Critical),
+            thermal_status_text(translations, thermal::ThermalStatus::Unavailable),
+        ];
+
+        assert_eq!(actual, expected, "language={language:?}");
+    }
 }

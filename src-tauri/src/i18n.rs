@@ -8,6 +8,12 @@ pub struct Translations {
     pub show_alert_colors: &'static str,
     pub quit: &'static str,
     pub system_monitor: &'static str,
+    pub thermal_status: &'static str,
+    pub thermal_unavailable: &'static str,
+    pub thermal_nominal: &'static str,
+    pub thermal_fair: &'static str,
+    pub thermal_serious: &'static str,
+    pub thermal_critical: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,15 +25,21 @@ pub enum Language {
 }
 
 const ENGLISH: Translations = Translations {
-    start_at_login: "Start at Login",
-    show_memory: "Show Memory",
+    start_at_login: "Start at login",
+    show_memory: "Show memory",
     show_cpu: "Show CPU",
-    show_storage: "Show Storage",
+    show_storage: "Show storage",
     show_gpu: "Show GPU",
-    show_network: "Show Network",
-    show_alert_colors: "Show Alert Colors",
+    show_network: "Show network",
+    show_alert_colors: "Show warning colors",
     quit: "Quit",
-    system_monitor: "System Monitor",
+    system_monitor: "System monitor",
+    thermal_status: "Thermal status",
+    thermal_unavailable: "unavailable",
+    thermal_nominal: "nominal",
+    thermal_fair: "fair",
+    thermal_serious: "serious",
+    thermal_critical: "critical",
 };
 
 const SPANISH: Translations = Translations {
@@ -37,9 +49,15 @@ const SPANISH: Translations = Translations {
     show_storage: "Mostrar almacenamiento",
     show_gpu: "Mostrar GPU",
     show_network: "Mostrar uso de red",
-    show_alert_colors: "Mostrar colores de alerta",
+    show_alert_colors: "Mostrar colores de advertencia",
     quit: "Salir",
     system_monitor: "Monitor del sistema",
+    thermal_status: "Estado térmico",
+    thermal_unavailable: "no disponible",
+    thermal_nominal: "normal",
+    thermal_fair: "elevado",
+    thermal_serious: "alto",
+    thermal_critical: "crítico",
 };
 
 const PORTUGUESE: Translations = Translations {
@@ -49,9 +67,15 @@ const PORTUGUESE: Translations = Translations {
     show_storage: "Mostrar armazenamento",
     show_gpu: "Mostrar GPU",
     show_network: "Mostrar rede",
-    show_alert_colors: "Mostrar alertas de cor",
+    show_alert_colors: "Mostrar cores de aviso",
     quit: "Sair",
     system_monitor: "Monitor do sistema",
+    thermal_status: "Estado térmico",
+    thermal_unavailable: "indisponível",
+    thermal_nominal: "normal",
+    thermal_fair: "elevado",
+    thermal_serious: "alto",
+    thermal_critical: "crítico",
 };
 
 const CHINESE: Translations = Translations {
@@ -61,9 +85,15 @@ const CHINESE: Translations = Translations {
     show_storage: "显示存储空间",
     show_gpu: "显示 GPU",
     show_network: "显示网络",
-    show_alert_colors: "显示警报颜色",
+    show_alert_colors: "显示警告颜色",
     quit: "退出",
     system_monitor: "系统监控器",
+    thermal_status: "温度状态",
+    thermal_unavailable: "不可用",
+    thermal_nominal: "正常",
+    thermal_fair: "偏高",
+    thermal_serious: "高",
+    thermal_critical: "危急",
 };
 
 impl Language {
