@@ -740,6 +740,10 @@ fn setup_tray(
     )?;
 
     let menu = Menu::new(app)?;
+    #[cfg(target_os = "macos")]
+    menu.append(&thermal_status_item)?;
+    #[cfg(target_os = "macos")]
+    menu.append(&thermal_separator)?;
     menu.append(&show_mem_item)?;
     menu.append(&show_cpu_item)?;
     menu.append(&show_storage_item)?;
@@ -747,10 +751,6 @@ fn setup_tray(
         menu.append(&show_gpu_item)?;
     }
     menu.append(&show_net_item)?;
-    #[cfg(target_os = "macos")]
-    menu.append(&thermal_separator)?;
-    #[cfg(target_os = "macos")]
-    menu.append(&thermal_status_item)?;
     menu.append(&settings_separator)?;
     menu.append(&autostart_item)?;
     menu.append(&show_alerts_item)?;

@@ -26,7 +26,7 @@ app distributed through TestFlight and the Mac App Store.
 | Persistent tray preferences | ✅ Shipping | Visibility toggles and alert-color preference are stored locally through the Tauri store plugin. |
 | Alert-color tray states | ✅ Shipping | Implemented in the renderer and covered by tests. |
 | Tray rendering performance work | Partial | Hysteresis thresholds, buffer reuse, and renderer-focused tests exist, but this still reads like ongoing optimization rather than a finished performance story. |
-| Start at Login tied to real macOS Login Items state | ✅ Shipping | TestFlight/App Store builds use `SMAppService.mainAppService()` and the menu reflects the live macOS Login Items state. |
+| Start at login tied to real macOS Login Items state | ✅ Shipping | TestFlight/App Store builds use `SMAppService.mainAppService()` and the menu reflects the live macOS Login Items state. |
 | Intel compatibility | In Progress | Keep Intel marked in progress until the signed TestFlight/App Store app passes verification on Intel hardware. |
 | Marketing website | Partial | The repo includes a real Astro marketing site under `www/`, but roadmap and product docs inside the app repo are still fairly lean. |
 | Linux packaging/productization | Experimental | Linux bundle metadata exists in Tauri config, but there is no supported installer, release process, or end-user positioning for Linux yet. |

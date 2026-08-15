@@ -6,7 +6,7 @@ autostart has one supported implementation: the main app registers itself with
 
 ## Runtime Contract
 
-- The Start at Login menu item reflects the live `SMAppService` main-app status.
+- The Start at login menu item reflects the live `SMAppService` main-app status.
 - TestFlight/App Store builds launch from
   `/Applications/Better Resource Monitor.app`.
 - Production app launches require the App Store/TestFlight receipt at
@@ -25,7 +25,7 @@ feature, then verifies the expected team/application identifier entitlements,
 and no bundled LaunchAgents.
 
 The old local installed-app autostart verifier has been removed because the
-Start at Login flow has passed validation. Future autostart changes should be
+Start at login flow has passed validation. Future autostart changes should be
 verified manually from an installed TestFlight/App Store build: enable Start at
-Login, log out and back in, then confirm the app starts and the menu item still
+login, log out and back in, then confirm the app starts and the menu item still
 matches macOS Login Items state.
