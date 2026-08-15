@@ -20,7 +20,7 @@ directory. That made completed work look active.
 | Item | Status | Current meaning |
 | --- | --- | --- |
 | 012 — App Store-safe Thermal Status | IMPLEMENTED — menu-only qualitative status | The numeric Celsius requirement remains blocked by the App Sandbox/public-API boundary. The replacement uses public qualitative APIs and exposes a dimmed localized status row in the macOS tray menu (`src-tauri/src/thermal.rs`). |
-| [013 — Refresh Website Advisory Floors](013-refresh-www-advisory-floors.md) | IN PROGRESS — dependency remediation | The original advisory cleanup landed, but the required CI audit still reports 8 transitive advisories: 3 high and 5 moderate. This narrowly scoped follow-up raises only the patched transitive floors before the next merge attempt. |
+| [013 — Refresh Website Advisory Floors](013-refresh-www-advisory-floors.md) | IMPLEMENTED — dependency remediation | The required audit now passes with no known vulnerabilities after raising only the patched `undici`, `js-yaml`, `nanoid`, and `postcss` floors. |
 
 ## Implemented and archived
 
@@ -44,14 +44,14 @@ These plans' source changes are present in the current `main` history:
 
 ## Current verification snapshot
 
-Verified 2026-08-14 in the current worktree:
+Verified 2026-08-15 in the current worktree:
 
 - `cargo fmt --manifest-path src-tauri/Cargo.toml --check` — passed.
 - `cargo test --manifest-path src-tauri/Cargo.toml` — passed, 37 tests (38 with the `app-store` feature).
 - `node scripts/check-locale-parity.mjs` — passed.
 - `pnpm --filter www check` — passed, 0 errors/warnings/hints.
 - `pnpm build:www` — passed, 29 pages.
-- `pnpm audit --prod --audit-level high` — currently fails with 8 transitive advisories; this is the Plan 003 follow-up above.
+- `pnpm audit --prod --audit-level low` — passed, no known vulnerabilities.
 
 Status vocabulary: `TODO` means active work is not implemented; `IMPLEMENTED`
 means the code is present in `main`; `SUPERSEDED` means do not execute the old
