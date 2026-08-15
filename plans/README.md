@@ -20,7 +20,7 @@ directory. That made completed work look active.
 | Item | Status | Current meaning |
 | --- | --- | --- |
 | 012 — App Store-safe Thermal Status | IMPLEMENTED — menu-only qualitative status | The numeric Celsius requirement remains blocked by the App Sandbox/public-API boundary. The replacement uses public qualitative APIs and exposes a dimmed localized status row in the macOS tray menu (`src-tauri/src/thermal.rs`). |
-| Plan 003 follow-up | TODO — refresh dependency remediation | The original advisory cleanup landed, but the current audit reports 8 transitive advisories: 3 high and 5 moderate. Create a new narrowly scoped remediation plan before changing dependencies. |
+| [013 — Refresh Website Advisory Floors](013-refresh-www-advisory-floors.md) | IN PROGRESS — dependency remediation | The original advisory cleanup landed, but the required CI audit still reports 8 transitive advisories: 3 high and 5 moderate. This narrowly scoped follow-up raises only the patched transitive floors before the next merge attempt. |
 
 ## Implemented and archived
 
