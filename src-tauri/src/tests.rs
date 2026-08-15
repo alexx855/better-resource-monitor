@@ -57,12 +57,6 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         show_alerts: true,
         use_light_icons: true,
         background: None,
-        #[cfg(target_os = "macos")]
-        show_thermal: false,
-        #[cfg(target_os = "macos")]
-        thermal_status: thermal::ThermalStatus::Nominal,
-        #[cfg(target_os = "macos")]
-        thermal_label: "NOM",
     }
 }
 
@@ -70,34 +64,6 @@ fn assert_render_size(buffer: &[u8], width: u32, height: u32, expected_width: u3
     assert_eq!(width, expected_width);
     assert_eq!(height, APP_SIZING.icon_height);
     assert_eq!(buffer.len(), (width * height * 4) as usize);
-}
-
-#[cfg(target_os = "macos")]
-fn alpha_runs(buffer: &[u8], width: u32, start: u32, end: u32) -> Vec<(u32, u32)> {
-    let mut runs = Vec::new();
-    let mut run_start = None;
-
-    for x in start..end {
-        let has_alpha = (0..APP_SIZING.icon_height).any(|y| {
-            let index = ((y * width + x) * 4 + 3) as usize;
-            buffer[index] > 8
-        });
-
-        match (run_start, has_alpha) {
-            (None, true) => run_start = Some(x),
-            (Some(begin), false) => {
-                runs.push((begin, x - 1));
-                run_start = None;
-            }
-            _ => {}
-        }
-    }
-
-    if let Some(begin) = run_start {
-        runs.push((begin, end - 1));
-    }
-
-    runs
 }
 
 fn assert_sizing(sizing: tray_render::Sizing, expected: (u32, u32, u32, u32, u32, f32)) {
@@ -579,127 +545,6 @@ fn test_render_all_default_visible_metrics_width() {
     assert_render_size(&buffer, width, height, expected_width);
 }
 
-#[cfg(target_os = "macos")]
-#[test]
-fn test_thermal_states_keep_fixed_width_and_unavailable_removes_segment() {
-    let font = load_system_font().expect("test font required");
-    let mut buffer = Vec::new();
-    let mut renderer = tray_render::TrayRenderer::new();
-    let expected_with_thermal =
-        APP_SIZING.edge_padding * 2 + APP_SIZING.segment_width * 3 + APP_SIZING.segment_gap * 2;
-    let expected_without_thermal =
-        APP_SIZING.edge_padding * 2 + APP_SIZING.segment_width * 2 + APP_SIZING.segment_gap;
-
-    for status in [
-        thermal::ThermalStatus::Nominal,
-        thermal::ThermalStatus::Fair,
-        thermal::ThermalStatus::Serious,
-        thermal::ThermalStatus::Critical,
-    ] {
-        let (width, height, _) = renderer.render_tray_icon_into(
-            &font,
-            &mut buffer,
-            &tray_render::RenderConfig {
-                show_thermal: true,
-                thermal_status: status,
-                ..base_render_config()
-            },
-        );
-        assert_render_size(&buffer, width, height, expected_with_thermal);
-    }
-
-    let (width, height, _) = renderer.render_tray_icon_into(
-        &font,
-        &mut buffer,
-        &tray_render::RenderConfig {
-            show_thermal: true,
-            thermal_status: thermal::ThermalStatus::Unavailable,
-            ..base_render_config()
-        },
-    );
-    assert_render_size(&buffer, width, height, expected_without_thermal);
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn test_thermal_segment_uses_metric_spacing_and_text() {
-    let font = load_system_font().expect("test font required");
-    let mut buffer = Vec::new();
-    let mut renderer = tray_render::TrayRenderer::new();
-    let config = tray_render::RenderConfig {
-        show_mem: false,
-        show_thermal: true,
-        thermal_status: thermal::ThermalStatus::Fair,
-        thermal_label: "FAIR",
-        ..base_render_config()
-    };
-
-    let (width, _, _) = renderer.render_tray_icon_into(&font, &mut buffer, &config);
-    let thermal_start = APP_SIZING.edge_padding + APP_SIZING.segment_width + APP_SIZING.segment_gap;
-    let thermal_end = thermal_start + APP_SIZING.segment_width;
-    let runs = alpha_runs(&buffer, width, thermal_start, thermal_end);
-
-    assert!(
-        runs.len() >= 2,
-        "thermal segment must contain icon and label"
-    );
-    assert!(
-        runs.first().unwrap().0 <= thermal_start + 20,
-        "thermal icon should share the metric left edge: {runs:?}"
-    );
-    assert!(
-        runs.last().unwrap().1 >= thermal_end - 8,
-        "thermal label should share the metric right edge: {runs:?}"
-    );
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn test_thermal_status_is_opt_in_by_default() {
-    const {
-        assert!(!DEFAULT_SHOW_THERMAL_STATUS);
-    }
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn test_thermal_alert_colors_follow_existing_alert_path() {
-    let font = load_system_font().expect("test font required");
-    let mut buffer = Vec::new();
-    let mut renderer = tray_render::TrayRenderer::new();
-
-    for (status, expected_alert) in [
-        (thermal::ThermalStatus::Nominal, false),
-        (thermal::ThermalStatus::Fair, false),
-        (thermal::ThermalStatus::Serious, true),
-        (thermal::ThermalStatus::Critical, true),
-    ] {
-        let (_, _, has_alert) = renderer.render_tray_icon_into(
-            &font,
-            &mut buffer,
-            &tray_render::RenderConfig {
-                show_thermal: true,
-                thermal_status: status,
-                show_alerts: true,
-                ..base_render_config()
-            },
-        );
-        assert_eq!(has_alert, expected_alert, "status={status:?}");
-
-        let (_, _, has_alert) = renderer.render_tray_icon_into(
-            &font,
-            &mut buffer,
-            &tray_render::RenderConfig {
-                show_thermal: true,
-                thermal_status: status,
-                show_alerts: false,
-                ..base_render_config()
-            },
-        );
-        assert!(!has_alert, "status={status:?} with alert colors disabled");
-    }
-}
-
 #[test]
 fn test_render_buffer_matches_rgba_dimensions() {
     // The monitor loop skips a frame when the rendered buffer is not exactly
@@ -794,19 +639,15 @@ fn test_all_languages_have_translations() {
         assert!(!t.show_storage.is_empty());
         assert!(!t.show_gpu.is_empty());
         assert!(!t.show_network.is_empty());
-        assert!(!t.show_thermal_status.is_empty());
         assert!(!t.show_alert_colors.is_empty());
         assert!(!t.quit.is_empty());
         assert!(!t.system_monitor.is_empty());
         assert!(!t.thermal_status.is_empty());
+        assert!(!t.thermal_unavailable.is_empty());
         assert!(!t.thermal_nominal.is_empty());
         assert!(!t.thermal_fair.is_empty());
         assert!(!t.thermal_serious.is_empty());
         assert!(!t.thermal_critical.is_empty());
-        assert!(!t.thermal_nominal_short.is_empty());
-        assert!(!t.thermal_fair_short.is_empty());
-        assert!(!t.thermal_serious_short.is_empty());
-        assert!(!t.thermal_critical_short.is_empty());
         assert!(!t.thermal_nominal_explanation.is_empty());
         assert!(!t.thermal_fair_explanation.is_empty());
         assert!(!t.thermal_serious_explanation.is_empty());
@@ -820,6 +661,21 @@ fn test_english_defaults() {
     assert_eq!(t.quit, "Quit");
     assert_eq!(t.system_monitor, "System Monitor");
     assert_eq!(t.show_storage, "Show Storage");
-    assert_eq!(t.show_thermal_status, "Show Thermal Status");
-    assert_eq!(t.thermal_nominal_short, "NOM");
+    assert_eq!(t.thermal_status, "Thermal Status");
+    assert_eq!(t.thermal_unavailable, "Unavailable");
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn test_thermal_menu_status_text_is_human_readable() {
+    let translations = i18n::Language::English.translations();
+
+    assert_eq!(
+        thermal_status_text(translations, thermal::ThermalStatus::Nominal),
+        "Thermal Status: Nominal — Thermal conditions are normal."
+    );
+    assert_eq!(
+        thermal_status_text(translations, thermal::ThermalStatus::Unavailable),
+        "Thermal Status: Unavailable"
+    );
 }

@@ -7,12 +7,10 @@ use image::codecs::png::PngEncoder;
 use image::ColorType;
 use image::ImageEncoder;
 
-#[cfg(target_os = "macos")]
-use better_resource_monitor_lib::thermal::ThermalStatus;
 use better_resource_monitor_lib::{load_system_font, tray_render};
 
 fn usage() -> &'static str {
-    "render_tray_icon\n\nUSAGE:\n  cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- [args]\n\nARGS:\n  --out <path>                     Output PNG path (required)\n  --preset <macos|linux>           Sizing preset (default: host OS)\n  --scale <float>                  Uniform scale factor (default: 1.0)\n\n  --cpu <float>                    CPU percent (default: 45)\n  --mem <float>                    Memory percent (default: 57)\n  --storage <float>                Storage percent (default: 79)\n  --gpu <float>                    GPU percent (default: 32)\n  --down <string>                  Download display (default: 1.5 MB)\n  --up <string>                    Upload display (default: 0.2 MB)\n\n  --alert-cpu <float>              Alert row CPU percent (default: 93)\n  --alert-mem <float>              Alert row memory percent (default: 96)\n  --alert-storage <float>          Alert row storage percent (default: 92)\n  --alert-gpu <float>              Alert row GPU percent (default: 91)\n  --alert-down <string>            Alert row download display (default: 12 MB)\n  --alert-up <string>              Alert row upload display (default: 3.1 MB)\n\n  --show-cpu <true|false>          (default: true)\n  --show-mem <true|false>          (default: true)\n  --show-storage <true|false>      (default: true)\n  --show-gpu <true|false>          (default: true)\n  --show-net <true|false>          (default: true)\n  --show-thermal <true|false>      (default: false, macOS only)\n  --thermal <nominal|fair|serious|critical|unavailable> (default: nominal, macOS only)\n  --show-alerts <true|false>       (default: true)\n  --use-light-icons <true|false>   (default: true)\n  --include-alert-row <true|false> (default: false)\n\n  --bg <transparent|#RRGGBB|#RRGGBBAA> (default: transparent)\n  --help\n"
+    "render_tray_icon\n\nUSAGE:\n  cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- [args]\n\nARGS:\n  --out <path>                     Output PNG path (required)\n  --preset <macos|linux>           Sizing preset (default: host OS)\n  --scale <float>                  Uniform scale factor (default: 1.0)\n\n  --cpu <float>                    CPU percent (default: 45)\n  --mem <float>                    Memory percent (default: 57)\n  --storage <float>                Storage percent (default: 79)\n  --gpu <float>                    GPU percent (default: 32)\n  --down <string>                  Download display (default: 1.5 MB)\n  --up <string>                    Upload display (default: 0.2 MB)\n\n  --alert-cpu <float>              Alert row CPU percent (default: 93)\n  --alert-mem <float>              Alert row memory percent (default: 96)\n  --alert-storage <float>          Alert row storage percent (default: 92)\n  --alert-gpu <float>              Alert row GPU percent (default: 91)\n  --alert-down <string>            Alert row download display (default: 12 MB)\n  --alert-up <string>              Alert row upload display (default: 3.1 MB)\n\n  --show-cpu <true|false>          (default: true)\n  --show-mem <true|false>          (default: true)\n  --show-storage <true|false>      (default: true)\n  --show-gpu <true|false>          (default: true)\n  --show-net <true|false>          (default: true)\n  --show-alerts <true|false>       (default: true)\n  --use-light-icons <true|false>   (default: true)\n  --include-alert-row <true|false> (default: false)\n\n  --bg <transparent|#RRGGBB|#RRGGBBAA> (default: transparent)\n  --help\n"
 }
 
 #[derive(Clone, Copy)]
@@ -44,18 +42,6 @@ fn parse_bool(s: &str, key: &str) -> bool {
 fn parse_f32(s: &str, key: &str) -> f32 {
     s.parse::<f32>()
         .unwrap_or_else(|_| panic!("{key} must be a number"))
-}
-
-#[cfg(target_os = "macos")]
-fn parse_thermal(s: &str) -> ThermalStatus {
-    match s {
-        "nominal" => ThermalStatus::Nominal,
-        "fair" => ThermalStatus::Fair,
-        "serious" => ThermalStatus::Serious,
-        "critical" => ThermalStatus::Critical,
-        "unavailable" => ThermalStatus::Unavailable,
-        _ => panic!("--thermal must be nominal, fair, serious, critical, or unavailable"),
-    }
 }
 
 fn parse_bg_hex(s: &str) -> Option<tray_render::Background> {
@@ -204,16 +190,6 @@ fn main() {
         .get("--show-net")
         .map(|v| parse_bool(v, "--show-net"))
         .unwrap_or(true);
-    #[cfg(target_os = "macos")]
-    let show_thermal = args
-        .get("--show-thermal")
-        .map(|v| parse_bool(v, "--show-thermal"))
-        .unwrap_or(false);
-    #[cfg(target_os = "macos")]
-    let thermal_status = args
-        .get("--thermal")
-        .map(|v| parse_thermal(v))
-        .unwrap_or(ThermalStatus::Nominal);
     let show_alerts = args
         .get("--show-alerts")
         .map(|v| parse_bool(v, "--show-alerts"))
@@ -262,12 +238,6 @@ fn main() {
         show_alerts,
         use_light_icons,
         background,
-        #[cfg(target_os = "macos")]
-        show_thermal,
-        #[cfg(target_os = "macos")]
-        thermal_status,
-        #[cfg(target_os = "macos")]
-        thermal_label: thermal_status.short_label(),
     };
 
     let (width, height, _has_alert) =

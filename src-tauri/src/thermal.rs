@@ -19,24 +19,6 @@ pub enum ThermalStatus {
 }
 
 impl ThermalStatus {
-    pub fn is_available(self) -> bool {
-        !matches!(self, Self::Unavailable)
-    }
-
-    pub fn is_alert(self) -> bool {
-        matches!(self, Self::Serious | Self::Critical)
-    }
-
-    pub fn short_label(self) -> &'static str {
-        match self {
-            Self::Unavailable => "",
-            Self::Nominal => "NOM",
-            Self::Fair => "FAIR",
-            Self::Serious => "HIGH",
-            Self::Critical => "CRIT",
-        }
-    }
-
     fn rank(self) -> Option<u8> {
         match self {
             Self::Unavailable => None,
@@ -199,15 +181,6 @@ mod tests {
             Some(ThermalStatus::Serious)
         );
         assert_eq!(ThermalStatus::from_iopm_level(99), None);
-    }
-
-    #[test]
-    fn short_labels_are_compact_for_fixed_width_tray_segments() {
-        assert_eq!(ThermalStatus::Nominal.short_label(), "NOM");
-        assert_eq!(ThermalStatus::Fair.short_label(), "FAIR");
-        assert_eq!(ThermalStatus::Serious.short_label(), "HIGH");
-        assert_eq!(ThermalStatus::Critical.short_label(), "CRIT");
-        assert_eq!(ThermalStatus::Unavailable.short_label(), "");
     }
 
     #[test]

@@ -3,25 +3,12 @@ use std::collections::HashMap;
 use image::{ImageBuffer, Rgba};
 use rusttype::{Font, Scale};
 
-#[cfg(target_os = "macos")]
-use crate::thermal::ThermalStatus;
-
 const SVG_CPU: &str = include_str!("../assets/icons/svg/fill/cpu-fill.svg");
 const SVG_MEMORY: &str = include_str!("../assets/icons/svg/fill/memory-fill.svg");
 const SVG_STORAGE: &str = include_str!("../assets/icons/svg/fill/disc-fill.svg");
 const SVG_GPU: &str = include_str!("../assets/icons/svg/fill/graphics-card-fill.svg");
 const SVG_ARROW_UP: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-up-fill.svg");
 const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-down-fill.svg");
-#[cfg(target_os = "macos")]
-const SVG_THERMAL_NOMINAL: &str = include_str!("../assets/icons/svg/fill/thermal-nominal-fill.svg");
-#[cfg(target_os = "macos")]
-const SVG_THERMAL_FAIR: &str = include_str!("../assets/icons/svg/fill/thermal-fair-fill.svg");
-#[cfg(target_os = "macos")]
-const SVG_THERMAL_SERIOUS: &str = include_str!("../assets/icons/svg/fill/thermal-serious-fill.svg");
-#[cfg(target_os = "macos")]
-const SVG_THERMAL_CRITICAL: &str =
-    include_str!("../assets/icons/svg/fill/thermal-critical-fill.svg");
-
 type Color = (u8, u8, u8);
 
 const ALERT_THRESHOLD: f32 = 81.0;
@@ -80,8 +67,6 @@ pub(crate) enum IconType {
     Gpu,
     ArrowDown,
     ArrowUp,
-    #[cfg(target_os = "macos")]
-    Thermal(ThermalStatus),
 }
 
 const PERCENT_ICON_ORDER: [IconType; 4] = [
@@ -177,23 +162,6 @@ impl IconCache {
             (IconType::Gpu, SVG_GPU),
             (IconType::ArrowDown, SVG_ARROW_DOWN),
             (IconType::ArrowUp, SVG_ARROW_UP),
-            #[cfg(target_os = "macos")]
-            (
-                IconType::Thermal(ThermalStatus::Nominal),
-                SVG_THERMAL_NOMINAL,
-            ),
-            #[cfg(target_os = "macos")]
-            (IconType::Thermal(ThermalStatus::Fair), SVG_THERMAL_FAIR),
-            #[cfg(target_os = "macos")]
-            (
-                IconType::Thermal(ThermalStatus::Serious),
-                SVG_THERMAL_SERIOUS,
-            ),
-            #[cfg(target_os = "macos")]
-            (
-                IconType::Thermal(ThermalStatus::Critical),
-                SVG_THERMAL_CRITICAL,
-            ),
         ];
 
         let mut icons = HashMap::new();
@@ -232,12 +200,6 @@ pub struct RenderConfig<'a> {
     pub show_alerts: bool,
     pub use_light_icons: bool,
     pub background: Option<Background>,
-    #[cfg(target_os = "macos")]
-    pub show_thermal: bool,
-    #[cfg(target_os = "macos")]
-    pub thermal_status: ThermalStatus,
-    #[cfg(target_os = "macos")]
-    pub thermal_label: &'a str,
 }
 
 #[derive(Default)]
@@ -296,8 +258,6 @@ impl TrayRenderer {
                 IconType::ArrowDown | IconType::ArrowUp => {
                     unreachable!("network icons are separate")
                 }
-                #[cfg(target_os = "macos")]
-                IconType::Thermal(_) => unreachable!("thermal icon is a separate segment"),
             };
 
             if show {
@@ -322,16 +282,6 @@ impl TrayRenderer {
                 value: config.up_str.to_owned(),
                 width: sizing.segment_width_net,
                 alert: false,
-            });
-        }
-
-        #[cfg(target_os = "macos")]
-        if config.show_thermal && config.thermal_status.is_available() {
-            segments.push(Segment {
-                icon: IconType::Thermal(config.thermal_status),
-                value: config.thermal_label.to_owned(),
-                width: sizing.segment_width,
-                alert: config.thermal_status.is_alert(),
             });
         }
 
