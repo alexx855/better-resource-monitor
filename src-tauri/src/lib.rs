@@ -594,46 +594,19 @@ impl ThermalRuntime {
 }
 
 #[cfg(target_os = "macos")]
-fn thermal_copy(
-    translations: &i18n::Translations,
-    status: thermal::ThermalStatus,
-) -> Option<(&'static str, &'static str)> {
-    match status {
-        thermal::ThermalStatus::Nominal => Some((
-            translations.thermal_nominal,
-            translations.thermal_nominal_explanation,
-        )),
-        thermal::ThermalStatus::Fair => Some((
-            translations.thermal_fair,
-            translations.thermal_fair_explanation,
-        )),
-        thermal::ThermalStatus::Serious => Some((
-            translations.thermal_serious,
-            translations.thermal_serious_explanation,
-        )),
-        thermal::ThermalStatus::Critical => Some((
-            translations.thermal_critical,
-            translations.thermal_critical_explanation,
-        )),
-        thermal::ThermalStatus::Unavailable => None,
-    }
-}
-
-#[cfg(target_os = "macos")]
 fn thermal_status_text(
     translations: &i18n::Translations,
     status: thermal::ThermalStatus,
 ) -> String {
-    match thermal_copy(translations, status) {
-        Some((state, explanation)) => format!(
-            "{}: {} — {}",
-            translations.thermal_status, state, explanation
-        ),
-        None => format!(
-            "{}: {}",
-            translations.thermal_status, translations.thermal_unavailable
-        ),
-    }
+    let state = match status {
+        thermal::ThermalStatus::Nominal => translations.thermal_nominal,
+        thermal::ThermalStatus::Fair => translations.thermal_fair,
+        thermal::ThermalStatus::Serious => translations.thermal_serious,
+        thermal::ThermalStatus::Critical => translations.thermal_critical,
+        thermal::ThermalStatus::Unavailable => translations.thermal_unavailable,
+    };
+
+    format!("{}: {}", translations.thermal_status, state)
 }
 
 #[cfg(target_os = "macos")]
@@ -686,17 +659,6 @@ fn setup_tray(
         }
     }
 
-    let autostart_item = CheckMenuItem::with_id(
-        app,
-        menu_id::AUTOSTART,
-        translations.start_at_login,
-        true,
-        is_autostart_enabled,
-        None::<&str>,
-    )?;
-
-    let separator1 = PredefinedMenuItem::separator(app)?;
-
     let show_mem_item = CheckMenuItem::with_id(
         app,
         menu_id::SHOW_MEM,
@@ -734,6 +696,9 @@ fn setup_tray(
     )?;
 
     #[cfg(target_os = "macos")]
+    let thermal_separator = PredefinedMenuItem::separator(app)?;
+
+    #[cfg(target_os = "macos")]
     let thermal_status_item = MenuItem::with_id(
         app,
         menu_id::THERMAL_STATUS,
@@ -742,7 +707,16 @@ fn setup_tray(
         None::<&str>,
     )?;
 
-    let separator2 = PredefinedMenuItem::separator(app)?;
+    let settings_separator = PredefinedMenuItem::separator(app)?;
+
+    let autostart_item = CheckMenuItem::with_id(
+        app,
+        menu_id::AUTOSTART,
+        translations.start_at_login,
+        true,
+        is_autostart_enabled,
+        None::<&str>,
+    )?;
 
     let show_alerts_item = CheckMenuItem::with_id(
         app,
@@ -753,7 +727,7 @@ fn setup_tray(
         None::<&str>,
     )?;
 
-    let separator3 = PredefinedMenuItem::separator(app)?;
+    let quit_separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, menu_id::QUIT, translations.quit, true, None::<&str>)?;
 
     let show_gpu_item = CheckMenuItem::with_id(
@@ -766,8 +740,6 @@ fn setup_tray(
     )?;
 
     let menu = Menu::new(app)?;
-    menu.append(&autostart_item)?;
-    menu.append(&separator1)?;
     menu.append(&show_mem_item)?;
     menu.append(&show_cpu_item)?;
     menu.append(&show_storage_item)?;
@@ -776,10 +748,13 @@ fn setup_tray(
     }
     menu.append(&show_net_item)?;
     #[cfg(target_os = "macos")]
+    menu.append(&thermal_separator)?;
+    #[cfg(target_os = "macos")]
     menu.append(&thermal_status_item)?;
-    menu.append(&separator2)?;
+    menu.append(&settings_separator)?;
+    menu.append(&autostart_item)?;
     menu.append(&show_alerts_item)?;
-    menu.append(&separator3)?;
+    menu.append(&quit_separator)?;
     menu.append(&quit_item)?;
 
     #[cfg(target_os = "linux")]

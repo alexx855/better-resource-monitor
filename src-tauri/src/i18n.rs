@@ -14,10 +14,6 @@ pub struct Translations {
     pub thermal_fair: &'static str,
     pub thermal_serious: &'static str,
     pub thermal_critical: &'static str,
-    pub thermal_nominal_explanation: &'static str,
-    pub thermal_fair_explanation: &'static str,
-    pub thermal_serious_explanation: &'static str,
-    pub thermal_critical_explanation: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,10 +40,6 @@ const ENGLISH: Translations = Translations {
     thermal_fair: "Fair",
     thermal_serious: "Serious",
     thermal_critical: "Critical",
-    thermal_nominal_explanation: "Thermal conditions are normal.",
-    thermal_fair_explanation: "Thermal pressure is elevated.",
-    thermal_serious_explanation: "Thermal pressure is high.",
-    thermal_critical_explanation: "Thermal pressure is critical.",
 };
 
 const SPANISH: Translations = Translations {
@@ -66,10 +58,6 @@ const SPANISH: Translations = Translations {
     thermal_fair: "Elevado",
     thermal_serious: "Alto",
     thermal_critical: "Crítico",
-    thermal_nominal_explanation: "Las condiciones térmicas son normales.",
-    thermal_fair_explanation: "La presión térmica es elevada.",
-    thermal_serious_explanation: "La presión térmica es alta.",
-    thermal_critical_explanation: "La presión térmica es crítica.",
 };
 
 const PORTUGUESE: Translations = Translations {
@@ -88,10 +76,6 @@ const PORTUGUESE: Translations = Translations {
     thermal_fair: "Elevado",
     thermal_serious: "Alto",
     thermal_critical: "Crítico",
-    thermal_nominal_explanation: "As condições térmicas estão normais.",
-    thermal_fair_explanation: "A pressão térmica está elevada.",
-    thermal_serious_explanation: "A pressão térmica está alta.",
-    thermal_critical_explanation: "A pressão térmica está crítica.",
 };
 
 const CHINESE: Translations = Translations {
@@ -110,10 +94,6 @@ const CHINESE: Translations = Translations {
     thermal_fair: "偏高",
     thermal_serious: "高",
     thermal_critical: "危急",
-    thermal_nominal_explanation: "热状态正常。",
-    thermal_fair_explanation: "热压力有所升高。",
-    thermal_serious_explanation: "热压力较高。",
-    thermal_critical_explanation: "热压力达到危急水平。",
 };
 
 impl Language {

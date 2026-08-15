@@ -648,10 +648,6 @@ fn test_all_languages_have_translations() {
         assert!(!t.thermal_fair.is_empty());
         assert!(!t.thermal_serious.is_empty());
         assert!(!t.thermal_critical.is_empty());
-        assert!(!t.thermal_nominal_explanation.is_empty());
-        assert!(!t.thermal_fair_explanation.is_empty());
-        assert!(!t.thermal_serious_explanation.is_empty());
-        assert!(!t.thermal_critical_explanation.is_empty());
     }
 }
 
@@ -667,10 +663,6 @@ fn test_thermal_translations_match_supported_locales() {
                 "Fair",
                 "Serious",
                 "Critical",
-                "Thermal conditions are normal.",
-                "Thermal pressure is elevated.",
-                "Thermal pressure is high.",
-                "Thermal pressure is critical.",
             ],
         ),
         (
@@ -682,10 +674,6 @@ fn test_thermal_translations_match_supported_locales() {
                 "Elevado",
                 "Alto",
                 "Crítico",
-                "Las condiciones térmicas son normales.",
-                "La presión térmica es elevada.",
-                "La presión térmica es alta.",
-                "La presión térmica es crítica.",
             ],
         ),
         (
@@ -697,26 +685,11 @@ fn test_thermal_translations_match_supported_locales() {
                 "Elevado",
                 "Alto",
                 "Crítico",
-                "As condições térmicas estão normais.",
-                "A pressão térmica está elevada.",
-                "A pressão térmica está alta.",
-                "A pressão térmica está crítica.",
             ],
         ),
         (
             i18n::Language::Chinese,
-            [
-                "热状态",
-                "不可用",
-                "正常",
-                "偏高",
-                "高",
-                "危急",
-                "热状态正常。",
-                "热压力有所升高。",
-                "热压力较高。",
-                "热压力达到危急水平。",
-            ],
+            ["热状态", "不可用", "正常", "偏高", "高", "危急"],
         ),
     ];
 
@@ -729,10 +702,6 @@ fn test_thermal_translations_match_supported_locales() {
             translations.thermal_fair,
             translations.thermal_serious,
             translations.thermal_critical,
-            translations.thermal_nominal_explanation,
-            translations.thermal_fair_explanation,
-            translations.thermal_serious_explanation,
-            translations.thermal_critical_explanation,
         ];
 
         assert_eq!(actual, expected, "language={language:?}");
@@ -756,40 +725,40 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
         (
             i18n::Language::English,
             [
-                "Thermal Status: Nominal — Thermal conditions are normal.",
-                "Thermal Status: Fair — Thermal pressure is elevated.",
-                "Thermal Status: Serious — Thermal pressure is high.",
-                "Thermal Status: Critical — Thermal pressure is critical.",
+                "Thermal Status: Nominal",
+                "Thermal Status: Fair",
+                "Thermal Status: Serious",
+                "Thermal Status: Critical",
                 "Thermal Status: Unavailable",
             ],
         ),
         (
             i18n::Language::Spanish,
             [
-                "Estado térmico: Normal — Las condiciones térmicas son normales.",
-                "Estado térmico: Elevado — La presión térmica es elevada.",
-                "Estado térmico: Alto — La presión térmica es alta.",
-                "Estado térmico: Crítico — La presión térmica es crítica.",
+                "Estado térmico: Normal",
+                "Estado térmico: Elevado",
+                "Estado térmico: Alto",
+                "Estado térmico: Crítico",
                 "Estado térmico: No disponible",
             ],
         ),
         (
             i18n::Language::Portuguese,
             [
-                "Estado térmico: Normal — As condições térmicas estão normais.",
-                "Estado térmico: Elevado — A pressão térmica está elevada.",
-                "Estado térmico: Alto — A pressão térmica está alta.",
-                "Estado térmico: Crítico — A pressão térmica está crítica.",
+                "Estado térmico: Normal",
+                "Estado térmico: Elevado",
+                "Estado térmico: Alto",
+                "Estado térmico: Crítico",
                 "Estado térmico: Indisponível",
             ],
         ),
         (
             i18n::Language::Chinese,
             [
-                "热状态: 正常 — 热状态正常。",
-                "热状态: 偏高 — 热压力有所升高。",
-                "热状态: 高 — 热压力较高。",
-                "热状态: 危急 — 热压力达到危急水平。",
+                "热状态: 正常",
+                "热状态: 偏高",
+                "热状态: 高",
+                "热状态: 危急",
                 "热状态: 不可用",
             ],
         ),
