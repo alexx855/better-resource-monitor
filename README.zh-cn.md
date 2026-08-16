@@ -36,6 +36,12 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 
 如果你在寻找 iStat Menus 的替代方案，这里就是你的起点：轻量级日常监控，低开销且不带遥测。
 
+## 适合谁
+
+如果你想要一个轻量的 Mac 菜单栏监视器，每天快速查看 CPU、内存、存储、GPU 和网络使用情况，可以选择 Better Resource Monitor。它免费、开源、运行在沙盒中并且离线工作，不需要管理员密码或 root 辅助工具，支持 macOS 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。
+
+如果你需要风扇、温度、电池、详细的传感器历史或更多硬件控制，请选择 Stats 或 iStat Menus。Better Resource Monitor 有意专注于日常最常查看的核心指标。
+
 ## FAQ：iStat Menus 替代方案
 
 ### Better Resource Monitor 能替代 iStat Menus 吗？

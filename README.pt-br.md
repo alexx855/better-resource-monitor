@@ -36,6 +36,12 @@ Também foi feito para ser leve, para que o próprio monitor não vire parte do 
 
 Se você está procurando uma alternativa ao iStat Menus, aqui está ela: monitoramento diário leve, com baixo consumo e sem telemetria.
 
+## Para quem é
+
+Escolha o Better Resource Monitor se você quer um monitor leve na barra de menus do Mac e uma visão rápida diária do uso de CPU, memória, armazenamento, GPU e rede. Ele é gratuito, open source, roda em sandbox e offline, e não precisa de senha de administrador nem de helper root. Funciona em Macs Intel e Apple Silicon com macOS 13 ou mais recente.
+
+Escolha o Stats ou o iStat Menus se você precisa de ventoinhas, temperaturas, bateria, histórico detalhado de sensores ou mais controles de hardware. O Better Resource Monitor permanece focado nas métricas essenciais que você consulta todos os dias.
+
 ## FAQ: alternativa ao iStat Menus
 
 ### O Better Resource Monitor pode substituir o iStat Menus?
