@@ -6,6 +6,16 @@
       "answer": "一款免费、开源的 macOS 菜单栏应用，用于显示 CPU、内存、存储、GPU 和网络使用情况。使用 Rust 编写。CPU 占用低于 0.1%，内存占用约 15 MB。"
     },
     {
+      "id": "best-fit",
+      "question": "Better Resource Monitor 适合谁？",
+      "answer": "它适合想在 Mac 菜单栏中持续查看 CPU、内存、存储、GPU 和网络使用情况，同时保持低占用、不需要管理员提示并且不发送遥测的用户。支持 macOS 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。"
+    },
+    {
+      "id": "not-best-fit",
+      "question": "谁应该选择功能更深入的系统监视器？",
+      "answer": "如果你需要风扇、温度、电池、详细的传感器历史或更多硬件控制，请选择 Stats 或 iStat Menus。Better Resource Monitor 有意专注于日常最常查看的核心指标。"
+    },
+    {
       "id": "macos-support",
       "question": "它在哪些 macOS 版本上完成了测试？",
       "answer": "支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。"

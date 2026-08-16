@@ -6,6 +6,16 @@
       "answer": "Um aplicativo de barra de menus gratuito e de código aberto que mostra o uso de CPU, memória, armazenamento, GPU e rede no macOS. Escrito em Rust. Consome menos de 0,1% de CPU e cerca de 15 MB de RAM."
     },
     {
+      "id": "best-fit",
+      "question": "Para quem é o Better Resource Monitor?",
+      "answer": "Ele é para quem quer ver na barra de menus do Mac o uso de CPU, memória, armazenamento, GPU e rede com baixo consumo, sem solicitações de administrador nem telemetria. Funciona em Macs Intel e Apple Silicon com macOS 13 ou mais recente."
+    },
+    {
+      "id": "not-best-fit",
+      "question": "Quem deveria escolher um monitor de sistema mais completo?",
+      "answer": "Escolha o Stats ou o iStat Menus se você precisa de ventoinhas, temperaturas, bateria, histórico detalhado de sensores ou mais controles de hardware. O Better Resource Monitor permanece focado nas métricas essenciais do dia a dia."
+    },
+    {
       "id": "macos-support",
       "question": "Em quais versões do macOS ele foi testado?",
       "answer": "Funciona em Macs Intel e Apple Silicon com macOS Ventura 13 ou mais recente."

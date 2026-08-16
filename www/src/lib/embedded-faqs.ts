@@ -32,6 +32,8 @@ export const comparisonFaqHeadings = {
 const sharedFaqIds = {
   home: [
     "overview",
+    "best-fit",
+    "not-best-fit",
     "macos-support",
     "pricing",
     "resource-use",
