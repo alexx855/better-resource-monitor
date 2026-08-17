@@ -36,5 +36,3 @@ scripts/.build-number
 src-tauri/embedded.provisionprofile
 private_keys/*.p8
 .agents/skills/*
-!.agents/skills/release-copy/
-!.agents/skills/release-copy/SKILL.md
