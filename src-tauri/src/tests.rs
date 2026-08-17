@@ -45,7 +45,8 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         sizing: APP_SIZING,
         cpu_usage: 50.0,
         mem_percent: 50.0,
-        storage_percent: 50.0,
+        storage_available_str: "0.0 KB",
+        storage_used_percent: 50.0,
         gpu_usage: 0.0,
         down_str: "0 KB",
         up_str: "0 KB",
@@ -66,11 +67,19 @@ fn assert_render_size(buffer: &[u8], width: u32, height: u32, expected_width: u3
     assert_eq!(buffer.len(), (width * height * 4) as usize);
 }
 
-fn assert_sizing(sizing: tray_render::Sizing, expected: (u32, u32, u32, u32, u32, f32)) {
-    let (segment_width, segment_width_net, edge_padding, segment_gap, icon_height, font_size) =
-        expected;
+fn assert_sizing(sizing: tray_render::Sizing, expected: (u32, u32, u32, u32, u32, u32, f32)) {
+    let (
+        segment_width,
+        segment_width_storage,
+        segment_width_net,
+        edge_padding,
+        segment_gap,
+        icon_height,
+        font_size,
+    ) = expected;
 
     assert_eq!(sizing.segment_width, segment_width);
+    assert_eq!(sizing.segment_width_storage, segment_width_storage);
     assert_eq!(sizing.segment_width_net, segment_width_net);
     assert_eq!(sizing.edge_padding, edge_padding);
     assert_eq!(sizing.segment_gap, segment_gap);
@@ -311,11 +320,42 @@ fn test_format_speed() {
         (1e-10, "0.0 KB"),
         (0.001, "0.0 KB"),
         (0.5, "0.0 KB"),
-        (1_000_000_000_000.0, "1000 GB"),
-        (1e15, "1000000 GB"),
+        (999_000_000_000.0, "999 GB"),
+        (999_500_000_000.0, "1.0 TB"),
+        (1_500_000_000_000.0, "1.5 TB"),
+        (999_500_000_000_000.0, "1.0 PB"),
+        (1_500_000_000_000_000.0, "1.5 PB"),
+        (1e18, "1000 PB"),
+        (1e20, ">99999 PB"),
         (-100.0, "-0.1 KB"),
     ] {
         assert_eq!(format_speed(input), expected, "input={input}");
+    }
+
+    assert_eq!(format_storage_available(19_500_000_000), "19.5 GB");
+    assert_eq!(format_storage_available(u64::MAX), "18447 PB");
+}
+
+#[test]
+fn test_storage_display_update_uses_label_and_alert_state() {
+    for (previous_label, previous_used, current_label, current_used, expected) in [
+        (None, -100.0, "19.5 GB", 50.0, true),
+        (Some("19.5 GB"), 50.0, "19.5 GB", 50.0, false),
+        (Some("19.5 GB"), 50.0, "19.5 GB", 80.0, false),
+        (Some("19.5 GB"), 80.0, "19.5 GB", 81.0, true),
+        (Some("19.5 GB"), 81.0, "19.5 GB", 82.0, false),
+        (Some("19.5 GB"), 81.0, "20 GB", 81.0, true),
+    ] {
+        assert_eq!(
+            storage_display_needs_update(
+                previous_label,
+                previous_used,
+                current_label,
+                current_used,
+            ),
+            expected,
+            "previous_label={previous_label:?}, previous_used={previous_used}, current_label={current_label}, current_used={current_used}"
+        );
     }
 }
 
@@ -405,7 +445,7 @@ fn test_alert_colors_all_segments() {
         );
     }
 
-    for (storage_percent, show_alerts, expected_alert) in [
+    for (storage_used_percent, show_alerts, expected_alert) in [
         (50.0, true, false),
         (80.0, true, false),
         (81.0, true, true),
@@ -417,7 +457,7 @@ fn test_alert_colors_all_segments() {
             &tray_render::RenderConfig {
                 cpu_usage: 0.0,
                 mem_percent: 0.0,
-                storage_percent,
+                storage_used_percent,
                 show_cpu: false,
                 show_mem: false,
                 show_storage: true,
@@ -427,7 +467,7 @@ fn test_alert_colors_all_segments() {
         );
         assert_eq!(
             has_alert, expected_alert,
-            "storage_percent={storage_percent}, show_alerts={show_alerts}"
+            "storage_used_percent={storage_used_percent}, show_alerts={show_alerts}"
         );
     }
 }
@@ -435,9 +475,9 @@ fn test_alert_colors_all_segments() {
 #[test]
 fn test_sizing_scaled() {
     for (scale, expected) in [
-        (2.0, (116, 150, 10, 36, 44, 38.0)),
-        (0.5, (29, 38, 3, 9, 11, 9.5)),
-        (0.333, (19, 25, 2, 6, 7, 19.0 * 0.333)),
+        (2.0, (116, 256, 150, 10, 36, 44, 38.0)),
+        (0.5, (29, 64, 38, 3, 9, 11, 9.5)),
+        (0.333, (19, 43, 25, 2, 6, 7, 19.0 * 0.333)),
     ] {
         assert_sizing(tray_render::SIZING_LINUX.scaled(scale), expected);
     }
@@ -533,16 +573,72 @@ fn test_render_all_default_visible_metrics_width() {
         },
     );
 
-    let percent_segments = 4;
+    let percent_segments = 3;
     let network_segments = 2;
-    let segment_count = percent_segments + network_segments;
+    let segment_count = percent_segments + 1 + network_segments;
     let expected_width = APP_SIZING.edge_padding * 2
         + (APP_SIZING.segment_width * percent_segments)
+        + APP_SIZING.segment_width_storage
         + (APP_SIZING.segment_width_net * network_segments)
         + (APP_SIZING.segment_gap * (segment_count - 1));
 
     assert!(!has_alert);
     assert_render_size(&buffer, width, height, expected_width);
+}
+
+#[test]
+fn test_storage_labels_have_fixed_geometry_and_fit_segment() {
+    let font = load_system_font().expect("test font required");
+    let labels = [
+        "19.5 GB",
+        "999 GB",
+        "1.0 TB",
+        "1000 TB",
+        "1.0 PB",
+        "1000 PB",
+        ">99999 PB",
+    ];
+
+    for sizing in [tray_render::SIZING_MACOS, tray_render::SIZING_LINUX] {
+        let mut renderer = tray_render::TrayRenderer::new();
+        let mut buffer = Vec::new();
+        let scale = rusttype::Scale::uniform(sizing.font_size);
+        let available_width = (sizing.segment_width_storage - sizing.icon_height) as f32;
+
+        for label in labels {
+            let label_width: f32 = font
+                .layout(label, scale, rusttype::point(0.0, 0.0))
+                .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
+                .sum();
+            assert!(
+                label_width <= available_width,
+                "label {label:?} width {label_width} exceeds storage text width {available_width} for sizing"
+            );
+
+            let (width, height, has_alert) = renderer.render_tray_icon_into(
+                &font,
+                &mut buffer,
+                &tray_render::RenderConfig {
+                    sizing,
+                    storage_available_str: label,
+                    show_cpu: false,
+                    show_mem: false,
+                    show_storage: true,
+                    show_gpu: false,
+                    show_net: false,
+                    show_alerts: false,
+                    ..base_render_config()
+                },
+            );
+            assert!(!has_alert);
+            assert_eq!(
+                width,
+                sizing.edge_padding * 2 + sizing.segment_width_storage
+            );
+            assert_eq!(height, sizing.icon_height);
+            assert_eq!(buffer.len(), (width * height * 4) as usize);
+        }
+    }
 }
 
 #[test]
@@ -572,9 +668,9 @@ fn test_render_buffer_matches_rgba_dimensions() {
 }
 
 #[test]
-fn test_percent_metric_order() {
+fn test_metric_icon_order() {
     assert_eq!(
-        tray_render::percent_icon_order_for_tests(),
+        tray_render::metric_icon_order_for_tests(),
         [
             tray_render::IconType::Memory,
             tray_render::IconType::Cpu,

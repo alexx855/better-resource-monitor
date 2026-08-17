@@ -30,14 +30,16 @@ cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --out www/public/better-resource-monitor.png \
   --preset macos \
   --scale 0.6666667 \
+  --storage "19.5 GB" \
   --include-alert-row true
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --out www/public/better-resource-monitor-alert.png \
   --preset macos \
   --scale 0.6666667 \
+  --storage "19.5 GB" \
+  --storage-used-percent 92 \
   --cpu 93 \
   --mem 96 \
-  --storage 92 \
   --gpu 91 \
   --down "12 MB" \
   --up "3.1 MB"

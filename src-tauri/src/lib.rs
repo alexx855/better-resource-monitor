@@ -271,23 +271,65 @@ pub fn load_system_font() -> Result<Font<'static>, String> {
     Font::try_from_vec(font_data).ok_or_else(|| "Error constructing font".to_string())
 }
 
-fn format_speed(bytes_per_sec: f64) -> String {
+fn format_compact_bytes(bytes: f64, decimal_cutoff: f64) -> String {
     const THRESHOLD_KB: f64 = 999_500.0;
     const THRESHOLD_MB: f64 = 999_500_000.0;
+    const THRESHOLD_GB: f64 = 999_500_000_000.0;
+    const THRESHOLD_TB: f64 = 999_500_000_000_000.0;
+    const MAX_DISPLAYED_PB: f64 = 99_999.0;
 
-    let (value, unit) = if bytes_per_sec >= THRESHOLD_MB {
-        (bytes_per_sec / 1_000_000_000.0, "GB")
-    } else if bytes_per_sec >= THRESHOLD_KB {
-        (bytes_per_sec / 1_000_000.0, "MB")
+    if !bytes.is_finite() {
+        return if bytes.is_sign_negative() {
+            "<-99999 PB".to_string()
+        } else {
+            ">99999 PB".to_string()
+        };
+    }
+
+    let (value, unit) = if bytes >= THRESHOLD_TB {
+        (bytes / 1_000_000_000_000_000.0, "PB")
+    } else if bytes >= THRESHOLD_GB {
+        (bytes / 1_000_000_000_000.0, "TB")
+    } else if bytes >= THRESHOLD_MB {
+        (bytes / 1_000_000_000.0, "GB")
+    } else if bytes >= THRESHOLD_KB {
+        (bytes / 1_000_000.0, "MB")
     } else {
-        (bytes_per_sec / 1_000.0, "KB")
+        (bytes / 1_000.0, "KB")
     };
 
-    if value >= 10.0 {
+    if !value.is_finite() || value.abs() > MAX_DISPLAYED_PB {
+        return if bytes.is_sign_negative() {
+            "<-99999 PB".to_string()
+        } else {
+            ">99999 PB".to_string()
+        };
+    }
+
+    if value.abs() >= decimal_cutoff {
         format!("{value:.0} {unit}")
     } else {
         format!("{value:.1} {unit}")
     }
+}
+
+fn format_speed(bytes_per_sec: f64) -> String {
+    format_compact_bytes(bytes_per_sec, 10.0)
+}
+
+fn format_storage_available(bytes: u64) -> String {
+    format_compact_bytes(bytes as f64, 100.0)
+}
+
+fn storage_display_needs_update(
+    previous_label: Option<&str>,
+    previous_used_percent: f32,
+    current_label: &str,
+    current_used_percent: f32,
+) -> bool {
+    previous_label != Some(current_label)
+        || tray_render::alert_active(previous_used_percent)
+            != tray_render::alert_active(current_used_percent)
 }
 
 fn sum_network_totals(networks: &Networks) -> (u64, u64) {
@@ -771,7 +813,8 @@ fn setup_tray(
             sizing: APP_SIZING,
             cpu_usage: 0.0,
             mem_percent: 0.0,
-            storage_percent: 0.0,
+            storage_available_str: "0.0 KB",
+            storage_used_percent: 0.0,
             gpu_usage: 0.0,
             down_str: "0 KB",
             up_str: "0 KB",
@@ -1105,7 +1148,9 @@ fn start_monitoring(
         // Track previous values for hysteresis-based updates (prevents compositor leak on Linux)
         let mut prev_cpu: f32 = -100.0; // Force initial update
         let mut prev_mem: f32 = -100.0;
-        let mut prev_storage: f32 = -100.0;
+        let mut prev_storage_available: Option<String> = None;
+        let mut prev_storage_used_percent: f32 = -100.0;
+        let mut last_storage_sample: Option<storage::StorageSample> = None;
         let mut prev_gpu: f32 = -100.0;
         let mut prev_down_speed: f64 = -1.0;
         let mut prev_up_speed: f64 = -1.0;
@@ -1194,13 +1239,18 @@ fn start_monitoring(
                 0.0
             };
 
-            let storage_percent = if full_tick && ss {
-                storage::sample().map(|s| s.used_percent).unwrap_or(0.0)
-            } else if ss {
-                prev_storage.max(0.0)
-            } else {
-                0.0
-            };
+            if full_tick && ss {
+                if let Some(sample) = storage::sample() {
+                    last_storage_sample = Some(sample);
+                }
+            }
+            let storage_sample = if ss { last_storage_sample } else { None };
+            let storage_available_str = storage_sample
+                .map(|sample| format_storage_available(sample.available_bytes))
+                .unwrap_or_else(|| "0.0 KB".to_string());
+            let storage_used_percent = storage_sample
+                .map(|sample| sample.used_percent)
+                .unwrap_or(0.0);
 
             let (down_speed, up_speed) = if sn {
                 let (total_rx, total_tx) = sum_network_totals(&networks);
@@ -1230,8 +1280,13 @@ fn start_monitoring(
             // accumulation that causes cursor slowdown on Ubuntu/GNOME
             let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
             let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
-            let storage_changed =
-                should_update(prev_storage, storage_percent, HYSTERESIS_THRESHOLD);
+            let storage_changed = ss
+                && storage_display_needs_update(
+                    prev_storage_available.as_deref(),
+                    prev_storage_used_percent,
+                    &storage_available_str,
+                    storage_used_percent,
+                );
             let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
             let down_diff = (down_speed - prev_down_speed).abs();
             let up_diff = (up_speed - prev_up_speed).abs();
@@ -1257,7 +1312,8 @@ fn start_monitoring(
                     prev_mem = mem_percent;
                 }
                 if ss {
-                    prev_storage = storage_percent;
+                    prev_storage_available = Some(storage_available_str.clone());
+                    prev_storage_used_percent = storage_used_percent;
                 }
                 if sg {
                     prev_gpu = gpu_usage;
@@ -1274,7 +1330,8 @@ fn start_monitoring(
                         sizing: APP_SIZING,
                         cpu_usage,
                         mem_percent,
-                        storage_percent,
+                        storage_available_str: &storage_available_str,
+                        storage_used_percent,
                         gpu_usage,
                         down_str: &down_str,
                         up_str: &up_str,
