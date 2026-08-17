@@ -18,6 +18,7 @@ const ALERT_FOREGROUND: Color = (255, 255, 255);
 #[derive(Clone, Copy)]
 pub struct Sizing {
     pub segment_width: u32,
+    pub segment_width_storage: u32,
     pub segment_width_net: u32,
     pub edge_padding: u32,
     pub segment_gap: u32,
@@ -32,6 +33,7 @@ impl Sizing {
         let scale_u32 = |v: u32| -> u32 { ((v as f32) * scale).round().max(1.0) as u32 };
         Self {
             segment_width: scale_u32(self.segment_width),
+            segment_width_storage: scale_u32(self.segment_width_storage),
             segment_width_net: scale_u32(self.segment_width_net),
             edge_padding: scale_u32(self.edge_padding),
             segment_gap: scale_u32(self.segment_gap),
@@ -43,6 +45,7 @@ impl Sizing {
 
 pub const SIZING_MACOS: Sizing = Sizing {
     segment_width: 180,
+    segment_width_storage: 320,
     segment_width_net: 240,
     edge_padding: 16,
     segment_gap: 48,
@@ -52,6 +55,7 @@ pub const SIZING_MACOS: Sizing = Sizing {
 
 pub const SIZING_LINUX: Sizing = Sizing {
     segment_width: 58,
+    segment_width_storage: 128,
     segment_width_net: 75,
     edge_padding: 5,
     segment_gap: 18,
@@ -69,7 +73,7 @@ pub(crate) enum IconType {
     ArrowUp,
 }
 
-const PERCENT_ICON_ORDER: [IconType; 4] = [
+const METRIC_ICON_ORDER: [IconType; 4] = [
     IconType::Memory,
     IconType::Cpu,
     IconType::Gpu,
@@ -77,8 +81,12 @@ const PERCENT_ICON_ORDER: [IconType; 4] = [
 ];
 
 #[cfg(test)]
-pub(crate) fn percent_icon_order_for_tests() -> [IconType; 4] {
-    PERCENT_ICON_ORDER
+pub(crate) fn metric_icon_order_for_tests() -> [IconType; 4] {
+    METRIC_ICON_ORDER
+}
+
+pub(crate) fn alert_active(value: f32) -> bool {
+    value >= ALERT_THRESHOLD
 }
 
 pub(crate) fn cap_percent(value: f32) -> f32 {
@@ -188,7 +196,8 @@ pub struct RenderConfig<'a> {
     pub sizing: Sizing,
     pub cpu_usage: f32,
     pub mem_percent: f32,
-    pub storage_percent: f32,
+    pub storage_available_str: &'a str,
+    pub storage_used_percent: f32,
     pub gpu_usage: f32,
     pub down_str: &'a str,
     pub up_str: &'a str,
@@ -249,12 +258,32 @@ impl TrayRenderer {
         let sizing = config.sizing;
 
         let mut segments = Vec::with_capacity(6);
-        for icon in PERCENT_ICON_ORDER {
-            let (show, value) = match icon {
-                IconType::Memory => (config.show_mem, config.mem_percent),
-                IconType::Cpu => (config.show_cpu, config.cpu_usage),
-                IconType::Gpu => (config.show_gpu, config.gpu_usage),
-                IconType::Storage => (config.show_storage, config.storage_percent),
+        for icon in METRIC_ICON_ORDER {
+            let (show, value, value_text, width) = match icon {
+                IconType::Memory => (
+                    config.show_mem,
+                    config.mem_percent,
+                    format!("{:.0}%", cap_percent(config.mem_percent)),
+                    sizing.segment_width,
+                ),
+                IconType::Cpu => (
+                    config.show_cpu,
+                    config.cpu_usage,
+                    format!("{:.0}%", cap_percent(config.cpu_usage)),
+                    sizing.segment_width,
+                ),
+                IconType::Gpu => (
+                    config.show_gpu,
+                    config.gpu_usage,
+                    format!("{:.0}%", cap_percent(config.gpu_usage)),
+                    sizing.segment_width,
+                ),
+                IconType::Storage => (
+                    config.show_storage,
+                    config.storage_used_percent,
+                    config.storage_available_str.to_owned(),
+                    sizing.segment_width_storage,
+                ),
                 IconType::ArrowDown | IconType::ArrowUp => {
                     unreachable!("network icons are separate")
                 }
@@ -263,9 +292,9 @@ impl TrayRenderer {
             if show {
                 segments.push(Segment {
                     icon,
-                    value: format!("{:.0}%", cap_percent(value)),
-                    width: sizing.segment_width,
-                    alert: value >= ALERT_THRESHOLD,
+                    value: value_text,
+                    width,
+                    alert: alert_active(value),
                 });
             }
         }
@@ -324,29 +353,37 @@ impl TrayRenderer {
         let has_bg = effective_bg.is_some();
         let min_alpha: u8 = if has_bg { 4 } else { 1 };
 
-        let draw_text =
-            |text: &str, start_x: f32, color: Color, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-                for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
-                    if let Some(bb) = glyph.pixel_bounding_box() {
-                        glyph.draw(|gx, gy, v| {
-                            let x = (bb.min.x + gx as i32) as u32;
-                            let y = (bb.min.y + gy as i32) as u32;
-                            if x < total_width && y < sizing.icon_height {
-                                let alpha = (v * 255.0) as u8;
-                                if alpha < min_alpha {
-                                    return;
-                                }
-
-                                if has_bg {
-                                    blend_over(img.get_pixel_mut(x, y), color, alpha);
-                                } else {
-                                    img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
-                                }
+        let draw_text = |text: &str,
+                         start_x: f32,
+                         clip_left: u32,
+                         clip_right: u32,
+                         color: Color,
+                         img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+            for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
+                if let Some(bb) = glyph.pixel_bounding_box() {
+                    glyph.draw(|gx, gy, v| {
+                        let x = (bb.min.x + gx as i32) as u32;
+                        let y = (bb.min.y + gy as i32) as u32;
+                        if x >= clip_left
+                            && x < clip_right
+                            && x < total_width
+                            && y < sizing.icon_height
+                        {
+                            let alpha = (v * 255.0) as u8;
+                            if alpha < min_alpha {
+                                return;
                             }
-                        });
-                    }
+
+                            if has_bg {
+                                blend_over(img.get_pixel_mut(x, y), color, alpha);
+                            } else {
+                                img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
+                            }
+                        }
+                    });
                 }
-            };
+            }
+        };
 
         let draw_cached_icon =
             |icon_type: IconType,
@@ -406,8 +443,18 @@ impl TrayRenderer {
                 .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
                 .map(|g| g.unpositioned().h_metrics().advance_width)
                 .sum();
-            let value_x = x_offset as f32 + segment.width as f32 - value_width;
-            draw_text(&segment.value, value_x, segment_color, &mut img);
+            let text_left = x_offset + sizing.icon_height;
+            let text_right = x_offset + segment.width;
+            let value_x =
+                (x_offset as f32 + segment.width as f32 - value_width).max(text_left as f32);
+            draw_text(
+                &segment.value,
+                value_x,
+                text_left,
+                text_right,
+                segment_color,
+                &mut img,
+            );
 
             x_offset += segment.width;
         }
