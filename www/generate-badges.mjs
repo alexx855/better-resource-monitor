@@ -9,6 +9,7 @@ import sharp from "sharp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { escapeRegExp } from "./badge-readme.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(ROOT, "..");
@@ -100,7 +101,7 @@ const BADGE_URL_BASE = "https://better-resource-monitor.alexpedersen.dev/badges/
 
 // regex matches any badge reference like badges/appstore.webp or badges/macos-es.webp
 const BADGE_SRC_RE = new RegExp(
-  `${BADGE_URL_BASE.replace(/[/.]/g, "\\$&")}(appstore|macos|ubuntu)(?:-[a-z-]+)?\\.webp`,
+  `${escapeRegExp(BADGE_URL_BASE)}(appstore|macos|ubuntu)(?:-[a-z-]+)?\\.webp`,
   "g",
 );
 
