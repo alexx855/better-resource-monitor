@@ -1,5 +1,5 @@
 {
   "title": "macOS iStat Menus 替代 | Better Resource Monitor",
-  "description": "轻量级 macOS 菜单栏监控器，显示 CPU、内存、存储、GPU 和网络。适用于 Intel 和 Apple Silicon Mac，开源且低占用。",
+  "description": "轻量级、开源的 macOS 菜单栏监控器，显示 CPU、内存、存储、GPU 和网络使用情况，支持 Intel 与 Apple Silicon Mac，低占用且无需遥测。适用于 macOS 13 及更高版本，提供 Mac App Store 和 GitHub 下载，不需要管理员密码或 root 辅助工具。",
   "ogImage": "/images/og-index-zh-cn.png"
 }

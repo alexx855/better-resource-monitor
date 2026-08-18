@@ -1,6 +1,6 @@
 {
   "title": "macOS Eul 替代选择 | Better Resource Monitor",
-  "description": "如果你喜欢 Eul 那种简单的菜单栏体验，Better Resource Monitor 提供了类似的思路，但对当前 macOS 支持更好，在新款 Mac 上也更省资源。",
+  "description": "如果你在寻找 Eul 的 macOS 替代方案，这里会对比 Better Resource Monitor 与 Eul 的维护状态、资源占用、隐私和菜单栏监控功能，并介绍适合新款 Mac 的日常使用方式。了解两款应用在 App Store、GPU 数据和系统访问权限方面的实际差异，再决定哪款更适合你。",
   "ogImage": "/images/og-vs-eul-zh-cn.png",
   "competitorName": "Eul",
   "competitorPrice": "0",
