@@ -1,6 +1,8 @@
 name: TestFlight
 
 # Uploads a TestFlight build without changing repository version files.
+# Website, documentation, and CI-only PRs are automatically marked successful
+# by testflight-gate.yml and should not dispatch this workflow.
 #
 # Security invariant: the workflow is split into two jobs so that untrusted
 # code (the source_ref checkout: pnpm lifecycle scripts, build.rs, tests, the
@@ -21,7 +23,7 @@ on:
         required: false
         type: string
       pr_number:
-        description: 'Optional PR number to mark with the Pre-merge TestFlight status'
+        description: 'Optional app-impacting PR number to mark with the Pre-merge TestFlight status'
         required: false
         type: string
 

@@ -63,9 +63,11 @@ committing generated churn when the source did not intentionally change them.
 Include generated diffs or before/after evidence in the pull request, and state
 explicitly if regeneration is intentionally deferred.
 
-For website changes, run `pnpm build:www`. For Rust or app behavior changes,
-run the focused Rust command first, then broaden to the full checks when the
-change touches shared behavior or release packaging.
+For website changes, run `pnpm build:www`; the TestFlight gate automatically
+skips website, documentation, and CI-only pull requests. For Rust or app
+behavior changes, run the focused Rust command first, then broaden to the full
+checks and the pre-merge TestFlight upload when the change touches shared
+behavior or release packaging.
 
 ## Release Workflow Changes
 
