@@ -1,0 +1,68 @@
+name: Pre-merge TestFlight gate
+
+# This workflow runs from the base repository so a pull request cannot rewrite
+# the classifier that decides whether its own app changes need TestFlight.
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  classify:
+    name: Classify TestFlight requirement
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set required status for the PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          files="$(gh api --paginate \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename')"
+          app_file=""
+
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+
+            case "$file" in
+              .agents/*|.gemini/*|.gitignore|.gitattributes| \
+              .github/PULL_REQUEST_TEMPLATE.md|README*.md|docs/*|plans/*| \
+              src-tauri/gen/schemas/*|www/*)
+                ;;
+              *)
+                app_file="$file"
+                break
+                ;;
+            esac
+          done <<< "$files"
+
+          if [ -n "$app_file" ]; then
+            state="pending"
+            description="Required: app-impacting change includes ${app_file}"
+          else
+            state="success"
+            description="Skipped: website/docs-only change; no app-impacting files changed"
+          fi
+
+          gh api "repos/${REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state="$state" \
+            -f context='Pre-merge TestFlight' \
+            -f description="$description" \
+            -f target_url="$TARGET_URL"
