@@ -57,8 +57,12 @@ jobs:
       - name: Check locale parity
         run: node scripts/check-locale-parity.mjs
 
-      - name: Test Pages deployment verification
-        run: node --test scripts/verify-pages-deployment.test.mjs scripts/ci-pages-deployment-contract.test.mjs
+      - name: Test CI policy and Pages deployment verification
+        run: >-
+          node --test
+          scripts/classify-testflight-changes.test.mjs
+          scripts/verify-pages-deployment.test.mjs
+          scripts/ci-pages-deployment-contract.test.mjs
 
       - name: Check website types
         run: pnpm --filter www check

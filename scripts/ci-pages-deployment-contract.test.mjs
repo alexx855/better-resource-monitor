@@ -6,7 +6,9 @@ const workflow = await readFile(new URL("../.github/workflows/ci.yml", import.me
 
 test("the required Rust checks job waits for and verifies the exact Pages deployment", () => {
   assert.match(workflow, /checks: read/);
-  assert.match(workflow, /node --test scripts\/verify-pages-deployment\.test\.mjs scripts\/ci-pages-deployment-contract\.test\.mjs/);
+  assert.match(workflow, /scripts\/classify-testflight-changes\.test\.mjs/);
+  assert.match(workflow, /scripts\/verify-pages-deployment\.test\.mjs/);
+  assert.match(workflow, /scripts\/ci-pages-deployment-contract\.test\.mjs/);
   assert.match(workflow, /DEPLOYMENT_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/commits\/\$\{DEPLOYMENT_SHA\}\/check-runs/);
   assert.match(workflow, /select\(\.name == "Cloudflare Pages"\)/);
