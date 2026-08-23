@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  checks: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -56,6 +57,9 @@ jobs:
       - name: Check locale parity
         run: node scripts/check-locale-parity.mjs
 
+      - name: Test Pages deployment verification
+        run: node --test scripts/verify-pages-deployment.test.mjs scripts/ci-pages-deployment-contract.test.mjs
+
       - name: Check website types
         run: pnpm --filter www check
 
@@ -101,3 +105,70 @@ jobs:
           DISK_REASON=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0" "$PRIVACY_MANIFEST")
           test "$DISK_CATEGORY" = "NSPrivacyAccessedAPICategoryDiskSpace"
           test "$DISK_REASON" = "85F4.1"
+
+      - name: Resolve Cloudflare Pages deployment
+        id: pages-deployment
+        env:
+          DEPLOYMENT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          check_json=""
+          for _ in {1..30}; do
+            check_json="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/commits/${DEPLOYMENT_SHA}/check-runs" \
+              --jq '[.check_runs[] | select(.name == "Cloudflare Pages")] | sort_by(.started_at) | last // empty')"
+
+            if [ -n "$check_json" ] && [ "$(jq -r '.status' <<< "$check_json")" = "completed" ]; then
+              break
+            fi
+
+            sleep 10
+          done
+
+          if [ -z "$check_json" ]; then
+            echo "Error: Cloudflare Pages did not report a deployment for $DEPLOYMENT_SHA"
+            exit 1
+          fi
+
+          conclusion="$(jq -r '.conclusion' <<< "$check_json")"
+          if [ "$conclusion" != "success" ]; then
+            echo "Error: Cloudflare Pages deployment for $DEPLOYMENT_SHA concluded $conclusion"
+            exit 1
+          fi
+
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            base_url="https://better-resource-monitor.alexpedersen.dev"
+          else
+            base_url="$(jq -r '.output.summary' <<< "$check_json" \
+              | grep -oE 'https://[0-9a-f]+\.silicon-monitor\.pages\.dev' \
+              | head -n 1)"
+          fi
+
+          if [ -z "$base_url" ]; then
+            echo "Error: Cloudflare Pages check did not expose an immutable preview URL"
+            exit 1
+          fi
+
+          echo "base-url=$base_url" >> "$GITHUB_OUTPUT"
+          echo "Resolved deployed website: $base_url"
+
+      - name: Verify deployed website
+        env:
+          PAGES_DEPLOYMENT_BASE_URL: ${{ steps.pages-deployment.outputs.base-url }}
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..12}; do
+            if node scripts/verify-pages-deployment.mjs; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 12 ]; then
+              echo "Deployment has not converged yet; retrying in 10 seconds"
+              sleep 10
+            fi
+          done
+
+          exit 1
