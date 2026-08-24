@@ -137,7 +137,7 @@ pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8
 
     let mut pixels = pixmap.take();
     // Un-premultiply alpha so image crate gets straight-alpha pixels
-    for chunk in pixels.chunks_exact_mut(4) {
+    for chunk in pixels.as_chunks_mut::<4>().0 {
         let a = chunk[3] as u16;
         if a > 0 && a < 255 {
             for c in &mut chunk[..3] {
