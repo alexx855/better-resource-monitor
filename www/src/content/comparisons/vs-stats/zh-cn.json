@@ -1,6 +1,6 @@
 {
   "title": "macOS Stats 替代选择 | Better Resource Monitor",
-  "description": "Stats 和 Better Resource Monitor 都是免费的 Mac 菜单栏监视器。如果你主要想一眼看到 CPU、内存、存储、GPU 和网络，Better Resource Monitor 会是更简单、更轻量的选择。",
+  "description": "Stats 和 Better Resource Monitor 都是免费的 Mac 菜单栏监视器。这里会比较两者的资源占用、隐私、系统访问权限，以及 CPU、内存、存储、GPU 和网络监控，帮助你选择更简单、更轻量的方案，并说明风扇、温度和深层传感器需求的差异。",
   "ogImage": "/images/og-vs-stats-zh-cn.png",
   "competitorName": "Stats",
   "competitorPrice": "0",

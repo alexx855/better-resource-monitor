@@ -36,5 +36,7 @@ scripts/.build-number
 src-tauri/embedded.provisionprofile
 private_keys/*.p8
 .agents/skills/*
-!.agents/skills/release-copy/
-!.agents/skills/release-copy/SKILL.md
+
+# Keep retired repository notes local-only when restored for reference.
+docs/roadmap.md
+docs/github-release-workflows.md
