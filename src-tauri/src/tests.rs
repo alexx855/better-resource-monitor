@@ -707,7 +707,9 @@ fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
             );
 
             let ink_columns = buffer
-                .chunks_exact(4)
+                .as_chunks::<4>()
+                .0
+                .iter()
                 .enumerate()
                 .filter_map(|(index, pixel)| (pixel[3] > 0).then_some(index as u32 % width));
             let (leftmost, rightmost) =

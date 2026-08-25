@@ -247,7 +247,9 @@ impl IconCache {
                     .get(&(icon_type, (255, 255, 255)))
                     .expect("white icon cached");
                 let right = pixels
-                    .chunks_exact(4)
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
                     .enumerate()
                     .filter_map(|(index, pixel)| (pixel[3] > 0).then_some(index as u32 % size))
                     .max()
