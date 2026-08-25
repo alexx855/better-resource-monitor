@@ -332,8 +332,9 @@ fn test_format_speed() {
         assert_eq!(format_speed(input), expected, "input={input}");
     }
 
+    assert_eq!(format_storage_available(0), "0.0 KB");
     assert_eq!(format_storage_available(19_500_000_000), "19.5 GB");
-    assert_eq!(format_storage_available(u64::MAX), "18447 PB");
+    assert_eq!(format_storage_available(u64::MAX), "18.4 EB");
 }
 
 #[test]
@@ -578,7 +579,7 @@ fn test_render_all_default_visible_metrics_width() {
     let segment_count = percent_segments + 1 + network_segments;
     let expected_width = APP_SIZING.edge_padding * 2
         + (APP_SIZING.segment_width * percent_segments)
-        + APP_SIZING.segment_width_storage
+        + APP_SIZING.segment_width_net
         + (APP_SIZING.segment_width_net * network_segments)
         + (APP_SIZING.segment_gap * (segment_count - 1));
 
@@ -587,34 +588,43 @@ fn test_render_all_default_visible_metrics_width() {
 }
 
 #[test]
-fn test_storage_labels_have_fixed_geometry_and_fit_segment() {
+fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
     let font = load_system_font().expect("test font required");
-    let labels = [
-        "19.5 GB",
-        "999 GB",
-        "1.0 TB",
-        "1000 TB",
-        "1.0 PB",
-        "1000 PB",
-        ">99999 PB",
-    ];
+    let labels = ["0.0 KB", "38.7 GB", "18.4 EB"];
 
     for sizing in [tray_render::SIZING_MACOS, tray_render::SIZING_LINUX] {
         let mut renderer = tray_render::TrayRenderer::new();
         let mut buffer = Vec::new();
-        let scale = rusttype::Scale::uniform(sizing.font_size);
-        let available_width = (sizing.segment_width_storage - sizing.icon_height) as f32;
+
+        let (network_width, network_height, _) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                sizing,
+                show_cpu: false,
+                show_mem: false,
+                show_storage: false,
+                show_gpu: false,
+                show_net: true,
+                show_alerts: false,
+                down_str: "0.0 KB",
+                up_str: "0.0 KB",
+                ..base_render_config()
+            },
+        );
+        let rendered_network_segment_width =
+            (network_width - sizing.edge_padding * 2 - sizing.segment_gap) / 2;
+        assert_eq!(network_height, sizing.icon_height);
+        let network_available_width = (rendered_network_segment_width - sizing.icon_height) as f32;
+        let network_scale =
+            tray_render::fit_text_scale(&font, "0.0 KB", sizing.font_size, network_available_width);
+        let network_label_width: f32 = font
+            .layout("0.0 KB", network_scale, rusttype::point(0.0, 0.0))
+            .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
+            .sum();
+        let network_inner_gap = network_available_width - network_label_width;
 
         for label in labels {
-            let label_width: f32 = font
-                .layout(label, scale, rusttype::point(0.0, 0.0))
-                .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
-                .sum();
-            assert!(
-                label_width <= available_width,
-                "label {label:?} width {label_width} exceeds storage text width {available_width} for sizing"
-            );
-
             let (width, height, has_alert) = renderer.render_tray_icon_into(
                 &font,
                 &mut buffer,
@@ -631,12 +641,43 @@ fn test_storage_labels_have_fixed_geometry_and_fit_segment() {
                 },
             );
             assert!(!has_alert);
-            assert_eq!(
-                width,
-                sizing.edge_padding * 2 + sizing.segment_width_storage
-            );
             assert_eq!(height, sizing.icon_height);
             assert_eq!(buffer.len(), (width * height * 4) as usize);
+
+            let rendered_storage_segment_width = width - sizing.edge_padding * 2;
+            let storage_available_width =
+                (rendered_storage_segment_width - sizing.icon_height) as f32;
+            let storage_scale = tray_render::fit_text_scale(
+                &font,
+                label,
+                sizing.font_size,
+                storage_available_width,
+            );
+            let storage_label_width: f32 = font
+                .layout(label, storage_scale, rusttype::point(0.0, 0.0))
+                .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
+                .sum();
+            assert!(storage_label_width <= storage_available_width + 0.01);
+            let storage_inner_gap = storage_available_width - storage_label_width;
+            assert!(
+                (storage_inner_gap - network_inner_gap).abs() <= 1.0,
+                "storage label {label:?} inner gap {storage_inner_gap} must match network gap {network_inner_gap}"
+            );
+            if label == "0.0 KB" {
+                assert_eq!(
+                    rendered_storage_segment_width,
+                    rendered_network_segment_width
+                );
+            }
+
+            let ink_columns = buffer
+                .chunks_exact(4)
+                .enumerate()
+                .filter_map(|(index, pixel)| (pixel[3] > 0).then_some(index as u32 % width));
+            let (leftmost, rightmost) =
+                ink_columns.fold((width, 0), |(left, right), x| (left.min(x), right.max(x)));
+            assert!(leftmost >= sizing.edge_padding);
+            assert!(rightmost < width - sizing.edge_padding);
         }
     }
 }

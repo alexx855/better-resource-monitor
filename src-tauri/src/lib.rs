@@ -318,6 +318,12 @@ fn format_speed(bytes_per_sec: f64) -> String {
 }
 
 fn format_storage_available(bytes: u64) -> String {
+    const THRESHOLD_EB: u64 = 999_500_000_000_000_000;
+
+    if bytes >= THRESHOLD_EB {
+        return format!("{:.1} EB", bytes as f64 / 1_000_000_000_000_000_000.0);
+    }
+
     format_compact_bytes(bytes as f64, 100.0)
 }
 

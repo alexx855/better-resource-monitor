@@ -112,6 +112,35 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     }
 }
 
+fn text_width(font: &Font, text: &str, scale: Scale) -> f32 {
+    font.layout(text, scale, rusttype::point(0.0, 0.0))
+        .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
+        .sum()
+}
+
+pub(crate) fn fit_text_scale(font: &Font, text: &str, font_size: f32, max_width: f32) -> Scale {
+    let base_scale = Scale::uniform(font_size);
+    let width = text_width(font, text, base_scale);
+
+    if width > max_width && width > 0.0 {
+        Scale::uniform((font_size * max_width / width).max(1.0))
+    } else {
+        base_scale
+    }
+}
+
+fn storage_segment_width(font: &Font, text: &str, sizing: Sizing) -> u32 {
+    let scale = Scale::uniform(sizing.font_size);
+    let network_text_width = text_width(font, "0.0 KB", scale);
+    let network_inner_gap =
+        (sizing.segment_width_net as f32 - sizing.icon_height as f32 - network_text_width).max(0.0);
+    let desired_width =
+        (sizing.icon_height as f32 + network_inner_gap + text_width(font, text, scale)).ceil()
+            as u32;
+
+    desired_width.clamp(sizing.segment_width_net, sizing.segment_width_storage)
+}
+
 pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8> {
     let (r, g, b) = color;
     let color_hex = format!("#{r:02x}{g:02x}{b:02x}");
@@ -256,6 +285,7 @@ impl TrayRenderer {
         }
 
         let sizing = config.sizing;
+        let storage_width = storage_segment_width(font, config.storage_available_str, sizing);
 
         let mut segments = Vec::with_capacity(6);
         for icon in METRIC_ICON_ORDER {
@@ -282,7 +312,7 @@ impl TrayRenderer {
                     config.show_storage,
                     config.storage_used_percent,
                     config.storage_available_str.to_owned(),
-                    sizing.segment_width_storage,
+                    storage_width,
                 ),
                 IconType::ArrowDown | IconType::ArrowUp => {
                     unreachable!("network icons are separate")
@@ -354,12 +384,14 @@ impl TrayRenderer {
         let min_alpha: u8 = if has_bg { 4 } else { 1 };
 
         let draw_text = |text: &str,
+                         text_scale: Scale,
+                         text_baseline: f32,
                          start_x: f32,
                          clip_left: u32,
                          clip_right: u32,
                          color: Color,
                          img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-            for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
+            for glyph in font.layout(text, text_scale, rusttype::point(start_x, text_baseline)) {
                 if let Some(bb) = glyph.pixel_bounding_box() {
                     glyph.draw(|gx, gy, v| {
                         let x = (bb.min.x + gx as i32) as u32;
@@ -439,16 +471,22 @@ impl TrayRenderer {
 
             draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
-            let value_width: f32 = font
-                .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
-                .map(|g| g.unpositioned().h_metrics().advance_width)
-                .sum();
             let text_left = x_offset + sizing.icon_height;
             let text_right = x_offset + segment.width;
-            let value_x =
-                (x_offset as f32 + segment.width as f32 - value_width).max(text_left as f32);
+            let available_width = (text_right - text_left) as f32;
+            let value_scale =
+                fit_text_scale(font, &segment.value, sizing.font_size, available_width);
+            let value_width = text_width(font, &segment.value, value_scale);
+            let value_baseline = if value_scale == scale {
+                baseline
+            } else {
+                calculate_font_baseline(font, sizing.icon_height, value_scale)
+            };
+            let value_x = x_offset as f32 + segment.width as f32 - value_width;
             draw_text(
                 &segment.value,
+                value_scale,
+                value_baseline,
                 value_x,
                 text_left,
                 text_right,
