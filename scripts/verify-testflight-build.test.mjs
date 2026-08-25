@@ -26,7 +26,7 @@ function createFixtureFetch({ buildStates, groups, testersByGroup = {} }) {
       assert.equal(url.searchParams.get('filter[bundleId]'), 'dev.example.monitor');
       return jsonResponse({ data: [resource('app-1')] });
     }
-    if (url.pathname.endsWith('/builds')) {
+    if (url.pathname === '/v1/builds') {
       assert.equal(url.searchParams.get('filter[app]'), 'app-1');
       assert.equal(url.searchParams.get('filter[version]'), '12345');
       assert.equal(url.searchParams.get('include'), 'betaGroups');
