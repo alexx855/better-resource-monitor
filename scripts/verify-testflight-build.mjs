@@ -129,7 +129,8 @@ export async function waitForTestFlightBuild({
   const deadline = now() + timeoutMs;
   let build;
   while (now() <= deadline) {
-    const builds = await request(`apps/${encodeURIComponent(app.id)}/builds`, {
+    const builds = await request('builds', {
+      'filter[app]': app.id,
       'filter[version]': buildNumber,
       'fields[builds]': 'version,processingState,uploadedDate,expired,betaGroups',
       include: 'betaGroups',
