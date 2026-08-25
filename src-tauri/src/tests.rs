@@ -67,6 +67,27 @@ fn assert_render_size(buffer: &[u8], width: u32, height: u32, expected_width: u3
     assert_eq!(buffer.len(), (width * height * 4) as usize);
 }
 
+fn visible_gap_between_icon_and_text(
+    buffer: &[u8],
+    image_width: u32,
+    image_height: u32,
+    segment_left: u32,
+    segment_width: u32,
+    icon_width: u32,
+) -> u32 {
+    let icon_right = (segment_left..segment_left + icon_width)
+        .rev()
+        .find(|&x| (0..image_height).any(|y| buffer[((y * image_width + x) * 4 + 3) as usize] > 0))
+        .expect("rendered icon must contain visible pixels");
+    let text_left = (segment_left + icon_width..segment_left + segment_width)
+        .find(|&x| (0..image_height).any(|y| buffer[((y * image_width + x) * 4 + 3) as usize] > 0))
+        .expect("rendered label must contain visible pixels");
+
+    text_left
+        .checked_sub(icon_right + 1)
+        .expect("rendered label must not overlap its icon")
+}
+
 fn assert_sizing(sizing: tray_render::Sizing, expected: (u32, u32, u32, u32, u32, u32, f32)) {
     let (
         segment_width,
@@ -563,6 +584,18 @@ fn test_render_all_default_visible_metrics_width() {
     let mut buffer = Vec::new();
     let mut renderer = tray_render::TrayRenderer::new();
 
+    let (storage_only_width, _, _) = renderer.render_tray_icon_into(
+        &font,
+        &mut buffer,
+        &tray_render::RenderConfig {
+            show_cpu: false,
+            show_mem: false,
+            show_storage: true,
+            ..base_render_config()
+        },
+    );
+    let rendered_storage_segment_width = storage_only_width - APP_SIZING.edge_padding * 2;
+
     let (width, height, has_alert) = renderer.render_tray_icon_into(
         &font,
         &mut buffer,
@@ -579,7 +612,7 @@ fn test_render_all_default_visible_metrics_width() {
     let segment_count = percent_segments + 1 + network_segments;
     let expected_width = APP_SIZING.edge_padding * 2
         + (APP_SIZING.segment_width * percent_segments)
-        + APP_SIZING.segment_width_net
+        + rendered_storage_segment_width
         + (APP_SIZING.segment_width_net * network_segments)
         + (APP_SIZING.segment_gap * (segment_count - 1));
 
@@ -590,7 +623,10 @@ fn test_render_all_default_visible_metrics_width() {
 #[test]
 fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
     let font = load_system_font().expect("test font required");
-    let labels = ["0.0 KB", "38.7 GB", "18.4 EB"];
+    let labels = [
+        "0.0 KB", "999 KB", "1.0 MB", "999 MB", "1.0 GB", "38.7 GB", "999 GB", "1.0 TB", "999 TB",
+        "1.0 PB", "999 PB", "1.0 EB", "18.4 EB",
+    ];
 
     for sizing in [tray_render::SIZING_MACOS, tray_render::SIZING_LINUX] {
         let mut renderer = tray_render::TrayRenderer::new();
@@ -615,15 +651,14 @@ fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
         let rendered_network_segment_width =
             (network_width - sizing.edge_padding * 2 - sizing.segment_gap) / 2;
         assert_eq!(network_height, sizing.icon_height);
-        let network_available_width = (rendered_network_segment_width - sizing.icon_height) as f32;
-        let network_scale =
-            tray_render::fit_text_scale(&font, "0.0 KB", sizing.font_size, network_available_width);
-        let network_label_width: f32 = font
-            .layout("0.0 KB", network_scale, rusttype::point(0.0, 0.0))
-            .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
-            .sum();
-        let network_inner_gap = network_available_width - network_label_width;
-
+        let network_visible_gap = visible_gap_between_icon_and_text(
+            &buffer,
+            network_width,
+            network_height,
+            sizing.edge_padding,
+            rendered_network_segment_width,
+            sizing.icon_height,
+        );
         for label in labels {
             let (width, height, has_alert) = renderer.render_tray_icon_into(
                 &font,
@@ -658,17 +693,18 @@ fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
                 .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
                 .sum();
             assert!(storage_label_width <= storage_available_width + 0.01);
-            let storage_inner_gap = storage_available_width - storage_label_width;
-            assert!(
-                (storage_inner_gap - network_inner_gap).abs() <= 1.0,
-                "storage label {label:?} inner gap {storage_inner_gap} must match network gap {network_inner_gap}"
+            let storage_visible_gap = visible_gap_between_icon_and_text(
+                &buffer,
+                width,
+                height,
+                sizing.edge_padding,
+                rendered_storage_segment_width,
+                sizing.icon_height,
             );
-            if label == "0.0 KB" {
-                assert_eq!(
-                    rendered_storage_segment_width,
-                    rendered_network_segment_width
-                );
-            }
+            assert!(
+                storage_visible_gap.abs_diff(network_visible_gap) <= 1,
+                "storage label {label:?} visible gap {storage_visible_gap} must match network gap {network_visible_gap} within one raster pixel"
+            );
 
             let ink_columns = buffer
                 .chunks_exact(4)
