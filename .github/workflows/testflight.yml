@@ -1,6 +1,6 @@
 name: TestFlight
 
-# Uploads a TestFlight build without changing repository version files.
+# Uploads and verifies a TestFlight build without changing repository version files.
 #
 # Security invariant: the workflow is split into two jobs so that untrusted
 # code (the source_ref checkout: pnpm lifecycle scripts, build.rs, tests, the
@@ -129,6 +129,8 @@ jobs:
           bash -n scripts/build-appstore-bundle.sh
           bash -n scripts/setup-appstore-signing.sh
           bash -n scripts/upload-appstore-package.sh
+          node --check scripts/verify-testflight-build.mjs
+          node --test scripts/verify-testflight-build.test.mjs
 
       - name: Run Rust tests
         run: cargo test --manifest-path source/src-tauri/Cargo.toml
@@ -220,7 +222,7 @@ jobs:
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
   sign-upload:
-    name: Sign and upload to App Store Connect
+    name: Sign, upload, and verify TestFlight
     needs: build
     runs-on: macos-15
     environment: testflight
@@ -239,6 +241,7 @@ jobs:
         run: |
           bash -n scripts/setup-appstore-signing.sh
           bash -n scripts/upload-appstore-package.sh
+          node --check scripts/verify-testflight-build.mjs
 
       - name: Download app bundle artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -295,6 +298,13 @@ jobs:
             "${{ needs.build.outputs.sha }}" \
             "$PROVISION_PROFILE_PATH"
 
+      - name: Verify TestFlight processing and internal availability
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          TESTFLIGHT_BUNDLE_ID: dev.alexpedersen.better-resource-monitor
+        run: node scripts/verify-testflight-build.mjs "${{ needs.build.outputs.build_number }}"
+
       - name: Mark pre-merge TestFlight success
         if: ${{ success() && inputs.pr_number != '' }}
         env:
@@ -306,11 +316,11 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
             -f state=success \
             -f context='Pre-merge TestFlight' \
-            -f description="TestFlight build ${BUILD_NUMBER} uploaded" \
+            -f description="TestFlight build ${BUILD_NUMBER} processed for internal testing" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
           gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            -f body="✅ Pre-merge TestFlight uploaded for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            -f body="✅ Pre-merge TestFlight processed and available to internal testers for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Mark pre-merge TestFlight failure
         if: ${{ failure() && inputs.pr_number != '' && needs.build.outputs.sha != '' }}
