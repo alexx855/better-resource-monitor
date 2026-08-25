@@ -118,6 +118,18 @@ fn text_width(font: &Font, text: &str, scale: Scale) -> f32 {
         .sum()
 }
 
+fn text_left_pixel(
+    font: &Font,
+    text: &str,
+    scale: Scale,
+    start_x: f32,
+    baseline: f32,
+) -> Option<i32> {
+    font.layout(text, scale, rusttype::point(start_x, baseline))
+        .filter_map(|glyph| glyph.pixel_bounding_box().map(|bounds| bounds.min.x))
+        .min()
+}
+
 pub(crate) fn fit_text_scale(font: &Font, text: &str, font_size: f32, max_width: f32) -> Scale {
     let base_scale = Scale::uniform(font_size);
     let width = text_width(font, text, base_scale);
@@ -129,16 +141,35 @@ pub(crate) fn fit_text_scale(font: &Font, text: &str, font_size: f32, max_width:
     }
 }
 
-fn storage_segment_width(font: &Font, text: &str, sizing: Sizing) -> u32 {
+fn storage_segment_width(
+    font: &Font,
+    text: &str,
+    sizing: Sizing,
+    baseline: f32,
+    storage_icon_right: u32,
+    network_icon_right: u32,
+) -> u32 {
     let scale = Scale::uniform(sizing.font_size);
     let network_text_width = text_width(font, "0.0 KB", scale);
-    let network_inner_gap =
-        (sizing.segment_width_net as f32 - sizing.icon_height as f32 - network_text_width).max(0.0);
-    let desired_width =
-        (sizing.icon_height as f32 + network_inner_gap + text_width(font, text, scale)).ceil()
-            as u32;
+    let Some(network_text_left) = text_left_pixel(
+        font,
+        "0.0 KB",
+        scale,
+        sizing.segment_width_net as f32 - network_text_width,
+        baseline,
+    ) else {
+        return sizing.segment_width_net;
+    };
+    let target_gap = network_text_left - network_icon_right as i32 - 1;
 
-    desired_width.clamp(sizing.segment_width_net, sizing.segment_width_storage)
+    let text_width = text_width(font, text, scale);
+    (sizing.icon_height..=sizing.segment_width_storage)
+        .min_by_key(|&width| {
+            let text_left = text_left_pixel(font, text, scale, width as f32 - text_width, baseline)
+                .unwrap_or(storage_icon_right as i32 + 1);
+            (text_left - storage_icon_right as i32 - 1).abs_diff(target_gap)
+        })
+        .unwrap_or(sizing.segment_width_net)
 }
 
 pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8> {
@@ -187,6 +218,7 @@ pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8
 
 struct IconCache {
     icons: HashMap<(IconType, Color), Vec<u8>>,
+    rightmost_ink: HashMap<IconType, u32>,
 }
 
 impl IconCache {
@@ -208,11 +240,34 @@ impl IconCache {
             }
         }
 
-        Self { icons }
+        let rightmost_ink = icon_svgs
+            .into_iter()
+            .map(|(icon_type, _)| {
+                let pixels = icons
+                    .get(&(icon_type, (255, 255, 255)))
+                    .expect("white icon cached");
+                let right = pixels
+                    .chunks_exact(4)
+                    .enumerate()
+                    .filter_map(|(index, pixel)| (pixel[3] > 0).then_some(index as u32 % size))
+                    .max()
+                    .expect("cached icon contains visible pixels");
+                (icon_type, right)
+            })
+            .collect();
+
+        Self {
+            icons,
+            rightmost_ink,
+        }
     }
 
     fn get(&self, icon_type: IconType, color: Color) -> &[u8] {
         self.icons.get(&(icon_type, color)).expect("icon cached")
+    }
+
+    fn rightmost_ink(&self, icon_type: IconType) -> u32 {
+        self.rightmost_ink[&icon_type]
     }
 }
 
@@ -285,7 +340,23 @@ impl TrayRenderer {
         }
 
         let sizing = config.sizing;
-        let storage_width = storage_segment_width(font, config.storage_available_str, sizing);
+        let scale = Scale::uniform(sizing.font_size);
+        let baseline = self.baseline(font, sizing);
+        let (storage_icon_right, network_icon_right) = {
+            let icon_cache = self.icon_cache(sizing.icon_height);
+            (
+                icon_cache.rightmost_ink(IconType::Storage),
+                icon_cache.rightmost_ink(IconType::ArrowDown),
+            )
+        };
+        let storage_width = storage_segment_width(
+            font,
+            config.storage_available_str,
+            sizing,
+            baseline,
+            storage_icon_right,
+            network_icon_right,
+        );
 
         let mut segments = Vec::with_capacity(6);
         for icon in METRIC_ICON_ORDER {
@@ -374,9 +445,6 @@ impl TrayRenderer {
                 *p = pixel;
             }
         }
-
-        let scale = Scale::uniform(sizing.font_size);
-        let baseline = self.baseline(font, sizing);
 
         let icon_cache = self.icon_cache(sizing.icon_height);
 
