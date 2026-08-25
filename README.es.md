@@ -60,6 +60,12 @@ No. Better Resource Monitor no hace solicitudes de red. No hay analíticas ni te
 
 Sí. Está diseñado para permanecer en segundo plano con bajo impacto y resultar útil durante el trabajo diario.
 
+## Alertas
+
+Con **Mostrar colores de advertencia** activado, la barra se vuelve naranja cuando el uso visible de CPU, memoria, almacenamiento o GPU llega al **81%**. Recupera su aspecto normal cuando todos bajan del 81%.
+
+Las alertas son solo visuales. La velocidad de red y las métricas ocultas no las activan. El umbral es fijo, pero los colores se pueden desactivar desde el menú de la barra.
+
 
 ## Instalación
 

@@ -65,6 +65,12 @@ Yes. It is built to sit in the background with very low impact so it stays usabl
 
 If this is useful, star the repo so other Mac users can find it.
 
+## Alerts
+
+With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, storage, or GPU usage reaches **81%**. It returns to normal when they are all below 81%.
+
+Alerts are visual only. Network speed and hidden metrics do not trigger them. The threshold is fixed, but warning colors can be turned off from the tray menu.
+
 ## Installation
 
 Get it from the <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (includes automatic updates) or grab the `.dmg` from <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (no automatic updates; download and update manually each version).
