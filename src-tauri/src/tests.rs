@@ -46,7 +46,7 @@ fn base_render_config<'a>() -> tray_render::RenderConfig<'a> {
         cpu_usage: 50.0,
         mem_percent: 50.0,
         storage_available_str: "0.0 KB",
-        storage_used_percent: 50.0,
+        storage_available_bytes: None,
         gpu_usage: 0.0,
         down_str: "0 KB",
         up_str: "0 KB",
@@ -360,23 +360,46 @@ fn test_format_speed() {
 
 #[test]
 fn test_storage_display_update_uses_label_and_alert_state() {
-    for (previous_label, previous_used, current_label, current_used, expected) in [
-        (None, -100.0, "19.5 GB", 50.0, true),
-        (Some("19.5 GB"), 50.0, "19.5 GB", 50.0, false),
-        (Some("19.5 GB"), 50.0, "19.5 GB", 80.0, false),
-        (Some("19.5 GB"), 80.0, "19.5 GB", 81.0, true),
-        (Some("19.5 GB"), 81.0, "19.5 GB", 82.0, false),
-        (Some("19.5 GB"), 81.0, "20 GB", 81.0, true),
+    for (previous_label, previous_bytes, current_label, current_bytes, expected) in [
+        (None, None, "19.5 GB", Some(19_500_000_000), true),
+        (
+            Some("19.5 GB"),
+            Some(19_500_000_000),
+            "19.5 GB",
+            Some(19_500_000_000),
+            false,
+        ),
+        (
+            Some("10.0 GB"),
+            Some(10_010_000_000),
+            "10.0 GB",
+            Some(9_990_000_000),
+            true,
+        ),
+        (
+            Some("9.9 GB"),
+            Some(9_950_000_000),
+            "9.9 GB",
+            Some(9_940_000_000),
+            false,
+        ),
+        (
+            Some("19.5 GB"),
+            Some(19_500_000_000),
+            "20 GB",
+            Some(20_000_000_000),
+            true,
+        ),
     ] {
         assert_eq!(
             storage_display_needs_update(
                 previous_label,
-                previous_used,
+                previous_bytes,
                 current_label,
-                current_used,
+                current_bytes,
             ),
             expected,
-            "previous_label={previous_label:?}, previous_used={previous_used}, current_label={current_label}, current_used={current_used}"
+            "previous_label={previous_label:?}, previous_bytes={previous_bytes:?}, current_label={current_label}, current_bytes={current_bytes:?}"
         );
     }
 }
@@ -467,11 +490,12 @@ fn test_alert_colors_all_segments() {
         );
     }
 
-    for (storage_used_percent, show_alerts, expected_alert) in [
-        (50.0, true, false),
-        (80.0, true, false),
-        (81.0, true, true),
-        (81.0, false, false),
+    for (storage_available_bytes, show_alerts, expected_alert) in [
+        (Some(10_000_000_001), true, false),
+        (Some(10_000_000_000), true, false),
+        (Some(9_999_999_999), true, true),
+        (Some(9_999_999_999), false, false),
+        (None, true, false),
     ] {
         let (_, _, has_alert) = renderer.render_tray_icon_into(
             &font,
@@ -479,7 +503,7 @@ fn test_alert_colors_all_segments() {
             &tray_render::RenderConfig {
                 cpu_usage: 0.0,
                 mem_percent: 0.0,
-                storage_used_percent,
+                storage_available_bytes,
                 show_cpu: false,
                 show_mem: false,
                 show_storage: true,
@@ -489,7 +513,43 @@ fn test_alert_colors_all_segments() {
         );
         assert_eq!(
             has_alert, expected_alert,
-            "storage_used_percent={storage_used_percent}, show_alerts={show_alerts}"
+            "storage_available_bytes={storage_available_bytes:?}, show_alerts={show_alerts}"
+        );
+    }
+}
+
+#[test]
+fn test_storage_alert_uses_available_space_instead_of_percentage() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+
+    for (available, available_bytes, expected_alert) in [
+        ("100 GB", Some(100_000_000_000), false),
+        ("10.0 GB", Some(10_000_000_000), false),
+        ("9.9 GB", Some(9_900_000_000), true),
+        ("0.0 KB", None, false),
+    ] {
+        let (_, _, has_alert) = renderer.render_tray_icon_into(
+            &font,
+            &mut buffer,
+            &tray_render::RenderConfig {
+                cpu_usage: 0.0,
+                mem_percent: 0.0,
+                storage_available_str: available,
+                storage_available_bytes: available_bytes,
+                show_cpu: false,
+                show_mem: false,
+                show_storage: true,
+                show_gpu: false,
+                show_net: false,
+                show_alerts: true,
+                ..base_render_config()
+            },
+        );
+        assert_eq!(
+            has_alert, expected_alert,
+            "available={available}, available_bytes={available_bytes:?}"
         );
     }
 }
