@@ -12,6 +12,7 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 type Color = (u8, u8, u8);
 
 const ALERT_THRESHOLD: f32 = 81.0;
+const STORAGE_ALERT_AVAILABLE_BYTES: u64 = 10_000_000_000;
 const ALERT_COLOR: Color = (209, 71, 21); // #D14715
 const ALERT_FOREGROUND: Color = (255, 255, 255);
 
@@ -87,6 +88,10 @@ pub(crate) fn metric_icon_order_for_tests() -> [IconType; 4] {
 
 pub(crate) fn alert_active(value: f32) -> bool {
     value >= ALERT_THRESHOLD
+}
+
+pub(crate) fn storage_alert_active(available_bytes: Option<u64>) -> bool {
+    available_bytes.is_some_and(|bytes| bytes < STORAGE_ALERT_AVAILABLE_BYTES)
 }
 
 pub(crate) fn cap_percent(value: f32) -> f32 {
@@ -283,7 +288,7 @@ pub struct RenderConfig<'a> {
     pub cpu_usage: f32,
     pub mem_percent: f32,
     pub storage_available_str: &'a str,
-    pub storage_used_percent: f32,
+    pub storage_available_bytes: Option<u64>,
     pub gpu_usage: f32,
     pub down_str: &'a str,
     pub up_str: &'a str,
@@ -362,30 +367,30 @@ impl TrayRenderer {
 
         let mut segments = Vec::with_capacity(6);
         for icon in METRIC_ICON_ORDER {
-            let (show, value, value_text, width) = match icon {
+            let (show, value_text, width, alert) = match icon {
                 IconType::Memory => (
                     config.show_mem,
-                    config.mem_percent,
                     format!("{:.0}%", cap_percent(config.mem_percent)),
                     sizing.segment_width,
+                    alert_active(config.mem_percent),
                 ),
                 IconType::Cpu => (
                     config.show_cpu,
-                    config.cpu_usage,
                     format!("{:.0}%", cap_percent(config.cpu_usage)),
                     sizing.segment_width,
+                    alert_active(config.cpu_usage),
                 ),
                 IconType::Gpu => (
                     config.show_gpu,
-                    config.gpu_usage,
                     format!("{:.0}%", cap_percent(config.gpu_usage)),
                     sizing.segment_width,
+                    alert_active(config.gpu_usage),
                 ),
                 IconType::Storage => (
                     config.show_storage,
-                    config.storage_used_percent,
                     config.storage_available_str.to_owned(),
                     storage_width,
+                    storage_alert_active(config.storage_available_bytes),
                 ),
                 IconType::ArrowDown | IconType::ArrowUp => {
                     unreachable!("network icons are separate")
@@ -397,7 +402,7 @@ impl TrayRenderer {
                     icon,
                     value: value_text,
                     width,
-                    alert: alert_active(value),
+                    alert,
                 });
             }
         }
