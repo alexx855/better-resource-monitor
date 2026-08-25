@@ -329,13 +329,13 @@ fn format_storage_available(bytes: u64) -> String {
 
 fn storage_display_needs_update(
     previous_label: Option<&str>,
-    previous_used_percent: f32,
+    previous_available_bytes: Option<u64>,
     current_label: &str,
-    current_used_percent: f32,
+    current_available_bytes: Option<u64>,
 ) -> bool {
     previous_label != Some(current_label)
-        || tray_render::alert_active(previous_used_percent)
-            != tray_render::alert_active(current_used_percent)
+        || tray_render::storage_alert_active(previous_available_bytes)
+            != tray_render::storage_alert_active(current_available_bytes)
 }
 
 fn sum_network_totals(networks: &Networks) -> (u64, u64) {
@@ -820,7 +820,7 @@ fn setup_tray(
             cpu_usage: 0.0,
             mem_percent: 0.0,
             storage_available_str: "0.0 KB",
-            storage_used_percent: 0.0,
+            storage_available_bytes: None,
             gpu_usage: 0.0,
             down_str: "0 KB",
             up_str: "0 KB",
@@ -1155,7 +1155,7 @@ fn start_monitoring(
         let mut prev_cpu: f32 = -100.0; // Force initial update
         let mut prev_mem: f32 = -100.0;
         let mut prev_storage_available: Option<String> = None;
-        let mut prev_storage_used_percent: f32 = -100.0;
+        let mut prev_storage_available_bytes: Option<u64> = None;
         let mut last_storage_sample: Option<storage::StorageSample> = None;
         let mut prev_gpu: f32 = -100.0;
         let mut prev_down_speed: f64 = -1.0;
@@ -1254,9 +1254,7 @@ fn start_monitoring(
             let storage_available_str = storage_sample
                 .map(|sample| format_storage_available(sample.available_bytes))
                 .unwrap_or_else(|| "0.0 KB".to_string());
-            let storage_used_percent = storage_sample
-                .map(|sample| sample.used_percent)
-                .unwrap_or(0.0);
+            let storage_available_bytes = storage_sample.map(|sample| sample.available_bytes);
 
             let (down_speed, up_speed) = if sn {
                 let (total_rx, total_tx) = sum_network_totals(&networks);
@@ -1289,9 +1287,9 @@ fn start_monitoring(
             let storage_changed = ss
                 && storage_display_needs_update(
                     prev_storage_available.as_deref(),
-                    prev_storage_used_percent,
+                    prev_storage_available_bytes,
                     &storage_available_str,
-                    storage_used_percent,
+                    storage_available_bytes,
                 );
             let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
             let down_diff = (down_speed - prev_down_speed).abs();
@@ -1319,7 +1317,7 @@ fn start_monitoring(
                 }
                 if ss {
                     prev_storage_available = Some(storage_available_str.clone());
-                    prev_storage_used_percent = storage_used_percent;
+                    prev_storage_available_bytes = storage_available_bytes;
                 }
                 if sg {
                     prev_gpu = gpu_usage;
@@ -1337,7 +1335,7 @@ fn start_monitoring(
                         cpu_usage,
                         mem_percent,
                         storage_available_str: &storage_available_str,
-                        storage_used_percent,
+                        storage_available_bytes,
                         gpu_usage,
                         down_str: &down_str,
                         up_str: &up_str,

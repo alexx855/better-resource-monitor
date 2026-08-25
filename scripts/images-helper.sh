@@ -37,7 +37,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --preset macos \
   --scale 0.6666667 \
   --storage "19.5 GB" \
-  --storage-used-percent 92 \
+  --storage-available-bytes 5000000000 \
   --cpu 93 \
   --mem 96 \
   --gpu 91 \
