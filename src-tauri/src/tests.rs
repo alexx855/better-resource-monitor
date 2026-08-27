@@ -570,15 +570,21 @@ fn test_sizing_scaled() {
 }
 
 #[test]
-#[should_panic(expected = "scale must be finite and > 0")]
+#[should_panic(expected = "scale must be finite and between 0 and 4")]
 fn test_sizing_scaled_panics_on_zero() {
     let _ = tray_render::SIZING_LINUX.scaled(0.0);
 }
 
 #[test]
-#[should_panic(expected = "scale must be finite and > 0")]
+#[should_panic(expected = "scale must be finite and between 0 and 4")]
 fn test_sizing_scaled_panics_on_infinity() {
     let _ = tray_render::SIZING_LINUX.scaled(f32::INFINITY);
+}
+
+#[test]
+#[should_panic(expected = "scale must be finite and between 0 and 4")]
+fn test_sizing_scaled_panics_above_safe_limit() {
+    let _ = tray_render::SIZING_LINUX.scaled(4.01);
 }
 
 #[test]
