@@ -120,8 +120,8 @@ fn main() {
         })
         .unwrap_or(1.0);
 
-    if scale <= 0.0 || scale.is_nan() {
-        panic!("--scale must be > 0");
+    if !scale.is_finite() || scale <= 0.0 {
+        panic!("--scale must be finite and > 0");
     }
 
     let cpu = args

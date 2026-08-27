@@ -324,7 +324,12 @@ fn format_storage_available(bytes: u64) -> String {
         return format!("{:.1} EB", bytes as f64 / 1_000_000_000_000_000_000.0);
     }
 
-    format_compact_bytes(bytes as f64, 100.0)
+    let formatted = format_compact_bytes(bytes as f64, 100.0);
+    if bytes < tray_render::STORAGE_ALERT_AVAILABLE_BYTES && formatted == "10.0 GB" {
+        "<10 GB".to_string()
+    } else {
+        formatted
+    }
 }
 
 fn storage_display_needs_update(
