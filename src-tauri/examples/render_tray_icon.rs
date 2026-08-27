@@ -120,8 +120,8 @@ fn main() {
         })
         .unwrap_or(1.0);
 
-    if !scale.is_finite() || scale <= 0.0 {
-        panic!("--scale must be finite and > 0");
+    if !scale.is_finite() || scale <= 0.0 || scale > tray_render::MAX_RENDER_SCALE {
+        panic!("--scale must be finite and between 0 and 4");
     }
 
     let cpu = args

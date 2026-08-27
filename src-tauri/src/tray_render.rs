@@ -15,6 +15,7 @@ const ALERT_THRESHOLD: f32 = 81.0;
 pub(crate) const STORAGE_ALERT_AVAILABLE_BYTES: u64 = 10_000_000_000;
 const ALERT_COLOR: Color = (209, 71, 21); // #D14715
 const ALERT_FOREGROUND: Color = (255, 255, 255);
+pub const MAX_RENDER_SCALE: f32 = 4.0;
 
 #[derive(Clone, Copy)]
 pub struct Sizing {
@@ -30,8 +31,8 @@ pub struct Sizing {
 impl Sizing {
     pub fn scaled(self, scale: f32) -> Self {
         assert!(
-            scale.is_finite() && scale > 0.0,
-            "scale must be finite and > 0"
+            scale.is_finite() && scale > 0.0 && scale <= MAX_RENDER_SCALE,
+            "scale must be finite and between 0 and 4"
         );
 
         let scale_u32 = |v: u32| -> u32 { ((v as f32) * scale).round().max(1.0) as u32 };
