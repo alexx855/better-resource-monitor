@@ -354,6 +354,10 @@ fn test_format_speed() {
     }
 
     assert_eq!(format_storage_available(0), "0.0 KB");
+    assert_eq!(format_storage_available(9_949_999_999), "9.9 GB");
+    assert_eq!(format_storage_available(9_950_000_000), "9.9 GB");
+    assert_eq!(format_storage_available(9_999_999_999), "<10 GB");
+    assert_eq!(format_storage_available(10_000_000_000), "10.0 GB");
     assert_eq!(format_storage_available(19_500_000_000), "19.5 GB");
     assert_eq!(format_storage_available(u64::MAX), "18.4 EB");
 }
@@ -566,9 +570,15 @@ fn test_sizing_scaled() {
 }
 
 #[test]
-#[should_panic(expected = "scale must be > 0")]
+#[should_panic(expected = "scale must be finite and > 0")]
 fn test_sizing_scaled_panics_on_zero() {
     let _ = tray_render::SIZING_LINUX.scaled(0.0);
+}
+
+#[test]
+#[should_panic(expected = "scale must be finite and > 0")]
+fn test_sizing_scaled_panics_on_infinity() {
+    let _ = tray_render::SIZING_LINUX.scaled(f32::INFINITY);
 }
 
 #[test]
@@ -684,8 +694,8 @@ fn test_render_all_default_visible_metrics_width() {
 fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
     let font = load_system_font().expect("test font required");
     let labels = [
-        "0.0 KB", "999 KB", "1.0 MB", "999 MB", "1.0 GB", "38.7 GB", "999 GB", "1.0 TB", "999 TB",
-        "1.0 PB", "999 PB", "1.0 EB", "18.4 EB",
+        "0.0 KB", "999 KB", "1.0 MB", "999 MB", "1.0 GB", "<10 GB", "38.7 GB", "999 GB", "1.0 TB",
+        "999 TB", "1.0 PB", "999 PB", "1.0 EB", "18.4 EB",
     ];
 
     for sizing in [tray_render::SIZING_MACOS, tray_render::SIZING_LINUX] {
