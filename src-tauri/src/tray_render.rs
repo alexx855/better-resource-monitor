@@ -12,7 +12,7 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 type Color = (u8, u8, u8);
 
 const ALERT_THRESHOLD: f32 = 81.0;
-const STORAGE_ALERT_AVAILABLE_BYTES: u64 = 10_000_000_000;
+pub(crate) const STORAGE_ALERT_AVAILABLE_BYTES: u64 = 10_000_000_000;
 const ALERT_COLOR: Color = (209, 71, 21); // #D14715
 const ALERT_FOREGROUND: Color = (255, 255, 255);
 
@@ -29,7 +29,10 @@ pub struct Sizing {
 
 impl Sizing {
     pub fn scaled(self, scale: f32) -> Self {
-        assert!(scale > 0.0, "scale must be > 0");
+        assert!(
+            scale.is_finite() && scale > 0.0,
+            "scale must be finite and > 0"
+        );
 
         let scale_u32 = |v: u32| -> u32 { ((v as f32) * scale).round().max(1.0) as u32 };
         Self {
