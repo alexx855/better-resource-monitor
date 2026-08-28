@@ -67,7 +67,7 @@ If this is useful, star the repo so other Mac users can find it.
 
 ## Alerts
 
-With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, storage, or GPU usage reaches **81%**. It returns to normal when they are all below 81%.
+With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, or GPU usage reaches **81%**, or when available storage falls below **10 GB**. It returns to normal when the percentage metrics are below 81% and at least 10 GB of storage is available.
 
 Alerts are visual only. Network speed and hidden metrics do not trigger them. The threshold is fixed, but warning colors can be turned off from the tray menu.
 
