@@ -150,8 +150,14 @@ jobs:
             --body "Automated version bump for v$NEW_VERSION.")"
           PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
           PR_HEAD_SHA="$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')"
-          existing_run_ids="$(gh run list \
+          existing_testflight_run_ids="$(gh run list \
             --workflow testflight.yml \
+            --event workflow_dispatch \
+            --limit 100 \
+            --json databaseId \
+            --jq '.[].databaseId')"
+          existing_ci_run_ids="$(gh run list \
+            --workflow ci.yml \
             --event workflow_dispatch \
             --limit 100 \
             --json databaseId \
@@ -161,39 +167,47 @@ jobs:
             --ref main \
             -f source_ref="refs/pull/${PR_NUMBER}/head" \
             -f pr_number="$PR_NUMBER"
+          gh workflow run ci.yml --ref "$RELEASE_BRANCH"
 
-          run_id=""
-          for _ in {1..60}; do
-            mapfile -t run_ids < <(gh run list \
-              --workflow testflight.yml \
-              --event workflow_dispatch \
-              --limit 100 \
-              --json databaseId \
-              --jq '.[].databaseId' \
-              | while IFS= read -r candidate; do
-                  if ! grep -Fqx "$candidate" <<< "$existing_run_ids"; then
-                    echo "$candidate"
-                  fi
-                done)
+          wait_for_new_run() {
+            local workflow="$1"
+            local existing_ids="$2"
+            local label="$3"
 
-            if [ "${#run_ids[@]}" -gt 1 ]; then
-              echo "Error: multiple TestFlight runs matched the release PR dispatch window."
-              exit 1
-            fi
-            if [ "${#run_ids[@]}" -eq 1 ]; then
-              run_id="${run_ids[0]}"
-              break
-            fi
+            for _ in {1..60}; do
+              mapfile -t run_ids < <(gh run list \
+                --workflow "$workflow" \
+                --event workflow_dispatch \
+                --limit 100 \
+                --json databaseId \
+                --jq '.[].databaseId' \
+                | while IFS= read -r candidate; do
+                    if ! grep -Fqx "$candidate" <<< "$existing_ids"; then
+                      echo "$candidate"
+                    fi
+                  done)
 
-            sleep 5
-          done
+              if [ "${#run_ids[@]}" -gt 1 ]; then
+                echo "Error: multiple $label runs matched the release PR dispatch window." >&2
+                return 1
+              fi
+              if [ "${#run_ids[@]}" -eq 1 ]; then
+                echo "${run_ids[0]}"
+                return 0
+              fi
 
-          if [ -z "$run_id" ]; then
-            echo "Error: timed out waiting for TestFlight workflow dispatch for PR #$PR_NUMBER."
-            exit 1
-          fi
+              sleep 5
+            done
 
-          gh run watch "$run_id" --exit-status
+            echo "Error: timed out waiting for $label workflow dispatch for PR #$PR_NUMBER." >&2
+            return 1
+          }
+
+          testflight_run_id="$(wait_for_new_run testflight.yml "$existing_testflight_run_ids" TestFlight)"
+          ci_run_id="$(wait_for_new_run ci.yml "$existing_ci_run_ids" CI)"
+
+          gh run watch "$testflight_run_id" --exit-status
+          gh run watch "$ci_run_id" --exit-status
 
           MERGE_STATE=""
           for _ in {1..180}; do
@@ -205,7 +219,7 @@ jobs:
           done
 
           if [ "$MERGE_STATE" != "CLEAN" ]; then
-            echo "Error: release PR #$PR_NUMBER did not become mergeable after TestFlight passed."
+            echo "Error: release PR #$PR_NUMBER did not become mergeable after TestFlight and CI passed."
             gh pr checks "$PR_NUMBER" || true
             exit 1
           fi
