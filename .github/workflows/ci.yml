@@ -72,6 +72,9 @@ jobs:
       - name: Test TestFlight processing verifier
         run: node --test scripts/verify-testflight-build.test.mjs
 
+      - name: Test release workflow gate
+        run: node --test scripts/release-workflow.test.mjs
+
       - name: Install cargo-audit
         uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
         with:

@@ -27,6 +27,7 @@ jobs:
   version-bump:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     outputs:
@@ -148,25 +149,88 @@ jobs:
             --title "chore: bump version to $NEW_VERSION" \
             --body "Automated version bump for v$NEW_VERSION.")"
           PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
+          PR_HEAD_SHA="$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')"
+          existing_run_ids="$(gh run list \
+            --workflow testflight.yml \
+            --event workflow_dispatch \
+            --limit 100 \
+            --json databaseId \
+            --jq '.[].databaseId')"
 
-          for _ in {1..30}; do
-            MERGE_STATE="$(gh pr view "$PR_NUMBER" --json mergeStateStatus -q '.mergeStateStatus')"
-            case "$MERGE_STATE" in
-              CLEAN|HAS_HOOKS|UNSTABLE)
-                break
-                ;;
-            esac
-            sleep 2
+          gh workflow run testflight.yml \
+            --ref main \
+            -f source_ref="refs/pull/${PR_NUMBER}/head" \
+            -f pr_number="$PR_NUMBER"
+
+          run_id=""
+          for _ in {1..60}; do
+            mapfile -t run_ids < <(gh run list \
+              --workflow testflight.yml \
+              --event workflow_dispatch \
+              --limit 100 \
+              --json databaseId \
+              --jq '.[].databaseId' \
+              | while IFS= read -r candidate; do
+                  if ! grep -Fqx "$candidate" <<< "$existing_run_ids"; then
+                    echo "$candidate"
+                  fi
+                done)
+
+            if [ "${#run_ids[@]}" -gt 1 ]; then
+              echo "Error: multiple TestFlight runs matched the release PR dispatch window."
+              exit 1
+            fi
+            if [ "${#run_ids[@]}" -eq 1 ]; then
+              run_id="${run_ids[0]}"
+              break
+            fi
+
+            sleep 5
           done
 
+          if [ -z "$run_id" ]; then
+            echo "Error: timed out waiting for TestFlight workflow dispatch for PR #$PR_NUMBER."
+            exit 1
+          fi
+
+          gh run watch "$run_id" --exit-status
+
+          MERGE_STATE=""
+          for _ in {1..180}; do
+            MERGE_STATE="$(gh pr view "$PR_NUMBER" --json mergeStateStatus -q '.mergeStateStatus')"
+            if [ "$MERGE_STATE" = "CLEAN" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$MERGE_STATE" != "CLEAN" ]; then
+            echo "Error: release PR #$PR_NUMBER did not become mergeable after TestFlight passed."
+            gh pr checks "$PR_NUMBER" || true
+            exit 1
+          fi
+
           gh pr merge "$PR_NUMBER" \
+            --match-head-commit "$PR_HEAD_SHA" \
             --squash \
             --delete-branch \
             --subject "chore: bump version to $NEW_VERSION" \
             --body "Automated version bump for v$NEW_VERSION."
 
           git fetch origin main --tags
-          RELEASE_SHA="$(git rev-parse origin/main)"
+          RELEASE_SHA=""
+          for _ in {1..180}; do
+            PR_STATE="$(gh pr view "$PR_NUMBER" --json state -q '.state')"
+            RELEASE_SHA="$(gh pr view "$PR_NUMBER" --json mergeCommit -q '.mergeCommit.oid // ""')"
+            if [ "$PR_STATE" = "MERGED" ] && [ -n "$RELEASE_SHA" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$RELEASE_SHA" ]; then
+            echo "Error: release PR #$PR_NUMBER did not produce a merge commit."
+            exit 1
+          fi
           echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
           git tag "v$NEW_VERSION" "$RELEASE_SHA"
           git push origin "v$NEW_VERSION"
