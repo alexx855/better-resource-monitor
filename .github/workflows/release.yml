@@ -150,8 +150,12 @@ jobs:
             --body "Automated version bump for v$NEW_VERSION.")"
           PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
           PR_HEAD_SHA="$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')"
-          BASE_SHA="$(git rev-parse HEAD^)"
-          STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          existing_run_ids="$(gh run list \
+            --workflow testflight.yml \
+            --event workflow_dispatch \
+            --limit 100 \
+            --json databaseId \
+            --jq '.[].databaseId')"
 
           gh workflow run testflight.yml \
             --ref main \
@@ -163,9 +167,14 @@ jobs:
             mapfile -t run_ids < <(gh run list \
               --workflow testflight.yml \
               --event workflow_dispatch \
-              --limit 20 \
-              --json databaseId,headSha,createdAt \
-              --jq ".[] | select(.headSha == \"$BASE_SHA\" and .createdAt >= \"$STARTED_AT\") | .databaseId")
+              --limit 100 \
+              --json databaseId \
+              --jq '.[].databaseId' \
+              | while IFS= read -r candidate; do
+                  if ! grep -Fqx "$candidate" <<< "$existing_run_ids"; then
+                    echo "$candidate"
+                  fi
+                done)
 
             if [ "${#run_ids[@]}" -gt 1 ]; then
               echo "Error: multiple TestFlight runs matched the release PR dispatch window."
@@ -209,9 +218,17 @@ jobs:
             --body "Automated version bump for v$NEW_VERSION."
 
           git fetch origin main --tags
-          RELEASE_SHA="$(gh pr view "$PR_NUMBER" --json mergeCommit -q '.mergeCommit.oid')"
+          RELEASE_SHA=""
+          for _ in {1..180}; do
+            PR_STATE="$(gh pr view "$PR_NUMBER" --json state -q '.state')"
+            RELEASE_SHA="$(gh pr view "$PR_NUMBER" --json mergeCommit -q '.mergeCommit.oid // ""')"
+            if [ "$PR_STATE" = "MERGED" ] && [ -n "$RELEASE_SHA" ]; then
+              break
+            fi
+            sleep 5
+          done
           if [ -z "$RELEASE_SHA" ]; then
-            echo "Error: release PR #$PR_NUMBER has no merge commit."
+            echo "Error: release PR #$PR_NUMBER did not produce a merge commit."
             exit 1
           fi
           echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"

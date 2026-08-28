@@ -20,12 +20,13 @@ test("release version PR passes exact-head TestFlight before merge", () => {
   const merge = versionBumpJob.indexOf('gh pr merge "$PR_NUMBER"');
 
   assert.match(versionBumpJob, /permissions:\n      actions: write\n/);
+  assert.match(versionBumpJob, /existing_run_ids=/);
   assert.notEqual(dispatch, -1, "release PR must dispatch its exact head");
   assert.ok(watch > dispatch, "release must wait for TestFlight processing");
   assert.ok(merge > watch, "release PR must merge only after TestFlight passes");
   assert.match(versionBumpJob, /--match-head-commit "\$PR_HEAD_SHA"/);
   assert.match(
     versionBumpJob,
-    /RELEASE_SHA="\$\(gh pr view "\$PR_NUMBER" --json mergeCommit -q '\.mergeCommit\.oid'\)"/,
+    /if \[ "\$PR_STATE" = "MERGED" \] && \[ -n "\$RELEASE_SHA" \]/,
   );
 });
