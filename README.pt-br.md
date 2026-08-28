@@ -62,7 +62,7 @@ Sim. Foi construído para ficar ativo em segundo plano com baixo impacto e útil
 
 ## Alertas
 
-Com **Mostrar cores de aviso** ativado, a barra fica laranja quando o uso visível de CPU, memória, armazenamento ou GPU chega a **81%**. Ela volta ao normal quando todos ficam abaixo de 81%.
+Com **Mostrar cores de aviso** ativado, a barra fica laranja quando o uso visível de CPU, memória ou GPU chega a **81%**, ou quando o armazenamento disponível cai para menos de **10 GB**. Ela volta ao normal quando as métricas percentuais ficam abaixo de 81% e há pelo menos 10 GB disponíveis.
 
 Os alertas são apenas visuais. A velocidade da rede e as métricas ocultas não os acionam. O limite é fixo, mas as cores podem ser desativadas no menu da barra.
 

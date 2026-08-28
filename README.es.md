@@ -62,7 +62,7 @@ Sí. Está diseñado para permanecer en segundo plano con bajo impacto y resulta
 
 ## Alertas
 
-Con **Mostrar colores de advertencia** activado, la barra se vuelve naranja cuando el uso visible de CPU, memoria, almacenamiento o GPU llega al **81%**. Recupera su aspecto normal cuando todos bajan del 81%.
+Con **Mostrar colores de advertencia** activado, la barra se vuelve naranja cuando el uso visible de CPU, memoria o GPU llega al **81%**, o cuando el almacenamiento disponible baja de **10 GB**. Recupera su aspecto normal cuando los porcentajes están por debajo del 81% y hay al menos 10 GB disponibles.
 
 Las alertas son solo visuales. La velocidad de red y las métricas ocultas no las activan. El umbral es fijo, pero los colores se pueden desactivar desde el menú de la barra.
 
