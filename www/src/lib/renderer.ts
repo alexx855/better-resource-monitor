@@ -121,7 +121,7 @@ export async function renderImage(
 }
 
 export function trayIconBase64(variant: "full" | "alert" = "full"): string {
-  const filename = variant === "alert" ? "better-resource-monitor-alert.png" : "better-resource-monitor.png";
+  const filename = variant === "alert" ? "better-resource-monitor-alert.png" : "better-resource-monitor-storage.png";
   const imgPath = join(process.cwd(), "public", filename);
   const buf = readFileSync(imgPath);
   return `data:image/png;base64,${buf.toString("base64")}`;

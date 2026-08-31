@@ -86,8 +86,8 @@ const homeBody = defineCollection({
           .replaceAll(`href="${productionOrigin}/`, 'href="/')
           .replace(/target="_blank"(?![^>]*\srel=)/g, 'target="_blank" rel="noopener noreferrer"')
           .replace(
-            '<img src="/better-resource-monitor.png"',
-            '<img src="/better-resource-monitor.png" fetchpriority="high" decoding="async"',
+            '<img src="/better-resource-monitor-storage.png"',
+            '<img src="/better-resource-monitor-storage.png" fetchpriority="high" decoding="async"',
           );
         assertNoExecutableHtml(html, filename);
         store.set({ id: locale, data: {}, rendered: { html } });
