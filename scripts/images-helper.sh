@@ -27,10 +27,11 @@ cd "$PROJECT_DIR"
 
 echo "--> Rendering tray banners..."
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
-  --out www/public/better-resource-monitor.png \
+  --out www/public/better-resource-monitor-storage.png \
   --preset macos \
   --scale 0.6666667 \
   --storage "19.5 GB" \
+  --show-storage true \
   --include-alert-row true
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --out www/public/better-resource-monitor-alert.png \

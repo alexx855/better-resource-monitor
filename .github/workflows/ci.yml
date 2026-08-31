@@ -57,6 +57,9 @@ jobs:
       - name: Check locale parity
         run: node scripts/check-locale-parity.mjs
 
+      - name: Test website regressions
+        run: node --test www/*.test.mjs
+
       - name: Check website types
         run: pnpm --filter www check
 

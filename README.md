@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor-storage.png" alt="Better Resource Monitor" width="1039" height="86">
 </p>
 
 
