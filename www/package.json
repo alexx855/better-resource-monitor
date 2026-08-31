@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "astro dev",
-		"build": "astro build",
+		"build": "node --test *.test.mjs && astro build",
 		"preview": "astro build && wrangler pages dev",
 		"astro": "astro",
 		"check": "astro check",
