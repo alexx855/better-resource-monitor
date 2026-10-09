@@ -25,7 +25,7 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
   locale={locale}
   slug=""
   ogImage={home.ogImage}
-  preloadImage="/better-resource-monitor.png"
+  preloadImage="/better-resource-monitor-storage.png"
 >
   <style is:global>
     /* Hallmark · macrostructure: Long Document · tone: warm utility manual · anchor hue: ember
@@ -50,10 +50,10 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
     }
 
     p[align="center"] img[alt="Better Resource Monitor"] {
-      width: 100%;
+      width: auto;
       max-width: 100%;
       height: auto;
-      aspect-ratio: 982 / 86;
+      border-radius: 0;
     }
 
     p[align="center"] img[src*="/badges/"] {
@@ -87,7 +87,8 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       flex-wrap: wrap;
       align-items: center;
       justify-content: flex-start;
-      gap: var(--space-2);
+      column-gap: 0;
+      row-gap: var(--space-2);
       font-size: 0;
       text-align: left;
     }
@@ -95,6 +96,10 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
     .home-document article > p[align="center"]:not(:has(img)):has(a) a,
     .home-document article > p[align="center"]:not(:has(img)):has(a) span {
       font-size: var(--fs-sm);
+    }
+
+    .home-document article > p[align="center"]:not(:has(img)):has(a) a:not(:last-of-type) {
+      margin-inline-end: var(--space-2);
     }
 
     .home-document article > h2 {

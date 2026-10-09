@@ -10,7 +10,7 @@ use image::ImageEncoder;
 use better_resource_monitor_lib::{load_system_font, tray_render};
 
 fn usage() -> &'static str {
-    "render_tray_icon\n\nUSAGE:\n  cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- [args]\n\nARGS:\n  --out <path>                     Output PNG path (required)\n  --preset <macos|linux>           Sizing preset (default: host OS)\n  --scale <float>                  Uniform scale factor (default: 1.0)\n\n  --cpu <float>                    CPU percent (default: 45)\n  --mem <float>                    Memory percent (default: 57)\n  --storage <float>                Storage percent (default: 79)\n  --gpu <float>                    GPU percent (default: 32)\n  --down <string>                  Download display (default: 1.5 MB)\n  --up <string>                    Upload display (default: 0.2 MB)\n\n  --alert-cpu <float>              Alert row CPU percent (default: 93)\n  --alert-mem <float>              Alert row memory percent (default: 96)\n  --alert-storage <float>          Alert row storage percent (default: 92)\n  --alert-gpu <float>              Alert row GPU percent (default: 91)\n  --alert-down <string>            Alert row download display (default: 12 MB)\n  --alert-up <string>              Alert row upload display (default: 3.1 MB)\n\n  --show-cpu <true|false>          (default: true)\n  --show-mem <true|false>          (default: true)\n  --show-storage <true|false>      (default: true)\n  --show-gpu <true|false>          (default: true)\n  --show-net <true|false>          (default: true)\n  --show-alerts <true|false>       (default: true)\n  --use-light-icons <true|false>   (default: true)\n  --include-alert-row <true|false> (default: false)\n\n  --bg <transparent|#RRGGBB|#RRGGBBAA> (default: transparent)\n  --help\n"
+    "render_tray_icon\n\nUSAGE:\n  cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- [args]\n\nARGS:\n  --out <path>                     Output PNG path (required)\n  --preset <macos|linux>           Sizing preset (default: host OS)\n  --scale <float>                  Uniform scale factor (default: 1.0)\n\n  --cpu <float>                    CPU percent (default: 45)\n  --mem <float>                    Memory percent (default: 57)\n  --storage <string>               Available storage display (default: 19.5 GB)\n  --storage-available-bytes <u64>  Available storage bytes for alert coloring (default: 19500000000)\n  --gpu <float>                    GPU percent (default: 32)\n  --down <string>                  Download display (default: 1.5 MB)\n  --up <string>                    Upload display (default: 0.2 MB)\n\n  --alert-cpu <float>              Alert row CPU percent (default: 93)\n  --alert-mem <float>              Alert row memory percent (default: 96)\n  --alert-storage-bytes <u64>      Alert row available storage bytes (default: 5000000000)\n  --alert-gpu <float>              Alert row GPU percent (default: 91)\n  --alert-down <string>            Alert row download display (default: 12 MB)\n  --alert-up <string>              Alert row upload display (default: 3.1 MB)\n\n  --show-cpu <true|false>          (default: true)\n  --show-mem <true|false>          (default: true)\n  --show-storage <true|false>      (default: true)\n  --show-gpu <true|false>          (default: true)\n  --show-net <true|false>          (default: true)\n  --show-alerts <true|false>       (default: true)\n  --use-light-icons <true|false>   (default: true)\n  --include-alert-row <true|false> (default: false)\n\n  --bg <transparent|#RRGGBB|#RRGGBBAA> (default: transparent)\n  --help\n"
 }
 
 #[derive(Clone, Copy)]
@@ -42,6 +42,11 @@ fn parse_bool(s: &str, key: &str) -> bool {
 fn parse_f32(s: &str, key: &str) -> f32 {
     s.parse::<f32>()
         .unwrap_or_else(|_| panic!("{key} must be a number"))
+}
+
+fn parse_u64(s: &str, key: &str) -> u64 {
+    s.parse::<u64>()
+        .unwrap_or_else(|_| panic!("{key} must be a non-negative integer"))
 }
 
 fn parse_bg_hex(s: &str) -> Option<tray_render::Background> {
@@ -115,8 +120,8 @@ fn main() {
         })
         .unwrap_or(1.0);
 
-    if scale <= 0.0 || scale.is_nan() {
-        panic!("--scale must be > 0");
+    if !scale.is_finite() || scale <= 0.0 || scale > tray_render::MAX_RENDER_SCALE {
+        panic!("--scale must be finite and between 0 and 4");
     }
 
     let cpu = args
@@ -127,10 +132,14 @@ fn main() {
         .get("--mem")
         .map(|v| parse_f32(v, "--mem"))
         .unwrap_or(57.0);
-    let storage = args
+    let storage_available = args
         .get("--storage")
-        .map(|v| parse_f32(v, "--storage"))
-        .unwrap_or(79.0);
+        .cloned()
+        .unwrap_or_else(|| "19.5 GB".to_string());
+    let storage_available_bytes = args
+        .get("--storage-available-bytes")
+        .map(|v| parse_u64(v, "--storage-available-bytes"))
+        .unwrap_or(19_500_000_000);
     let gpu = args
         .get("--gpu")
         .map(|v| parse_f32(v, "--gpu"))
@@ -153,10 +162,10 @@ fn main() {
         .get("--alert-mem")
         .map(|v| parse_f32(v, "--alert-mem"))
         .unwrap_or(96.0);
-    let alert_storage = args
-        .get("--alert-storage")
-        .map(|v| parse_f32(v, "--alert-storage"))
-        .unwrap_or(92.0);
+    let alert_storage_available_bytes = args
+        .get("--alert-storage-bytes")
+        .map(|v| parse_u64(v, "--alert-storage-bytes"))
+        .unwrap_or(5_000_000_000);
     let alert_gpu = args
         .get("--alert-gpu")
         .map(|v| parse_f32(v, "--alert-gpu"))
@@ -226,7 +235,8 @@ fn main() {
         sizing,
         cpu_usage: cpu,
         mem_percent: mem,
-        storage_percent: storage,
+        storage_available_str: &storage_available,
+        storage_available_bytes: Some(storage_available_bytes),
         gpu_usage: gpu,
         down_str: &down,
         up_str: &up,
@@ -248,7 +258,7 @@ fn main() {
         let alert_config = tray_render::RenderConfig {
             cpu_usage: alert_cpu,
             mem_percent: alert_mem,
-            storage_percent: alert_storage,
+            storage_available_bytes: Some(alert_storage_available_bytes),
             gpu_usage: alert_gpu,
             down_str: &alert_down,
             up_str: &alert_up,

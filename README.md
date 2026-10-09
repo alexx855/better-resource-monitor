@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor-storage.png" alt="Better Resource Monitor" width="1039" height="86">
 </p>
 
 
@@ -64,6 +64,12 @@ No. Better Resource Monitor has zero network requests. No analytics and no telem
 Yes. It is built to sit in the background with very low impact so it stays usable during daily work.
 
 If this is useful, star the repo so other Mac users can find it.
+
+## Alerts
+
+With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, or GPU usage reaches **81%**, or when available storage falls below **10 GB**. It returns to normal when the percentage metrics are below 81% and at least 10 GB of storage is available.
+
+Alerts are visual only. Network speed and hidden metrics do not trigger them. The threshold is fixed, but warning colors can be turned off from the tray menu.
 
 ## Installation
 

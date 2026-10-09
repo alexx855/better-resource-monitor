@@ -27,17 +27,20 @@ cd "$PROJECT_DIR"
 
 echo "--> Rendering tray banners..."
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
-  --out www/public/better-resource-monitor.png \
+  --out www/public/better-resource-monitor-storage.png \
   --preset macos \
   --scale 0.6666667 \
+  --storage "19.5 GB" \
+  --show-storage true \
   --include-alert-row true
 cargo run --manifest-path src-tauri/Cargo.toml --example render_tray_icon -- \
   --out www/public/better-resource-monitor-alert.png \
   --preset macos \
   --scale 0.6666667 \
+  --storage "19.5 GB" \
+  --storage-available-bytes 5000000000 \
   --cpu 93 \
   --mem 96 \
-  --storage 92 \
   --gpu 91 \
   --down "12 MB" \
   --up "3.1 MB"

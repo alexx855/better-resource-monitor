@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -33,12 +34,12 @@ jobs:
           targets: x86_64-apple-darwin
 
       - name: Rust cache
-        uses: swatinem/rust-cache@258712b0b7b1ddf8bddc9fc3b0faca682b2736c3 # v2
+        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
         with:
           workspaces: './src-tauri -> target'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           version: 10.33.2
 
@@ -77,8 +78,14 @@ jobs:
             bash -n "$script"
           done
 
+      - name: Test TestFlight processing verifier
+        run: node --test scripts/verify-testflight-build.test.mjs
+
+      - name: Test release workflow gate
+        run: node --test scripts/release-workflow.test.mjs
+
       - name: Install cargo-audit
-        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
+        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
         with:
           tool: cargo-audit@0.22.2
 

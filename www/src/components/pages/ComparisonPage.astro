@@ -1,6 +1,5 @@
 ---
 import { getEntry } from "astro:content";
-import ComparisonSchema from "../ComparisonSchema.astro";
 import ComparisonTable from "../ComparisonTable.astro";
 import FaqSection from "../FaqSection.astro";
 import HomeLink from "../HomeLink.astro";
@@ -62,15 +61,6 @@ const pageSlug = `comparison/${pageKey}`;
       <Fragment set:html={ctaHtml} />
 
       <FaqSection locale={locale} heading={comparisonFaqHeadings[locale]} items={faqItems} />
-
-      <ComparisonSchema
-        title={page.title}
-        description={page.description}
-        locale={locale}
-        slug={pageSlug}
-        competitorName={page.competitorName}
-        competitorPrice={page.competitorPrice}
-      />
     </div>
   </main>
 </Layout>

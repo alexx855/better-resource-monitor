@@ -26,6 +26,7 @@ dist-ssr
 
 .env**
 !.env.example
+.gsc-config.json
 scripts/.build-number
 
 # App Store Connect credentials and provisioning artifacts

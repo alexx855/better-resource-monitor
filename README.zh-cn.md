@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor.png" alt="Better Resource Monitor" width="830" height="86">
+  <img src="https://better-resource-monitor.alexpedersen.dev/better-resource-monitor-storage.png" alt="Better Resource Monitor" width="1039" height="86">
 </p>
 
 
@@ -59,6 +59,12 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 ### 会明显影响电池续航吗？
 
 不会。它的目标是以很低的资源占用常驻后台，适合日常使用。
+
+## 警告
+
+启用**显示警告颜色**后，当可见的 CPU、内存或 GPU 使用率达到 **81%**，或可用存储空间低于 **10 GB** 时，菜单栏会变成橙色。当百分比指标低于 81% 且可用存储空间至少为 10 GB 时，它会恢复正常。
+
+警告仅通过视觉方式显示。网络速度和隐藏的指标不会触发警告。阈值固定，但可以在菜单栏菜单中关闭警告颜色。
 
 
 ## 安装

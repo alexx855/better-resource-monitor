@@ -88,37 +88,6 @@ const siteUrl = new URL("/", Astro.site).href;
     <!-- Structured Data -->
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Better Resource Monitor",
-      "description": description,
-      "url": siteUrl,
-      "inLanguage": localeMeta.langTag,
-      "applicationCategory": "UtilitiesApplication",
-      "applicationSubCategory": "Menu Bar Monitor",
-      "operatingSystem": "macOS",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "author": { "@type": "Person", "name": "Alex Pedersen", "url": "https://github.com/alexx855" },
-      "downloadUrl": "https://apps.apple.com/app/better-resource-monitor/id6758237306",
-      "isAccessibleForFree": true,
-      "featureList": [
-        "CPU monitoring",
-        "Memory pressure monitoring",
-        "Storage monitoring",
-        "GPU monitoring",
-        "Network monitoring",
-        "Menu bar display",
-        "Sandboxed",
-        "No telemetry",
-        "No admin password",
-        "No root helper",
-        "No private APIs"
-      ],
-      "screenshot": ogImageUrl,
-      "license": "https://opensource.org/licenses/MIT"
-    })} />
-
-    <script is:inline type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Better Resource Monitor",
       "url": siteUrl,

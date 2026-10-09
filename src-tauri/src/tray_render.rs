@@ -12,12 +12,15 @@ const SVG_ARROW_DOWN: &str = include_str!("../assets/icons/svg/fill/cloud-arrow-
 type Color = (u8, u8, u8);
 
 const ALERT_THRESHOLD: f32 = 81.0;
+pub(crate) const STORAGE_ALERT_AVAILABLE_BYTES: u64 = 10_000_000_000;
 const ALERT_COLOR: Color = (209, 71, 21); // #D14715
 const ALERT_FOREGROUND: Color = (255, 255, 255);
+pub const MAX_RENDER_SCALE: f32 = 4.0;
 
 #[derive(Clone, Copy)]
 pub struct Sizing {
     pub segment_width: u32,
+    pub segment_width_storage: u32,
     pub segment_width_net: u32,
     pub edge_padding: u32,
     pub segment_gap: u32,
@@ -27,11 +30,15 @@ pub struct Sizing {
 
 impl Sizing {
     pub fn scaled(self, scale: f32) -> Self {
-        assert!(scale > 0.0, "scale must be > 0");
+        assert!(
+            scale.is_finite() && scale > 0.0 && scale <= MAX_RENDER_SCALE,
+            "scale must be finite and between 0 and 4"
+        );
 
         let scale_u32 = |v: u32| -> u32 { ((v as f32) * scale).round().max(1.0) as u32 };
         Self {
             segment_width: scale_u32(self.segment_width),
+            segment_width_storage: scale_u32(self.segment_width_storage),
             segment_width_net: scale_u32(self.segment_width_net),
             edge_padding: scale_u32(self.edge_padding),
             segment_gap: scale_u32(self.segment_gap),
@@ -43,6 +50,7 @@ impl Sizing {
 
 pub const SIZING_MACOS: Sizing = Sizing {
     segment_width: 180,
+    segment_width_storage: 320,
     segment_width_net: 240,
     edge_padding: 16,
     segment_gap: 48,
@@ -52,6 +60,7 @@ pub const SIZING_MACOS: Sizing = Sizing {
 
 pub const SIZING_LINUX: Sizing = Sizing {
     segment_width: 58,
+    segment_width_storage: 128,
     segment_width_net: 75,
     edge_padding: 5,
     segment_gap: 18,
@@ -69,7 +78,7 @@ pub(crate) enum IconType {
     ArrowUp,
 }
 
-const PERCENT_ICON_ORDER: [IconType; 4] = [
+const METRIC_ICON_ORDER: [IconType; 4] = [
     IconType::Memory,
     IconType::Cpu,
     IconType::Gpu,
@@ -77,8 +86,16 @@ const PERCENT_ICON_ORDER: [IconType; 4] = [
 ];
 
 #[cfg(test)]
-pub(crate) fn percent_icon_order_for_tests() -> [IconType; 4] {
-    PERCENT_ICON_ORDER
+pub(crate) fn metric_icon_order_for_tests() -> [IconType; 4] {
+    METRIC_ICON_ORDER
+}
+
+pub(crate) fn alert_active(value: f32) -> bool {
+    value >= ALERT_THRESHOLD
+}
+
+pub(crate) fn storage_alert_active(available_bytes: Option<u64>) -> bool {
+    available_bytes.is_some_and(|bytes| bytes < STORAGE_ALERT_AVAILABLE_BYTES)
 }
 
 pub(crate) fn cap_percent(value: f32) -> f32 {
@@ -102,6 +119,66 @@ fn calculate_font_baseline(font: &Font, icon_height: u32, scale: Scale) -> f32 {
     } else {
         (icon_height as f32 / 2.0) + (font.v_metrics(scale).ascent / 2.0)
     }
+}
+
+fn text_width(font: &Font, text: &str, scale: Scale) -> f32 {
+    font.layout(text, scale, rusttype::point(0.0, 0.0))
+        .map(|glyph| glyph.unpositioned().h_metrics().advance_width)
+        .sum()
+}
+
+fn text_left_pixel(
+    font: &Font,
+    text: &str,
+    scale: Scale,
+    start_x: f32,
+    baseline: f32,
+) -> Option<i32> {
+    font.layout(text, scale, rusttype::point(start_x, baseline))
+        .filter_map(|glyph| glyph.pixel_bounding_box().map(|bounds| bounds.min.x))
+        .min()
+}
+
+pub(crate) fn fit_text_scale(font: &Font, text: &str, font_size: f32, max_width: f32) -> Scale {
+    let base_scale = Scale::uniform(font_size);
+    let width = text_width(font, text, base_scale);
+
+    if width > max_width && width > 0.0 {
+        Scale::uniform((font_size * max_width / width).max(1.0))
+    } else {
+        base_scale
+    }
+}
+
+fn storage_segment_width(
+    font: &Font,
+    text: &str,
+    sizing: Sizing,
+    baseline: f32,
+    storage_icon_right: u32,
+    network_icon_right: u32,
+) -> u32 {
+    let scale = Scale::uniform(sizing.font_size);
+    let network_text_width = text_width(font, "0.0 KB", scale);
+    let Some(network_text_left) = text_left_pixel(
+        font,
+        "0.0 KB",
+        scale,
+        sizing.segment_width_net as f32 - network_text_width,
+        baseline,
+    ) else {
+        return sizing.segment_width_net;
+    };
+    let target_gap = network_text_left - network_icon_right as i32 - 1;
+
+    let text_width = text_width(font, text, scale);
+    (sizing.icon_height..=sizing.segment_width_storage)
+        .min_by_key(|&width| {
+            let text_left = text_left_pixel(font, text, scale, width as f32 - text_width, baseline)
+                .unwrap_or(storage_icon_right as i32 + 1);
+            (text_left - storage_icon_right as i32 - 1).abs_diff(target_gap)
+        })
+        .unwrap_or(sizing.segment_width_net)
 }
 
 pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8> {
@@ -150,6 +227,7 @@ pub(crate) fn render_svg_icon(svg_data: &str, size: u32, color: Color) -> Vec<u8
 
 struct IconCache {
     icons: HashMap<(IconType, Color), Vec<u8>>,
+    rightmost_ink: HashMap<IconType, u32>,
 }
 
 impl IconCache {
@@ -171,11 +249,36 @@ impl IconCache {
             }
         }
 
-        Self { icons }
+        let rightmost_ink = icon_svgs
+            .into_iter()
+            .map(|(icon_type, _)| {
+                let pixels = icons
+                    .get(&(icon_type, (255, 255, 255)))
+                    .expect("white icon cached");
+                let right = pixels
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, pixel)| (pixel[3] > 0).then_some(index as u32 % size))
+                    .max()
+                    .expect("cached icon contains visible pixels");
+                (icon_type, right)
+            })
+            .collect();
+
+        Self {
+            icons,
+            rightmost_ink,
+        }
     }
 
     fn get(&self, icon_type: IconType, color: Color) -> &[u8] {
         self.icons.get(&(icon_type, color)).expect("icon cached")
+    }
+
+    fn rightmost_ink(&self, icon_type: IconType) -> u32 {
+        self.rightmost_ink[&icon_type]
     }
 }
 
@@ -188,7 +291,8 @@ pub struct RenderConfig<'a> {
     pub sizing: Sizing,
     pub cpu_usage: f32,
     pub mem_percent: f32,
-    pub storage_percent: f32,
+    pub storage_available_str: &'a str,
+    pub storage_available_bytes: Option<u64>,
     pub gpu_usage: f32,
     pub down_str: &'a str,
     pub up_str: &'a str,
@@ -247,14 +351,51 @@ impl TrayRenderer {
         }
 
         let sizing = config.sizing;
+        let scale = Scale::uniform(sizing.font_size);
+        let baseline = self.baseline(font, sizing);
+        let (storage_icon_right, network_icon_right) = {
+            let icon_cache = self.icon_cache(sizing.icon_height);
+            (
+                icon_cache.rightmost_ink(IconType::Storage),
+                icon_cache.rightmost_ink(IconType::ArrowDown),
+            )
+        };
+        let storage_width = storage_segment_width(
+            font,
+            config.storage_available_str,
+            sizing,
+            baseline,
+            storage_icon_right,
+            network_icon_right,
+        );
 
         let mut segments = Vec::with_capacity(6);
-        for icon in PERCENT_ICON_ORDER {
-            let (show, value) = match icon {
-                IconType::Memory => (config.show_mem, config.mem_percent),
-                IconType::Cpu => (config.show_cpu, config.cpu_usage),
-                IconType::Gpu => (config.show_gpu, config.gpu_usage),
-                IconType::Storage => (config.show_storage, config.storage_percent),
+        for icon in METRIC_ICON_ORDER {
+            let (show, value_text, width, alert) = match icon {
+                IconType::Memory => (
+                    config.show_mem,
+                    format!("{:.0}%", cap_percent(config.mem_percent)),
+                    sizing.segment_width,
+                    alert_active(config.mem_percent),
+                ),
+                IconType::Cpu => (
+                    config.show_cpu,
+                    format!("{:.0}%", cap_percent(config.cpu_usage)),
+                    sizing.segment_width,
+                    alert_active(config.cpu_usage),
+                ),
+                IconType::Gpu => (
+                    config.show_gpu,
+                    format!("{:.0}%", cap_percent(config.gpu_usage)),
+                    sizing.segment_width,
+                    alert_active(config.gpu_usage),
+                ),
+                IconType::Storage => (
+                    config.show_storage,
+                    config.storage_available_str.to_owned(),
+                    storage_width,
+                    storage_alert_active(config.storage_available_bytes),
+                ),
                 IconType::ArrowDown | IconType::ArrowUp => {
                     unreachable!("network icons are separate")
                 }
@@ -263,9 +404,9 @@ impl TrayRenderer {
             if show {
                 segments.push(Segment {
                     icon,
-                    value: format!("{:.0}%", cap_percent(value)),
-                    width: sizing.segment_width,
-                    alert: value >= ALERT_THRESHOLD,
+                    value: value_text,
+                    width,
+                    alert,
                 });
             }
         }
@@ -316,37 +457,44 @@ impl TrayRenderer {
             }
         }
 
-        let scale = Scale::uniform(sizing.font_size);
-        let baseline = self.baseline(font, sizing);
-
         let icon_cache = self.icon_cache(sizing.icon_height);
 
         let has_bg = effective_bg.is_some();
         let min_alpha: u8 = if has_bg { 4 } else { 1 };
 
-        let draw_text =
-            |text: &str, start_x: f32, color: Color, img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
-                for glyph in font.layout(text, scale, rusttype::point(start_x, baseline)) {
-                    if let Some(bb) = glyph.pixel_bounding_box() {
-                        glyph.draw(|gx, gy, v| {
-                            let x = (bb.min.x + gx as i32) as u32;
-                            let y = (bb.min.y + gy as i32) as u32;
-                            if x < total_width && y < sizing.icon_height {
-                                let alpha = (v * 255.0) as u8;
-                                if alpha < min_alpha {
-                                    return;
-                                }
-
-                                if has_bg {
-                                    blend_over(img.get_pixel_mut(x, y), color, alpha);
-                                } else {
-                                    img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
-                                }
+        let draw_text = |text: &str,
+                         text_scale: Scale,
+                         text_baseline: f32,
+                         start_x: f32,
+                         clip_left: u32,
+                         clip_right: u32,
+                         color: Color,
+                         img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>| {
+            for glyph in font.layout(text, text_scale, rusttype::point(start_x, text_baseline)) {
+                if let Some(bb) = glyph.pixel_bounding_box() {
+                    glyph.draw(|gx, gy, v| {
+                        let x = (bb.min.x + gx as i32) as u32;
+                        let y = (bb.min.y + gy as i32) as u32;
+                        if x >= clip_left
+                            && x < clip_right
+                            && x < total_width
+                            && y < sizing.icon_height
+                        {
+                            let alpha = (v * 255.0) as u8;
+                            if alpha < min_alpha {
+                                return;
                             }
-                        });
-                    }
+
+                            if has_bg {
+                                blend_over(img.get_pixel_mut(x, y), color, alpha);
+                            } else {
+                                img.put_pixel(x, y, Rgba([color.0, color.1, color.2, alpha]));
+                            }
+                        }
+                    });
                 }
-            };
+            }
+        };
 
         let draw_cached_icon =
             |icon_type: IconType,
@@ -402,12 +550,28 @@ impl TrayRenderer {
 
             draw_cached_icon(segment.icon, x_offset, segment_color, &mut img);
 
-            let value_width: f32 = font
-                .layout(&segment.value, scale, rusttype::point(0.0, 0.0))
-                .map(|g| g.unpositioned().h_metrics().advance_width)
-                .sum();
+            let text_left = x_offset + sizing.icon_height;
+            let text_right = x_offset + segment.width;
+            let available_width = (text_right - text_left) as f32;
+            let value_scale =
+                fit_text_scale(font, &segment.value, sizing.font_size, available_width);
+            let value_width = text_width(font, &segment.value, value_scale);
+            let value_baseline = if value_scale == scale {
+                baseline
+            } else {
+                calculate_font_baseline(font, sizing.icon_height, value_scale)
+            };
             let value_x = x_offset as f32 + segment.width as f32 - value_width;
-            draw_text(&segment.value, value_x, segment_color, &mut img);
+            draw_text(
+                &segment.value,
+                value_scale,
+                value_baseline,
+                value_x,
+                text_left,
+                text_right,
+                segment_color,
+                &mut img,
+            );
 
             x_offset += segment.width;
         }
