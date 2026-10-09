@@ -17,6 +17,7 @@ const titleChecks = [
 
 const fetchTimeoutMs = 15_000;
 
+/** Normalize the deployment origin by dropping query, fragment, and trailing slashes. */
 function normalizeBaseUrl(value) {
   const url = new URL(value);
   url.pathname = url.pathname.replace(/\/+$/, "");
@@ -25,10 +26,12 @@ function normalizeBaseUrl(value) {
   return url.href.replace(/\/+$/, "");
 }
 
+/** Read the trimmed page title, returning undefined when no title exists. */
 function extractTitle(html) {
   return html.match(/<title>([^<]*)<\/title>/i)?.[1].trim();
 }
 
+/** Check the deployed redirect, final response, and title contracts, collecting failures. */
 export async function verifyPagesDeployment(baseUrlValue, { fetchImpl = fetch } = {}) {
   const baseUrl = normalizeBaseUrl(baseUrlValue);
   const errors = [];
@@ -110,6 +113,7 @@ export async function verifyPagesDeployment(baseUrlValue, { fetchImpl = fetch } 
   };
 }
 
+/** Verify the configured deployment and exit unsuccessfully when its contract fails. */
 async function main() {
   const baseUrl = process.env.PAGES_DEPLOYMENT_BASE_URL;
   if (!baseUrl) {

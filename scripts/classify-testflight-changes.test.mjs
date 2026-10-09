@@ -1,10 +1,25 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { findAppImpactingFile } from "./classify-testflight-changes.mjs";
 
 const workflow = await readFile(new URL("../.github/workflows/pre-merge-testflight-gate.yml", import.meta.url), "utf8");
+
+test("the workflow classifies both sides of renames and ignores absent old paths", () => {
+  const query = workflow.match(/--jq '([^']+)'/)?.[1];
+  assert.ok(query, "the workflow must extract PR file paths");
+  const files = [
+    { filename: "www/archived-lib.rs", previous_filename: "src-tauri/src/lib.rs", status: "renamed" },
+    { filename: "www/README.md", previous_filename: null, status: "modified" },
+    { filename: "docs/README.md", status: "added" },
+  ];
+  const paths = execFileSync("jq", ["-r", query], { input: JSON.stringify(files), encoding: "utf8" })
+    .trim().split("\n");
+  assert.deepEqual(paths, ["www/archived-lib.rs", "src-tauri/src/lib.rs", "www/README.md", "docs/README.md"]);
+  assert.equal(findAppImpactingFile(paths), "src-tauri/src/lib.rs");
+});
 
 test("requires TestFlight for Tauri source and configuration changes", () => {
   assert.equal(findAppImpactingFile(["src-tauri/src/lib.rs"]), "src-tauri/src/lib.rs");
