@@ -8,11 +8,10 @@ import { test } from "node:test";
 
 const workflow = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
 
-test("the required Rust checks job waits for and verifies the exact Pages deployment", () => {
+test("CI verifies the exact Pages deployment before the required result", () => {
   assert.match(workflow, /checks: read/);
-  assert.match(workflow, /scripts\/classify-testflight-changes\.test\.mjs/);
-  assert.match(workflow, /scripts\/verify-pages-deployment\.test\.mjs/);
-  assert.match(workflow, /scripts\/ci-pages-deployment-contract\.test\.mjs/);
+  assert.match(workflow, /node --test scripts\/\*\.test\.mjs/);
+  assert.match(workflow, /name: Rust checks\n    needs: \[checks, rust\]/);
   assert.match(workflow, /DEPLOYMENT_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/commits\/\$\{DEPLOYMENT_SHA\}\/check-runs/);
   assert.match(workflow, /select\(\.name == "Cloudflare Pages"\)/);
@@ -71,7 +70,7 @@ test("main and same-repository PRs resolve the immutable URL from their checked 
 });
 
 test("production verifies the checked deployment before the custom domain and fails closed", () => {
-  const verifier = workflow.match(/- name: Verify deployed website[\s\S]*?        run: \|\n([\s\S]*)/)?.[1]
+  const verifier = workflow.match(/- name: Verify deployed website[\s\S]*?        run: \|\n([\s\S]*?)(?=\n  [a-z][\w-]*:|$)/)?.[1]
     .split("\n").map((line) => line.replace(/^          /, "")).join("\n");
   assert.ok(verifier);
   const directory = mkdtempSync(join(tmpdir(), "pages-verifier-test-"));

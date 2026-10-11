@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - 'fix/**'
 
 permissions:
   contents: read
@@ -20,23 +19,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  rust:
-    name: Rust checks
-    runs-on: macos-15-intel
+  checks:
+    name: Website and tooling checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      macos: ${{ steps.changes.outputs.macos }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          targets: x86_64-apple-darwin
+          fetch-depth: 0
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
-        with:
-          workspaces: './src-tauri -> target'
+      - name: Classify macOS checks
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          # Manual/release dispatches and new branches always run the full checks.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            if [ "$EVENT_NAME" = "pull_request" ]; then
+              range="$BASE_SHA...$HEAD_SHA"
+            else
+              range="$BASE_SHA..$HEAD_SHA"
+            fi
+            # --no-renames includes both paths when a file moves across surfaces.
+            git diff --name-only --no-renames "$range" | node scripts/classify-ci-changes.mjs >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -58,13 +73,6 @@ jobs:
       - name: Check locale parity
         run: node scripts/check-locale-parity.mjs
 
-      - name: Test CI policy and Pages deployment verification
-        run: >-
-          node --test
-          scripts/classify-testflight-changes.test.mjs
-          scripts/verify-pages-deployment.test.mjs
-          scripts/ci-pages-deployment-contract.test.mjs
-
       - name: Check website types
         run: pnpm --filter www check
 
@@ -78,48 +86,12 @@ jobs:
             bash -n "$script"
           done
 
-      - name: Test TestFlight processing verifier
-        run: node --test scripts/verify-testflight-build.test.mjs
-
-      - name: Test release workflow gate
-        run: node --test scripts/release-workflow.test.mjs
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
-        with:
-          tool: cargo-audit@0.22.2
-
-      - name: Audit Rust dependencies
-        run: cargo audit --file src-tauri/Cargo.lock
-
-      - name: Check formatting
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-
-      - name: Run tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Run clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-
-      - name: Check Intel macOS target
-        run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
-
-      - name: Verify macOS app bundle layout
-        run: |
-          pnpm tauri build --bundles app --target x86_64-apple-darwin
-          APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
-          test ! -d "$APP_PATH/Contents/Library/LaunchAgents"
-          PRIVACY_MANIFEST="$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
-          test -f "$PRIVACY_MANIFEST"
-          plutil -lint "$PRIVACY_MANIFEST"
-          DISK_CATEGORY=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType" "$PRIVACY_MANIFEST")
-          DISK_REASON=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0" "$PRIVACY_MANIFEST")
-          test "$DISK_CATEGORY" = "NSPrivacyAccessedAPICategoryDiskSpace"
-          test "$DISK_REASON" = "85F4.1"
+      - name: Test CI and release tooling
+        run: node --test scripts/*.test.mjs
 
       - name: Resolve Cloudflare Pages deployment
         # Cloudflare creates PR previews only for branches in this repository.
-        # Fork PRs still run every build, test, lint, and security step above.
+        # Fork PRs still run all checks that apply to their changed files.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         id: pages-deployment
         env:
@@ -194,3 +166,92 @@ jobs:
               exit 1
             fi
           done
+
+  rust:
+    name: macOS app checks
+    needs: checks
+    if: ${{ needs.checks.outputs.macos == 'true' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        with:
+          workspaces: './src-tauri -> target'
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install app build dependencies
+        run: pnpm install --frozen-lockfile --filter better-resource-monitor
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
+        with:
+          tool: cargo-audit@0.22.2
+
+      - name: Audit Rust dependencies
+        run: cargo audit --file src-tauri/Cargo.lock
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Run tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+      - name: Verify macOS app bundle layout
+        run: |
+          pnpm tauri build --bundles app --target x86_64-apple-darwin
+          APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
+          test ! -d "$APP_PATH/Contents/Library/LaunchAgents"
+          PRIVACY_MANIFEST="$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          test -f "$PRIVACY_MANIFEST"
+          plutil -lint "$PRIVACY_MANIFEST"
+          DISK_CATEGORY=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType" "$PRIVACY_MANIFEST")
+          DISK_REASON=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0" "$PRIVACY_MANIFEST")
+          test "$DISK_CATEGORY" = "NSPrivacyAccessedAPICategoryDiskSpace"
+          test "$DISK_REASON" = "85F4.1"
+
+  result:
+    # Keep the existing required check name so branch protection needs no changes.
+    name: Rust checks
+    needs: [checks, rust]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require all applicable checks
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          MACOS_REQUIRED: ${{ needs.checks.outputs.macos }}
+          RUST_RESULT: ${{ needs.rust.result }}
+        run: |
+          set -euo pipefail
+          test "$CHECKS_RESULT" = "success"
+          if [ "$MACOS_REQUIRED" = "true" ]; then
+            test "$RUST_RESULT" = "success"
+          else
+            test "$MACOS_REQUIRED" = "false"
+            test "$RUST_RESULT" = "skipped"
+          fi

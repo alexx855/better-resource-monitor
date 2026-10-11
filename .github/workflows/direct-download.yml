@@ -30,6 +30,7 @@ jobs:
   build-direct-download:
     name: Build direct-download artifacts
     runs-on: macos-15
+    timeout-minutes: 45
 
     steps:
       - name: Checkout workflow tooling
@@ -122,12 +123,15 @@ jobs:
             ${{ steps.package.outputs.dmg_path }}
             ${{ steps.package.outputs.zip_path }}
           if-no-files-found: error
+          # Release assets are permanent; standalone builds remain downloadable for a week.
+          retention-days: ${{ inputs.upload_to_release && 1 || 7 }}
 
   upload-direct-download-release:
     name: Upload direct-download artifacts to release
     if: ${{ inputs.upload_to_release }}
     needs: build-direct-download
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
 

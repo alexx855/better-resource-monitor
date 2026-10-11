@@ -38,10 +38,19 @@ Pull requests should explain:
 
 ## Validation
 
-CI enforces `cargo fmt --check`, `cargo test`, `cargo clippy -- -D warnings`,
-`cargo check` (Intel target), `pnpm audit`, `cargo audit`, website type
-checking (`pnpm --filter www check`, i.e. `astro check`), the website build
-(`pnpm build:www`), and the macOS app bundle layout check. Run the relevant
+CI runs JavaScript dependency auditing, locale parity, tooling tests, website
+type checking (`pnpm --filter www check`), the website build (`pnpm build:www`),
+and Cloudflare Pages deployment verification on Linux. App source, dependency,
+and build-tooling changes also run `cargo fmt --check`, `cargo test`,
+`cargo clippy -- -D warnings`, `cargo audit`, and the app bundle layout check
+on an Intel macOS runner. Tests, clippy, and bundling already compile the Intel
+target, so CI does not repeat a separate `cargo check` compilation.
+
+Website/docs-only changes skip the macOS job. The existing required `Rust checks`
+result requires every applicable job to pass, including website verification.
+CI runs for pull requests, pushes to `main`, and manual dispatches; use a PR or
+manual dispatch to check a feature branch. Manual dispatches always run the full
+checks, including the release workflow's version-bump PR. Run the relevant
 subset locally before opening a pull request.
 
 Docs-only changes still need enough proof for the claims they make. A wording
