@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { requiresMacOSChecks } from "./classify-ci-changes.mjs";
 
@@ -49,14 +52,22 @@ test("manual dispatches and new branches fail open to full macOS checks", () => 
   assert.match(classifier, /git diff --name-only --no-renames/);
   assert.match(classifier, /range="\$BASE_SHA\.\.\.\$HEAD_SHA"/);
   assert.match(classifier, /range="\$BASE_SHA\.\.\$HEAD_SHA"/);
-  for (const env of [
-    { EVENT_NAME: "workflow_dispatch", BASE_SHA: "existing" },
-    { EVENT_NAME: "push", BASE_SHA: "0000000000000000000000000000000000000000" },
-    { EVENT_NAME: "push", BASE_SHA: "" },
-  ]) {
-    assert.equal(execFileSync("bash", ["-c", classifier], {
-      env: { ...process.env, ...env, GITHUB_OUTPUT: "/dev/stdout" }, encoding: "utf8",
-    }), "macos=true\n");
+  const directory = mkdtempSync(join(tmpdir(), "ci-classifier-test-"));
+  try {
+    const output = join(directory, "output");
+    for (const env of [
+      { EVENT_NAME: "workflow_dispatch", BASE_SHA: "existing" },
+      { EVENT_NAME: "push", BASE_SHA: "0000000000000000000000000000000000000000" },
+      { EVENT_NAME: "push", BASE_SHA: "" },
+    ]) {
+      writeFileSync(output, "");
+      execFileSync("bash", ["-c", classifier], {
+        env: { ...process.env, ...env, GITHUB_OUTPUT: output }, encoding: "utf8",
+      });
+      assert.equal(readFileSync(output, "utf8"), "macos=true\n");
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
 });
 
