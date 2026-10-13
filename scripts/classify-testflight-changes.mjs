@@ -7,15 +7,16 @@ export function findAppImpactingFile(files) {
   );
 }
 
-/** Classify newline-delimited current and previous PR file paths from stdin. */
+/** Classify file paths from stdin; --null accepts Git's lossless path format. */
 async function main() {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
 
+  const nulDelimited = process.argv.includes("--null");
   const files = Buffer.concat(chunks)
     .toString("utf8")
-    .split("\n")
-    .map((file) => file.trim())
+    .split(nulDelimited ? "\0" : "\n")
+    .map((file) => nulDelimited ? file : file.trim())
     .filter(Boolean);
   const appFile = findAppImpactingFile(files);
   if (appFile) process.stdout.write(appFile);

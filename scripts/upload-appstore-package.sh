@@ -9,22 +9,9 @@ BUILD_NUMBER_INPUT="${2:?build number is required}"
 BRM_BUILD_COMMIT_INPUT="${3:?build commit is required}"
 PROVISION_PROFILE_PATH="${4:?provisioning profile path is required}"
 
-case "$BUILD_NUMBER_INPUT" in
-  ''|*[!0-9]*)
-    echo "Error: build number must be numeric, got '$BUILD_NUMBER_INPUT'"
-    exit 1
-    ;;
-esac
-
-BRM_BUILD_COMMIT="$(printf '%s' "$BRM_BUILD_COMMIT_INPUT" | cut -c1-12)"
-case "$BRM_BUILD_COMMIT" in
-  [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
-    ;;
-  *)
-    echo "Error: build commit must resolve to a 12-character lowercase git commit prefix, got '$BRM_BUILD_COMMIT'"
-    exit 1
-    ;;
-esac
+source "$(dirname "${BASH_SOURCE[0]}")/validate-appstore-metadata.sh"
+validate_appstore_metadata "$BRM_BUILD_COMMIT_INPUT" "$BUILD_NUMBER_INPUT"
+BRM_BUILD_COMMIT="${BRM_BUILD_COMMIT_INPUT:0:12}"
 
 required_vars=(
   APPLE_TEAM_ID

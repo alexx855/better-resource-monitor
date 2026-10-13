@@ -1,8 +1,9 @@
 name: TestFlight
+run-name: TestFlight ${{ inputs.source_ref || 'main' }} build ${{ inputs.build_number || github.run_number }}
 
 # Uploads and verifies a TestFlight build without changing repository version files.
 #
-# Security invariant: the workflow is split into two jobs so that untrusted
+# Security invariant: resolution/reporting run on fresh trusted runners. Untrusted
 # code (the source_ref checkout: pnpm lifecycle scripts, build.rs, tests, the
 # app build itself) never runs in the same job that holds Apple signing
 # credentials. Job `build` has no access to the `testflight` environment or
@@ -27,9 +28,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  statuses: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -39,62 +37,71 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build app bundle
-    runs-on: macos-15
+  resolve:
+    name: Resolve immutable source identity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      build_number: ${{ steps.build-metadata.outputs.build_number }}
-      sha: ${{ steps.build-metadata.outputs.sha }}
-
+      sha: ${{ steps.source.outputs.sha }}
+      build_number: ${{ steps.source.outputs.build_number }}
+      pr_number: ${{ steps.source.outputs.pr_number }}
     steps:
-      - name: Require main workflow dispatch
-        run: |
-          set -euo pipefail
-          if [ "$GITHUB_REF_TYPE" != "branch" ] || [ "$GITHUB_REF_NAME" != "main" ]; then
-            echo "Error: dispatch TestFlight from main and pass -f source_ref=... for another ref."
-            exit 1
-          fi
-
-      - name: Resolve source ref
-        id: source
-        env:
-          INPUT_SOURCE_REF: ${{ inputs.source_ref }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          set -euo pipefail
-          if [ -n "$PR_NUMBER" ] && [ -z "$INPUT_SOURCE_REF" ]; then
-            echo "Error: pr_number requires source_ref so the tested PR head is explicit."
-            exit 1
-          fi
-
-          source_ref="$INPUT_SOURCE_REF"
-          if [ -z "$source_ref" ]; then
-            source_ref="$GITHUB_REF_NAME"
-          fi
-
-          if [ "$source_ref" != "main" ] \
-            && ! [[ "$source_ref" =~ ^v[0-9][0-9A-Za-z._-]*$ ]] \
-            && ! [[ "$source_ref" =~ ^refs/pull/[0-9]+/head$ ]]; then
-            echo "Error: source_ref must be main, a v* tag, or refs/pull/<number>/head, got '$source_ref'"
-            exit 1
-          fi
-
-          {
-            echo "ref<<BRM_EOF"
-            echo "$source_ref"
-            echo "BRM_EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Checkout trusted workflow tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Resolve source and build metadata
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_SOURCE_REF: ${{ inputs.source_ref }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: bash scripts/resolve-testflight-source.sh
 
-      - name: Checkout source ref
+  pending:
+    name: Mark pre-merge TestFlight pending
+    needs: resolve
+    runs-on: ubuntu-latest
+    concurrency:
+      group: testflight-status-${{ github.repository }}-${{ needs.resolve.outputs.sha }}
+      queue: max
+      cancel-in-progress: false
+    permissions:
+      statuses: write
+    steps:
+      - name: Report pending on the resolved PR head
+        if: ${{ needs.resolve.outputs.pr_number != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
+            -f state=pending \
+            -f context='Pre-merge TestFlight' \
+            -f description="Uploading TestFlight build ${BUILD_NUMBER}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+  build:
+    name: Build app bundle
+    needs: [resolve, pending]
+    runs-on: macos-15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted workflow tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.source.outputs.ref }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Checkout resolved source commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
           path: source
           persist-credentials: false
 
@@ -133,60 +140,11 @@ jobs:
       - name: Run Rust tests
         run: cargo test --manifest-path source/src-tauri/Cargo.toml
 
-      - name: Resolve build metadata
-        id: build-metadata
-        env:
-          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
-        run: |
-          echo "sha=$(git -C source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-          input_build_number="$INPUT_BUILD_NUMBER"
-          if [ -n "$input_build_number" ]; then
-            case "$input_build_number" in
-              ''|*[!0-9]*)
-                echo "Error: build_number input must be numeric, got '$input_build_number'"
-                exit 1
-                ;;
-            esac
-            build_number="$input_build_number"
-          else
-            run_number="$GITHUB_RUN_NUMBER"
-            timestamp_floor="$(date -u +%Y%m%d%H%M%S)"
-            if [ "$run_number" -lt "$timestamp_floor" ]; then
-              build_number="$timestamp_floor"
-            else
-              build_number="$run_number"
-            fi
-          fi
-          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
-
-      - name: Mark pre-merge TestFlight pending
-        if: ${{ inputs.pr_number != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
-          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          case "$PR_NUMBER" in
-            ''|*[!0-9]*)
-              echo "Error: pr_number input must be numeric, got '$PR_NUMBER'"
-              exit 1
-              ;;
-          esac
-
-          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
-            -f state=pending \
-            -f context='Pre-merge TestFlight' \
-            -f description="Uploading TestFlight build ${BUILD_NUMBER}" \
-            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
       - name: Build App Store app bundle
-        run: |
-          bash scripts/build-appstore-bundle.sh \
-            source \
-            "${{ steps.build-metadata.outputs.build_number }}" \
-            "${{ steps.build-metadata.outputs.sha }}"
+        env:
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
+        run: bash scripts/build-appstore-bundle.sh source "$BUILD_NUMBER" "$BUILD_SHA"
 
       - name: Package app bundle artifact
         run: |
@@ -205,23 +163,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Mark pre-merge TestFlight failure
-        if: ${{ failure() && inputs.pr_number != '' && steps.build-metadata.outputs.sha != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ steps.build-metadata.outputs.build_number }}
-          BUILD_SHA: ${{ steps.build-metadata.outputs.sha }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
-            -f state=failure \
-            -f context='Pre-merge TestFlight' \
-            -f description="TestFlight build ${BUILD_NUMBER} failed" \
-            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
   sign-upload:
     name: Sign, upload, and verify TestFlight
-    needs: build
+    needs: [resolve, build]
     runs-on: macos-15
     environment: testflight
 
@@ -232,7 +176,7 @@ jobs:
       - name: Checkout trusted workflow tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Validate trusted scripts
@@ -240,6 +184,14 @@ jobs:
           bash -n scripts/setup-appstore-signing.sh
           bash -n scripts/upload-appstore-package.sh
           node --check scripts/verify-testflight-build.mjs
+
+      - name: Validate resolved metadata before credentials
+        env:
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
+        run: |
+          source scripts/validate-appstore-metadata.sh
+          validate_appstore_metadata "$BUILD_SHA" "$BUILD_NUMBER"
 
       - name: Download app bundle artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -249,7 +201,7 @@ jobs:
 
       - name: Extract and verify app bundle
         env:
-          BUILD_SHA: ${{ needs.build.outputs.sha }}
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
         run: |
           set -euo pipefail
           BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
@@ -263,7 +215,7 @@ jobs:
           fi
 
           COMMIT_PREFIX="$(printf '%s' "$BUILD_SHA" | cut -c1-12)"
-          if ! strings -a "$APP_EXECUTABLE" | grep -F "$COMMIT_PREFIX" > /dev/null; then
+          if ! strings -a "$APP_EXECUTABLE" | awk -v needle="$COMMIT_PREFIX" 'index($0, needle) { found = 1 } END { exit found ? 0 : 1 }'; then
             echo "Error: downloaded app bundle does not embed expected commit $COMMIT_PREFIX"
             exit 1
           fi
@@ -283,6 +235,8 @@ jobs:
 
       - name: Upload to App Store Connect
         env:
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_DISTRIBUTION_IDENTITY: ${{ secrets.APPLE_DISTRIBUTION_IDENTITY }}
           APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
@@ -292,44 +246,56 @@ jobs:
         run: |
           bash scripts/upload-appstore-package.sh \
             . \
-            "${{ needs.build.outputs.build_number }}" \
-            "${{ needs.build.outputs.sha }}" \
+            "$BUILD_NUMBER" \
+            "$BUILD_SHA" \
             "$PROVISION_PROFILE_PATH"
 
       - name: Verify TestFlight processing and internal availability
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
           TESTFLIGHT_BUNDLE_ID: dev.alexpedersen.better-resource-monitor
-        run: node scripts/verify-testflight-build.mjs "${{ needs.build.outputs.build_number }}"
+        run: node scripts/verify-testflight-build.mjs "$BUILD_NUMBER"
 
-      - name: Mark pre-merge TestFlight success
-        if: ${{ success() && inputs.pr_number != '' }}
+  report:
+    name: Report pre-merge TestFlight result
+    needs: [resolve, pending, build, sign-upload]
+    if: ${{ always() && needs.resolve.result == 'success' && needs.resolve.outputs.pr_number != '' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: testflight-status-${{ github.repository }}-${{ needs.resolve.outputs.sha }}
+      queue: max
+      cancel-in-progress: false
+    permissions:
+      statuses: write
+      issues: write
+    steps:
+      - name: Report result on the resolved PR head
         env:
           GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ needs.build.outputs.build_number }}
-          BUILD_SHA: ${{ needs.build.outputs.sha }}
-          PR_NUMBER: ${{ inputs.pr_number }}
+          BUILD_NUMBER: ${{ needs.resolve.outputs.build_number }}
+          BUILD_SHA: ${{ needs.resolve.outputs.sha }}
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          PENDING_RESULT: ${{ needs.pending.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          UPLOAD_RESULT: ${{ needs.sign-upload.result }}
         run: |
+          set -euo pipefail
+          state=failure
+          description="TestFlight build ${BUILD_NUMBER} failed or was cancelled"
+          if [ "$PENDING_RESULT" = success ] && [ "$BUILD_RESULT" = success ] && [ "$UPLOAD_RESULT" = success ]; then
+            state=success
+            description="TestFlight build ${BUILD_NUMBER} processed for internal testing"
+          fi
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
-            -f state=success \
+            -f state="$state" \
             -f context='Pre-merge TestFlight' \
-            -f description="TestFlight build ${BUILD_NUMBER} processed for internal testing" \
+            -f description="$description" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
-          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            -f body="✅ Pre-merge TestFlight processed and available to internal testers for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
-      - name: Mark pre-merge TestFlight failure
-        if: ${{ failure() && inputs.pr_number != '' && needs.build.outputs.sha != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_NUMBER: ${{ needs.build.outputs.build_number }}
-          BUILD_SHA: ${{ needs.build.outputs.sha }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          gh api "repos/${GITHUB_REPOSITORY}/statuses/${BUILD_SHA}" \
-            -f state=failure \
-            -f context='Pre-merge TestFlight' \
-            -f description="TestFlight build ${BUILD_NUMBER} failed" \
-            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          if [ "$state" = success ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -f body="✅ Pre-merge TestFlight processed and available to internal testers for \`${BUILD_SHA:0:12}\` as build \`${BUILD_NUMBER}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          else
+            exit 1
+          fi

@@ -277,7 +277,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_REF: v${{ needs.version-bump.outputs.new_version }}
-          RELEASE_SHA: ${{ needs.version-bump.outputs.release_sha }}
           APPSTORE_BUILD_NUMBER: ${{ steps.build-metadata.outputs.appstore_build_number }}
         run: |
           set -euo pipefail
@@ -288,16 +287,21 @@ jobs:
             -f source_ref="$RELEASE_REF" \
             -f build_number="$APPSTORE_BUILD_NUMBER"
 
+          expected_title="TestFlight ${RELEASE_REF} build ${APPSTORE_BUILD_NUMBER}"
           run_id=""
           for _ in {1..60}; do
-            run_id="$(gh run list \
+            run_ids="$(gh run list \
               --workflow testflight.yml \
               --limit 20 \
-              --json databaseId,event,headSha,createdAt \
-              --jq ".[] | select(.event == \"workflow_dispatch\" and .headSha == \"$RELEASE_SHA\" and .createdAt >= \"$started_at\") | .databaseId" \
-              | head -n 1)"
+              --json databaseId,event,displayTitle,createdAt \
+              --jq ".[] | select(.event == \"workflow_dispatch\" and .displayTitle == \"$expected_title\" and .createdAt >= \"$started_at\") | .databaseId")"
 
-            if [ -n "$run_id" ]; then
+            if [ "$(printf '%s\n' "$run_ids" | sed '/^$/d' | wc -l)" -gt 1 ]; then
+              echo 'Error: multiple TestFlight runs matched this release dispatch.' >&2
+              exit 1
+            fi
+            if [ -n "$run_ids" ]; then
+              run_id="$run_ids"
               break
             fi
 
@@ -305,7 +309,7 @@ jobs:
           done
 
           if [ -z "$run_id" ]; then
-            echo "Error: timed out waiting for TestFlight workflow dispatch for $RELEASE_REF ($RELEASE_SHA)"
+            echo "Error: timed out waiting for TestFlight workflow dispatch for $RELEASE_REF"
             exit 1
           fi
 

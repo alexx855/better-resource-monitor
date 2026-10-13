@@ -49,3 +49,11 @@ test("release version PR passes exact-head TestFlight before merge", () => {
 test("CI supports trusted release-branch dispatch", () => {
   assert.match(ciWorkflow, /on:\n  pull_request:\n  workflow_dispatch:\n/);
 });
+
+test("release identifies TestFlight by requested tag/build instead of workflow main SHA", () => {
+  const job = workflow.slice(workflow.indexOf("  dispatch-testflight:"), workflow.indexOf("  create-github-release:"));
+  assert.match(job, /expected_title="TestFlight \$\{RELEASE_REF\} build \$\{APPSTORE_BUILD_NUMBER\}"/);
+  assert.match(job, /displayTitle == \\"\$expected_title\\"/);
+  assert.doesNotMatch(job, /headSha/);
+  assert.match(job, /multiple TestFlight runs matched/);
+});

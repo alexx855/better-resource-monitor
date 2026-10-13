@@ -36,7 +36,7 @@ const output = join('src-tauri/target/universal-apple-darwin/release/bundle/maco
 mkdirSync(output, { recursive: true });
 writeFileSync(join(output, 'better-resource-monitor'), process.env.BRM_BUILD_COMMIT);
 `, { mode: 0o755 });
-  const { stdout } = await exec("bash", [buildScript, source, "123", "0123456789abcdef"], {
+  const { stdout } = await exec("bash", [buildScript, source, "123", "0123456789abcdef0123456789abcdef01234567"], {
     cwd: fixture,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
   });
