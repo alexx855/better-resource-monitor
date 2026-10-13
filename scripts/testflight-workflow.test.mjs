@@ -66,6 +66,17 @@ test("untrusted build has no write authority, metadata outputs, or privileged re
   assert.doesNotMatch(workflow, /ref: main\n/);
 });
 
+test("TestFlight cannot grant cache-write tokens to contributor code", () => {
+  const workflowConfig = workflow.slice(0, workflow.indexOf("\njobs:\n"));
+  assert.match(workflowConfig, /^cache-mode: read$/m);
+  // No job can override the cap, including the job that runs contributor code.
+  assert.doesNotMatch(workflow.slice(workflow.indexOf("\njobs:\n")), /^ +cache-mode:/m);
+  // Keep restore support and dispatch/watch compatibility for release callers.
+  assert.match(job("build"), /uses: swatinem\/rust-cache@/);
+  assert.match(job("build"), /cache: 'pnpm'/);
+  assert.match(workflowConfig, /workflow_dispatch:/);
+});
+
 test("trusted resolver preserves main, tag, PR and default build-number workflows", async (t) => {
   for (const [ref, pr] of [["", ""], ["v1.2.3", ""], ["refs/pull/7/head", "7"], ["refs/pull/7/head", ""]]) {
     const { env } = await fixture(t);
