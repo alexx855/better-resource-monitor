@@ -9,16 +9,16 @@
 		"check": "astro check"
 	},
 	"dependencies": {
-		"@astrojs/sitemap": "^3.7.3",
+		"@astrojs/sitemap": "^3.7.4",
 		"@resvg/resvg-js": "^2.6.2",
-		"astro": "^7.3.5",
-		"satori": "^0.29.0"
+		"astro": "^7.3.8",
+		"satori": "^0.47.1"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@types/node": "^26.2.0",
+		"@types/node": "^26.6.5",
 		"sharp": "^0.35.5",
 		"typescript": "^6.0.3",
-		"wrangler": "^4.147.0"
+		"wrangler": "^4.149.0"
 	}
 }
