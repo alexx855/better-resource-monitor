@@ -2,8 +2,6 @@
   "title": "Better Resource Monitor vs iStat Menus | macOS iStat Menus 替代",
   "description": "如果你在找 iStat Menus 替代方案，这里会对比 Better Resource Monitor 和 iStat Menus 的性能、隐私、App Store 可用性，以及 CPU、内存、存储、GPU 和网络监控。同时说明风扇、温度和深层传感器等功能差异，帮助你选择更适合日常查看的 Mac 菜单栏监视器。",
   "ogImage": "/images/og-vs-istat-menus-zh-cn.png",
-  "competitorName": "iStat Menus",
-  "competitorPrice": "14.99",
   "heading": "Better Resource Monitor vs iStat Menus",
   "intro": "如果你在找 iStat Menus 替代，这是一个起点。iStat Menus 适合需要更多传感器和高级设置的用户。Better Resource Monitor 更适合想在菜单栏里快速看到 CPU、内存、存储、GPU 和网络、减少设置并保持低开销的用户。",
   "table": {

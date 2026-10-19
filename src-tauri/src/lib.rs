@@ -235,9 +235,32 @@ const HYSTERESIS_THRESHOLD: f32 = 2.0;
 /// Reduces tray icon churn that can accumulate compositor resources on Linux.
 const NET_HYSTERESIS_BPS: f64 = 50_000.0;
 
-/// Returns true if the new value differs from previous by at least the threshold
-fn should_update(prev: f32, new: f32, threshold: f32) -> bool {
-    (new - prev).abs() >= threshold
+fn metric_display_needs_update(
+    visible: bool,
+    previous: f32,
+    current: f32,
+    show_alerts: bool,
+) -> bool {
+    visible
+        && ((current - previous).abs() >= HYSTERESIS_THRESHOLD
+            || (show_alerts
+                && tray_render::alert_active(previous) != tray_render::alert_active(current)))
+}
+
+#[derive(Default)]
+struct TrayUpdateTracker {
+    pending: bool,
+}
+
+impl TrayUpdateTracker {
+    fn begin_if_needed(&mut self, changed: bool) -> bool {
+        self.pending |= changed;
+        self.pending
+    }
+
+    fn mark_applied(&mut self) {
+        self.pending = false;
+    }
 }
 
 /// Get update interval from environment variable or use default.
@@ -909,10 +932,11 @@ fn setup_tray(
                         } else {
                             match macos_autostart::enable() {
                                 Ok(()) => {
-                                    save_setting(app, menu_id::AUTOSTART, true);
-                                    let _ = autostart_menu_item.set_checked(true);
+                                    let enabled = macos_autostart::is_enabled();
+                                    save_setting(app, menu_id::AUTOSTART, enabled);
+                                    let _ = autostart_menu_item.set_checked(enabled);
                                     macos_diag_log(format!(
-                                        "menu autostart enabled status_after={}",
+                                        "menu autostart enable requested status_after={}",
                                         macos_autostart::status_label()
                                     ));
                                 }
@@ -1181,6 +1205,7 @@ fn start_monitoring(
         let mut renderer = tray_render::TrayRenderer::new();
         let mut render_buffer: Vec<u8> =
             Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
+        let mut tray_updates = TrayUpdateTracker::default();
 
         loop {
             thread::sleep(Duration::from_millis(update_interval));
@@ -1208,7 +1233,7 @@ fn start_monitoring(
             let net_was_enabled = prev_flags.4;
 
             #[cfg(target_os = "macos")]
-            if thermal::should_poll(true, thermal_last_sample, now) {
+            if thermal::should_poll(thermal_last_sample, now) {
                 let sampled = thermal::sample();
                 thermal_last_sample = Some(now);
                 thermal_tracker.observe(sampled);
@@ -1287,8 +1312,8 @@ fn start_monitoring(
             // Hysteresis: only update if values change by meaningful threshold
             // This dramatically reduces icon updates, preventing compositor resource
             // accumulation that causes cursor slowdown on Ubuntu/GNOME
-            let cpu_changed = should_update(prev_cpu, cpu_usage, HYSTERESIS_THRESHOLD);
-            let mem_changed = should_update(prev_mem, mem_percent, HYSTERESIS_THRESHOLD);
+            let cpu_changed = metric_display_needs_update(sc, prev_cpu, cpu_usage, sa);
+            let mem_changed = metric_display_needs_update(sm, prev_mem, mem_percent, sa);
             let storage_changed = ss
                 && storage_display_needs_update(
                     prev_storage_available.as_deref(),
@@ -1296,20 +1321,21 @@ fn start_monitoring(
                     &storage_available_str,
                     storage_available_bytes,
                 );
-            let gpu_changed = should_update(prev_gpu, gpu_usage, HYSTERESIS_THRESHOLD);
+            let gpu_changed = metric_display_needs_update(sg, prev_gpu, gpu_usage, sa);
             let down_diff = (down_speed - prev_down_speed).abs();
             let up_diff = (up_speed - prev_up_speed).abs();
             let net_value_changed =
                 down_diff >= NET_HYSTERESIS_BPS || up_diff >= NET_HYSTERESIS_BPS;
             let net_changed = sn && net_value_changed;
 
-            if cpu_changed
-                || mem_changed
-                || storage_changed
-                || gpu_changed
-                || net_changed
-                || flags_changed
-            {
+            if tray_updates.begin_if_needed(
+                cpu_changed
+                    || mem_changed
+                    || storage_changed
+                    || gpu_changed
+                    || net_changed
+                    || flags_changed,
+            ) {
                 // Defer string formatting to render time only
                 let down_str = format_speed(down_speed);
                 let up_str = format_speed(up_speed);
@@ -1376,36 +1402,56 @@ fn start_monitoring(
                 if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     // A transient failure here (e.g. AppKit contention during
                     // display sleep/wake) must not kill the monitor thread;
-                    // log, skip this frame, and let the next tick retry.
+                    // Leave the update pending until the native setter succeeds.
                     #[cfg(target_os = "macos")]
                     {
                         let use_template = !_has_active_alert;
-                        match tray_icon::Icon::from_rgba(render_buffer.clone(), width, height) {
+                        let applied = match tray_icon::Icon::from_rgba(
+                            render_buffer.clone(),
+                            width,
+                            height,
+                        ) {
                             Ok(icon) => {
                                 let result = tray.with_inner_tray_icon(move |inner| {
-                                    if let Err(e) =
-                                        inner.set_icon_with_as_template(Some(icon), use_template)
-                                    {
-                                        eprintln!("Failed to set macOS tray icon: {e}");
-                                    }
+                                    let result =
+                                        inner.set_icon_with_as_template(Some(icon), use_template);
                                     prevent_macos_tray_image_dimming(inner);
+                                    result
                                 });
-                                if let Err(e) = result {
-                                    macos_diag_log(format!(
-                                        "tray_update main-thread dispatch failed: {e}"
-                                    ));
+                                match result {
+                                    Ok(Ok(())) => true,
+                                    Ok(Err(e)) => {
+                                        eprintln!("Failed to set macOS tray icon: {e}");
+                                        macos_diag_log(format!(
+                                            "tray_update native setter failed: {e}"
+                                        ));
+                                        false
+                                    }
+                                    Err(e) => {
+                                        macos_diag_log(format!(
+                                            "tray_update main-thread dispatch failed: {e}"
+                                        ));
+                                        false
+                                    }
                                 }
                             }
                             Err(e) => {
                                 macos_diag_log(format!("tray_update icon creation failed: {e}"));
+                                false
                             }
+                        };
+                        if applied {
+                            tray_updates.mark_applied();
                         }
                     }
 
                     #[cfg(not(target_os = "macos"))]
                     {
                         let icon = Image::new_owned(render_buffer.clone(), width, height);
-                        let _ = tray.set_icon(Some(icon));
+                        match tray.set_icon(Some(icon)) {
+                            Ok(()) => tray_updates.mark_applied(),
+                            Err(e) => eprintln!("Failed to set tray icon: {e}"),
+                        }
                     }
                 }
             }
