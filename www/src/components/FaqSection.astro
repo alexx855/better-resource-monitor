@@ -6,12 +6,9 @@ interface Props {
   locale: SupportedLocale;
   heading: string;
   items: FaqItem[];
-  headingLevel?: "h1" | "h2";
-  includeSchema?: boolean;
 }
 
-const { locale, heading, items, headingLevel = "h2", includeSchema = true } = Astro.props;
-const HeadingTag = headingLevel;
+const { locale, heading, items } = Astro.props;
 const langTag = getLocaleMeta(locale).langTag;
 const renderedItems = items.map((item) => ({
   ...item,
@@ -36,7 +33,7 @@ const faqSchemaJson = JSON.stringify({
 ---
 
 <section class="faq-section" aria-labelledby="faq-section-heading">
-  <HeadingTag id="faq-section-heading">{heading}</HeadingTag>
+  <h2 id="faq-section-heading">{heading}</h2>
   <dl class="faq-list">
     {renderedItems.map((item) => (
       <div class="faq-item content-panel">
@@ -47,16 +44,13 @@ const faqSchemaJson = JSON.stringify({
   </dl>
 </section>
 
-{includeSchema && (
-  <script is:inline type="application/ld+json" set:html={faqSchemaJson} />
-)}
+<script is:inline type="application/ld+json" set:html={faqSchemaJson} />
 
 <style>
   .faq-section {
     margin-top: var(--space-10);
   }
 
-  .faq-section h1,
   .faq-section h2 {
     scroll-margin-top: var(--space-5);
   }

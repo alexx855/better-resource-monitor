@@ -118,9 +118,6 @@ mod macos {
         service: io_registry_entry_t,
     }
 
-    #[cfg(all(test, feature = "app-store"))]
-    pub const IMPLEMENTATION: &str = "macos_ioaccelerator";
-
     impl GpuSampler {
         pub fn new() -> Option<Self> {
             unsafe {
@@ -236,11 +233,19 @@ mod linux {
 #[cfg(target_os = "macos")]
 pub use macos::GpuSampler;
 
-#[cfg(all(test, target_os = "macos", feature = "app-store"))]
-pub use macos::IMPLEMENTATION;
-
 #[cfg(target_os = "linux")]
 pub use linux::GpuSampler;
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 pub use unavailable::GpuSampler;
+
+#[cfg(all(test, target_os = "macos", feature = "app-store"))]
+mod tests {
+    #[test]
+    fn app_store_exports_macos_gpu_sampler() {
+        assert_eq!(
+            std::any::TypeId::of::<super::GpuSampler>(),
+            std::any::TypeId::of::<super::macos::GpuSampler>(),
+        );
+    }
+}

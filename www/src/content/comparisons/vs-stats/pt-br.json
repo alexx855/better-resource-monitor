@@ -2,8 +2,6 @@
   "title": "Alternativa ao Stats para macOS | Better Resource Monitor",
   "description": "Procurando uma alternativa ao Stats no macOS? Compare Stats e Better Resource Monitor: monitores gratuitos de barra de menus, com opção mais simples e leve.",
   "ogImage": "/images/og-vs-stats-pt-br.png",
-  "competitorName": "Stats",
-  "competitorPrice": "0",
   "heading": "Better Resource Monitor vs Stats",
   "intro": "Stats e Better Resource Monitor são bons monitores de barra de menus, mas não foram feitos exatamente para a mesma pessoa. O Stats vai mais fundo em sensores extras como ventoinhas e temperatura. O Better Resource Monitor segue um caminho mais simples: deixar CPU, memória, armazenamento, GPU e rede sempre visíveis, continuar leve e evitar atrito extra só para acompanhar o Mac.",
   "table": {

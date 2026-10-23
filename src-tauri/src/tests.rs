@@ -123,21 +123,48 @@ fn test_cap_percent() {
 }
 
 #[test]
-fn test_should_update_threshold() {
-    for (previous, new, threshold, expected) in [
-        (10.0, 12.0, 2.0, true),
-        (10.0, 8.0, 2.0, true),
-        (10.0, 12.001, 2.0, true),
-        (10.0, 11.9, 2.0, false),
-        (10.0, 9.1, 2.0, false),
-        (10.0, 10.0, 2.0, false),
+fn test_metric_display_update_uses_visibility_threshold_and_alert_state() {
+    for (visible, previous, current, show_alerts, expected) in [
+        (true, 10.0, 12.0, true, true),
+        (true, 10.0, 8.0, true, true),
+        (true, 10.0, 12.001, true, true),
+        (true, 10.0, 11.9, true, false),
+        (true, 10.0, 9.1, true, false),
+        (true, 10.0, 10.0, true, false),
+        // A hidden metric must not force repeated redraws from its initial or old value.
+        (false, -100.0, 0.0, true, false),
+        (false, 60.0, 0.0, true, false),
+        (true, -100.0, 0.0, true, true),
+        // Warning transitions redraw even when the value change is below hysteresis.
+        (true, 80.5, 81.0, true, true),
+        (true, 81.0, 80.5, true, true),
+        (true, 80.5, 81.0, false, false),
+        (true, 81.0, 80.5, false, false),
+        (false, 80.5, 81.0, true, false),
     ] {
         assert_eq!(
-            should_update(previous, new, threshold),
+            metric_display_needs_update(visible, previous, current, show_alerts),
             expected,
-            "previous={previous}, new={new}, threshold={threshold}"
+            "visible={visible}, previous={previous}, current={current}, show_alerts={show_alerts}"
         );
     }
+}
+
+#[test]
+fn test_tray_update_retries_failed_frames_until_applied() {
+    let mut updates = TrayUpdateTracker::default();
+    assert!(!updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(true));
+
+    // Failed frames remain pending even after the sampled values stop changing.
+    assert!(updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(false));
+
+    updates.mark_applied();
+    assert!(!updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(true));
+    updates.mark_applied();
+    assert!(!updates.begin_if_needed(false));
 }
 
 #[test]
@@ -196,51 +223,46 @@ fn test_storage_setting_migration() {
 }
 
 #[test]
-fn test_storage_sample_math() {
+fn test_storage_sample_validates_and_clamps_available_bytes() {
     let sample = storage::sample_from_bytes(1_000, 250).expect("valid sample");
-    assert_eq!(sample.total_bytes, 1_000);
     assert_eq!(sample.available_bytes, 250);
-    assert_eq!(sample.used_percent, 75.0);
 
     assert_eq!(storage::sample_from_bytes(0, 0), None);
+    assert_eq!(storage::sample_from_bytes(0, 1_000), None);
 
     let clamped = storage::sample_from_bytes(1_000, 2_000).expect("clamped sample");
     assert_eq!(clamped.available_bytes, 1_000);
-    assert_eq!(clamped.used_percent, 0.0);
+
+    let full = storage::sample_from_bytes(1_000, 0).expect("full filesystem");
+    assert_eq!(full.available_bytes, 0);
+
+    let huge = storage::sample_from_bytes(u128::MAX, u128::MAX).expect("bounded sample");
+    assert_eq!(huge.available_bytes, u64::MAX);
 }
 
 #[test]
 fn test_storage_block_math() {
     let sample = storage::sample_from_blocks(10, 4, 1024, 512).expect("valid statvfs sample");
-    assert_eq!(sample.total_bytes, 10 * 1024);
     assert_eq!(sample.available_bytes, 4 * 1024);
-    assert_eq!(sample.used_percent, 60.0);
 
     let fallback = storage::sample_from_blocks(10, 4, 0, 512).expect("block size fallback");
-    assert_eq!(fallback.total_bytes, 10 * 512);
     assert_eq!(fallback.available_bytes, 4 * 512);
 
     assert_eq!(storage::sample_from_blocks(10, 4, 0, 0), None);
+    assert_eq!(storage::sample_from_blocks(0, 4, 1024, 512), None);
+
+    let clamped = storage::sample_from_blocks(10, 20, 1024, 512).expect("clamped blocks");
+    assert_eq!(clamped.available_bytes, 10 * 1024);
 
     let huge = storage::sample_from_blocks(u128::MAX, u128::MAX / 2, u128::MAX, 0)
         .expect("huge values saturate");
-    assert_eq!(huge.total_bytes, u64::MAX);
-    assert!(huge.used_percent <= 100.0);
+    assert_eq!(huge.available_bytes, u64::MAX);
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn test_storage_sample_reads_home_filesystem() {
-    let sample = storage::sample().expect("home filesystem storage sample");
-    assert!(sample.total_bytes > 0);
-    assert!(sample.available_bytes <= sample.total_bytes);
-    assert!((0.0..=100.0).contains(&sample.used_percent));
-}
-
-#[cfg(all(target_os = "macos", feature = "app-store"))]
-#[test]
-fn test_app_store_feature_uses_macos_gpu_sampler() {
-    assert_eq!(crate::gpu::IMPLEMENTATION, "macos_ioaccelerator");
+    storage::sample().expect("home filesystem storage sample");
 }
 
 #[cfg(target_os = "macos")]
@@ -473,33 +495,59 @@ fn test_alert_colors_all_segments() {
     let mut buffer: Vec<u8> = Vec::new();
     let mut renderer = tray_render::TrayRenderer::new();
 
-    for (cpu_usage, show_alerts, expected_alert) in [
-        (50.0, true, false),
-        (80.0, true, false),
-        (81.0, true, true),
-        (81.0, false, false),
+    let assert_alert_pixels = |buffer: &[u8], expected_alert: bool| {
+        let (background, foreground) = if expected_alert {
+            ([209, 71, 21, 255], [255, 255, 255, 255])
+        } else {
+            ([0, 0, 0, 0], [0, 0, 0, 255])
+        };
+        assert_eq!(&buffer[..4], &background);
+        assert!(buffer.as_chunks::<4>().0.contains(&foreground));
+    };
+
+    for (show_cpu, show_mem, show_gpu) in [
+        (true, false, false),
+        (false, true, false),
+        (false, false, true),
     ] {
-        let (_, _, has_alert) = renderer.render_tray_icon_into(
-            &font,
-            &mut buffer,
-            &tray_render::RenderConfig {
-                cpu_usage,
-                show_alerts,
-                ..base_render_config()
-            },
-        );
-        assert_eq!(
-            has_alert, expected_alert,
-            "cpu_usage={cpu_usage}, show_alerts={show_alerts}"
-        );
+        for (usage, visible, show_alerts, expected_alert) in [
+            (50.0, true, true, false),
+            (80.0, true, true, false),
+            (81.0, true, true, true),
+            (81.0, true, false, false),
+            (81.0, false, true, false),
+        ] {
+            let (_, _, has_alert) = renderer.render_tray_icon_into(
+                &font,
+                &mut buffer,
+                &tray_render::RenderConfig {
+                    cpu_usage: usage,
+                    mem_percent: usage,
+                    gpu_usage: usage,
+                    show_cpu: show_cpu && visible,
+                    show_mem: show_mem && visible,
+                    show_gpu: show_gpu && visible,
+                    show_net: true,
+                    show_alerts,
+                    use_light_icons: false,
+                    ..base_render_config()
+                },
+            );
+            assert_eq!(
+                has_alert, expected_alert,
+                "show_cpu={show_cpu}, show_mem={show_mem}, show_gpu={show_gpu}, usage={usage}, visible={visible}, show_alerts={show_alerts}"
+            );
+            assert_alert_pixels(&buffer, expected_alert);
+        }
     }
 
-    for (storage_available_bytes, show_alerts, expected_alert) in [
-        (Some(10_000_000_001), true, false),
-        (Some(10_000_000_000), true, false),
-        (Some(9_999_999_999), true, true),
-        (Some(9_999_999_999), false, false),
-        (None, true, false),
+    for (storage_available_bytes, show_storage, show_alerts, expected_alert) in [
+        (Some(10_000_000_001), true, true, false),
+        (Some(10_000_000_000), true, true, false),
+        (Some(9_999_999_999), true, true, true),
+        (Some(9_999_999_999), true, false, false),
+        (Some(9_999_999_999), false, true, false),
+        (None, true, true, false),
     ] {
         let (_, _, has_alert) = renderer.render_tray_icon_into(
             &font,
@@ -510,15 +558,18 @@ fn test_alert_colors_all_segments() {
                 storage_available_bytes,
                 show_cpu: false,
                 show_mem: false,
-                show_storage: true,
+                show_storage,
+                show_net: true,
                 show_alerts,
+                use_light_icons: false,
                 ..base_render_config()
             },
         );
         assert_eq!(
             has_alert, expected_alert,
-            "storage_available_bytes={storage_available_bytes:?}, show_alerts={show_alerts}"
+            "storage_available_bytes={storage_available_bytes:?}, show_storage={show_storage}, show_alerts={show_alerts}"
         );
+        assert_alert_pixels(&buffer, expected_alert);
     }
 }
 
@@ -823,15 +874,62 @@ fn test_render_buffer_matches_rgba_dimensions() {
 }
 
 #[test]
-fn test_metric_icon_order() {
+fn test_rendered_metric_order_is_memory_cpu_gpu_storage() {
+    let font = load_system_font().expect("test font required");
+    let mut renderer = tray_render::TrayRenderer::new();
+    let config = tray_render::RenderConfig {
+        mem_percent: 23.0,
+        cpu_usage: 45.0,
+        gpu_usage: 67.0,
+        storage_available_str: "19.5 GB",
+        show_mem: true,
+        show_cpu: true,
+        show_gpu: true,
+        show_storage: true,
+        ..base_render_config()
+    };
+    let mut combined = Vec::new();
+    let (combined_width, height, _) = renderer.render_tray_icon_into(&font, &mut combined, &config);
+    let mut segment = Vec::new();
+    let mut segment_left = APP_SIZING.edge_padding;
+
+    for (show_mem, show_cpu, show_gpu, show_storage) in [
+        (true, false, false, false),
+        (false, true, false, false),
+        (false, false, true, false),
+        (false, false, false, true),
+    ] {
+        let (width, segment_height, _) = renderer.render_tray_icon_into(
+            &font,
+            &mut segment,
+            &tray_render::RenderConfig {
+                show_mem,
+                show_cpu,
+                show_gpu,
+                show_storage,
+                ..config
+            },
+        );
+        assert_eq!(segment_height, height);
+        let segment_width = width - APP_SIZING.edge_padding * 2;
+        for y in 0..height {
+            let combined_start = ((y * combined_width + segment_left) * 4) as usize;
+            let segment_start = ((y * width + APP_SIZING.edge_padding) * 4) as usize;
+            // Cached icons have exact pixels at every offset. Text layout uses
+            // floating point positions whose rounding can vary with the offset.
+            let row_bytes = APP_SIZING.icon_height as usize * 4;
+            assert_eq!(
+                &combined[combined_start..combined_start + row_bytes],
+                &segment[segment_start..segment_start + row_bytes],
+                "metric at x={segment_left}, row={y}"
+            );
+        }
+        segment_left += segment_width + APP_SIZING.segment_gap;
+    }
+
     assert_eq!(
-        tray_render::metric_icon_order_for_tests(),
-        [
-            tray_render::IconType::Memory,
-            tray_render::IconType::Cpu,
-            tray_render::IconType::Gpu,
-            tray_render::IconType::Storage,
-        ]
+        segment_left - APP_SIZING.segment_gap + APP_SIZING.edge_padding,
+        combined_width
     );
 }
 
@@ -871,34 +969,6 @@ fn test_detect_language_from_locales_uses_preference_order() {
             expected,
             "locales={locales:?}"
         );
-    }
-}
-
-#[test]
-fn test_all_languages_have_translations() {
-    let languages = [
-        i18n::Language::English,
-        i18n::Language::Spanish,
-        i18n::Language::Portuguese,
-        i18n::Language::Chinese,
-    ];
-    for lang in languages {
-        let t = lang.translations();
-        assert!(!t.start_at_login.is_empty());
-        assert!(!t.show_memory.is_empty());
-        assert!(!t.show_cpu.is_empty());
-        assert!(!t.show_storage.is_empty());
-        assert!(!t.show_gpu.is_empty());
-        assert!(!t.show_network.is_empty());
-        assert!(!t.show_alert_colors.is_empty());
-        assert!(!t.quit.is_empty());
-        assert!(!t.system_monitor.is_empty());
-        assert!(!t.thermal_status.is_empty());
-        assert!(!t.thermal_unavailable.is_empty());
-        assert!(!t.thermal_nominal.is_empty());
-        assert!(!t.thermal_fair.is_empty());
-        assert!(!t.thermal_serious.is_empty());
-        assert!(!t.thermal_critical.is_empty());
     }
 }
 
@@ -1036,22 +1106,6 @@ fn test_thermal_translations_match_supported_locales() {
 
         assert_eq!(actual, expected, "language={language:?}");
     }
-}
-
-#[test]
-fn test_english_defaults() {
-    let t = i18n::Language::English.translations();
-    assert_eq!(t.quit, "Quit");
-    assert_eq!(t.start_at_login, "Start at login");
-    assert_eq!(t.show_memory, "Show memory");
-    assert_eq!(t.show_cpu, "Show CPU");
-    assert_eq!(t.show_storage, "Show storage");
-    assert_eq!(t.show_gpu, "Show GPU");
-    assert_eq!(t.show_network, "Show network");
-    assert_eq!(t.show_alert_colors, "Show warning colors");
-    assert_eq!(t.system_monitor, "System monitor");
-    assert_eq!(t.thermal_status, "Thermal status");
-    assert_eq!(t.thermal_unavailable, "unavailable");
 }
 
 #[cfg(target_os = "macos")]

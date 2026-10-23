@@ -113,11 +113,10 @@ impl ThermalTracker {
     }
 }
 
-pub fn should_poll(enabled: bool, last_sample: Option<Instant>, now: Instant) -> bool {
-    enabled
-        && last_sample
-            .map(|last| now.duration_since(last) >= POLL_INTERVAL)
-            .unwrap_or(true)
+pub fn should_poll(last_sample: Option<Instant>, now: Instant) -> bool {
+    last_sample
+        .map(|last| now.duration_since(last) >= POLL_INTERVAL)
+        .unwrap_or(true)
 }
 
 fn normalize_iopm_result(return_code: i32, level: u32) -> Option<ThermalStatus> {
@@ -223,9 +222,8 @@ mod tests {
     #[test]
     fn poll_is_immediate_then_waits_for_the_interval() {
         let now = Instant::now();
-        assert!(should_poll(true, None, now));
-        assert!(!should_poll(true, Some(now), now + Duration::from_secs(4)));
-        assert!(should_poll(true, Some(now), now + POLL_INTERVAL));
-        assert!(!should_poll(false, None, now));
+        assert!(should_poll(None, now));
+        assert!(!should_poll(Some(now), now + Duration::from_secs(4)));
+        assert!(should_poll(Some(now), now + POLL_INTERVAL));
     }
 }
