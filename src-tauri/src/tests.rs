@@ -1113,3 +1113,85 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
         assert_eq!(actual, expected, "language={language:?}");
     }
 }
+
+#[test]
+fn network_speed_ignores_loopback_tunnels_and_virtual_bridges() {
+    for name in [
+        "lo",
+        "lo0",
+        "utun0",
+        "utun12",
+        "tun0",
+        "tap1",
+        "wg0",
+        "ipsec0",
+        "gif0",
+        "stf0",
+        "tailscale0",
+        "docker0",
+        "br-3f2a9c1d4e5b",
+        "veth12ab34c",
+        "virbr0",
+        "vmnet8",
+        "vboxnet0",
+        "bridge100",
+        "bridge101",
+        "Loopback Pseudo-Interface 1",
+    ] {
+        assert!(
+            !counts_toward_network_speed(name),
+            "{name} should be excluded"
+        );
+    }
+}
+
+#[test]
+fn network_speed_keeps_physical_and_peer_to_peer_links() {
+    for name in [
+        "en0",
+        "en7",
+        "eth0",
+        "enp3s0",
+        "wlan0",
+        "wlp2s0",
+        "bridge0",
+        "awdl0",
+        "llw0",
+        "ap1",
+        "anpi0",
+        "ppp0",
+        "Wi-Fi",
+        "Ethernet",
+        "lowpan0",
+        "tunnel-like",
+        "wgx",
+    ] {
+        assert!(
+            counts_toward_network_speed(name),
+            "{name} should be counted"
+        );
+    }
+}
+
+#[test]
+fn network_totals_skip_excluded_interfaces() {
+    let interfaces = [
+        ("lo0", 19_000_000_000, 19_000_000_000),
+        ("en0", 5_000, 700),
+        ("utun4", 4_000, 600),
+        ("en5", 250, 50),
+        ("bridge100", 1_000, 1_000),
+    ];
+    assert_eq!(sum_interface_totals(interfaces), (5_250, 750));
+}
+
+#[test]
+fn network_totals_saturate_instead_of_overflowing() {
+    let interfaces = [("en0", u64::MAX, 1), ("en1", 10, u64::MAX)];
+    assert_eq!(sum_interface_totals(interfaces), (u64::MAX, u64::MAX));
+}
+
+#[test]
+fn network_totals_are_zero_with_only_loopback() {
+    assert_eq!(sum_interface_totals([("lo0", 123, 456)]), (0, 0));
+}

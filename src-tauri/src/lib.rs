@@ -344,9 +344,75 @@ fn storage_display_needs_update(
 }
 
 fn sum_network_totals(networks: &Networks) -> (u64, u64) {
-    networks.iter().fold((0, 0), |(rx, tx), (_, data)| {
-        (rx + data.total_received(), tx + data.total_transmitted())
-    })
+    sum_interface_totals(networks.iter().map(|(name, data)| {
+        (
+            name.as_str(),
+            data.total_received(),
+            data.total_transmitted(),
+        )
+    }))
+}
+
+fn sum_interface_totals<'a>(
+    interfaces: impl IntoIterator<Item = (&'a str, u64, u64)>,
+) -> (u64, u64) {
+    interfaces
+        .into_iter()
+        .filter(|(name, _, _)| counts_toward_network_speed(name))
+        .fold((0, 0), |(rx, tx), (_, received, transmitted)| {
+            (rx.saturating_add(received), tx.saturating_add(transmitted))
+        })
+}
+
+/// Whether an interface's bytes belong in the network speed reading.
+///
+/// Loopback traffic never leaves the machine, so a local dev server, database
+/// or container port forward would otherwise show up as download and upload
+/// at the same time. VPN tunnels and VM/container bridges carry traffic that
+/// is also counted on the physical interface underneath, so including them
+/// double-counts it.
+fn counts_toward_network_speed(name: &str) -> bool {
+    // Interface name stems followed by an optional unit number, e.g. lo0,
+    // utun3, wg0, docker0.
+    const NUMBERED: &[&str] = &[
+        "lo",
+        "utun",
+        "tun",
+        "tap",
+        "wg",
+        "ipsec",
+        "gif",
+        "stf",
+        "tailscale",
+        "docker",
+        "virbr",
+        "vmnet",
+        "vboxnet",
+    ];
+    // Stems with free-form suffixes: Linux bridges (br-1a2b3c) and veth pairs.
+    const PREFIXED: &[&str] = &["br-", "veth"];
+
+    let unit = |stem: &str| {
+        name.strip_prefix(stem)
+            .filter(|rest| rest.bytes().all(|b| b.is_ascii_digit()))
+    };
+
+    if NUMBERED.iter().any(|stem| unit(stem).is_some())
+        || PREFIXED.iter().any(|stem| name.starts_with(stem))
+    {
+        return false;
+    }
+    // macOS uses bridge0 for Thunderbolt Bridge, a real link to another Mac,
+    // and bridge100 and up for Internet Sharing and VM networking, which
+    // forward traffic that is also counted on the uplink.
+    if unit("bridge")
+        .and_then(|n| n.parse::<u32>().ok())
+        .is_some_and(|n| n >= 100)
+    {
+        return false;
+    }
+    // Windows reports its loopback as "Loopback Pseudo-Interface 1".
+    !name.to_ascii_lowercase().contains("loopback")
 }
 
 fn normalize_metric_flags(
