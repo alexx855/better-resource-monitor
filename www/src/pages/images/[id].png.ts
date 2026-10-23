@@ -120,6 +120,7 @@ export const GET: APIRoute = async ({ props }) => {
           justifyContent: "center",
           alignItems: "center",
           width: "100%",
+          boxSizing: "border-box",
           padding: `0 ${s(140)}px`,
         },
         children: {
@@ -145,6 +146,7 @@ export const GET: APIRoute = async ({ props }) => {
     props: {
       style: {
         width: "100%",
+        boxSizing: "border-box",
         height: "100%",
         display: "flex",
         flexDirection: "column",
