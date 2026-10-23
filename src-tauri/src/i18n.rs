@@ -22,6 +22,7 @@ pub enum Language {
     Spanish,
     Portuguese,
     Chinese,
+    Polish,
 }
 
 const ENGLISH: Translations = Translations {
@@ -96,6 +97,24 @@ const CHINESE: Translations = Translations {
     thermal_critical: "危急",
 };
 
+const POLISH: Translations = Translations {
+    start_at_login: "Uruchamiaj po zalogowaniu",
+    show_memory: "Pokaż pamięć",
+    show_cpu: "Pokaż CPU",
+    show_storage: "Pokaż dysk",
+    show_gpu: "Pokaż GPU",
+    show_network: "Pokaż sieć",
+    show_alert_colors: "Pokaż kolory ostrzeżeń",
+    quit: "Zakończ",
+    system_monitor: "Monitor systemu",
+    thermal_status: "Stan termiczny",
+    thermal_unavailable: "niedostępny",
+    thermal_nominal: "normalny",
+    thermal_fair: "podwyższony",
+    thermal_serious: "wysoki",
+    thermal_critical: "krytyczny",
+};
+
 impl Language {
     pub fn translations(self) -> &'static Translations {
         match self {
@@ -103,6 +122,7 @@ impl Language {
             Language::Spanish => &SPANISH,
             Language::Portuguese => &PORTUGUESE,
             Language::Chinese => &CHINESE,
+            Language::Polish => &POLISH,
         }
     }
 }
@@ -115,6 +135,7 @@ fn language_for_locale(locale: &str) -> Option<Language> {
         "es" => Some(Language::Spanish),
         "pt" => Some(Language::Portuguese),
         "zh" => Some(Language::Chinese),
+        "pl" => Some(Language::Polish),
         _ => None,
     }
 }

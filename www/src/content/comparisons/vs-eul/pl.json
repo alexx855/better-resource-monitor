@@ -1,0 +1,68 @@
+{
+  "title": "Alternatywa dla Eul na macOS | Aktywnie rozwijany monitor na pasku menu",
+  "description": "Porównaj Eul z Better Resource Monitor, aktywnie rozwijanym monitorem CPU, pamięci, dysku, GPU i sieci na pasku menu macOS. Zobacz różnice w prywatności.",
+  "ogImage": "/images/og-vs-eul-pl.png",
+  "competitorName": "Eul",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Eul",
+  "intro": "Jeśli używałeś Eul na Macu albo szukasz alternatywy dla Eul na macOS, to porównanie jest dla Ciebie. Eul był mały, prosty i łatwo było go trzymać na pasku menu. Better Resource Monitor ma być równie przydatny na co dzień, ale jest aktywnie rozwijany, obsługuje obecne Maki i mniej obciąża Apple Silicon.",
+  "table": {
+    "featureLabel": "Funkcja",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Eul",
+    "features": [
+      "Mac App Store",
+      "Hasło administratora / uprawnienia",
+      "Stabilność API GPU",
+      "Zużycie pamięci",
+      "Wpływ na CPU / energię",
+      "Rozmiar aplikacji",
+      "Prywatność / telemetria",
+      "Status",
+      "Język",
+      "Cena",
+      "Licencja"
+    ],
+    "productValues": [
+      "Pełne funkcje",
+      "Brak (sandbox)",
+      "Publiczne API",
+      "~15 MB",
+      "< 0,1%",
+      "< 7 MB",
+      "100% offline",
+      "Aktywny",
+      "Rust",
+      "Za darmo",
+      "MIT"
+    ],
+    "competitorValues": [
+      "Ograniczone",
+      "Brak",
+      "Prywatne API",
+      "~40 MB",
+      "Wysoki (seria M)",
+      "~5 MB",
+      "Offline",
+      "Nierozwijany",
+      "Swift",
+      "Za darmo",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Dlaczego użytkownicy rezygnują z Eul",
+      "body": "Eul wciąż ma przyjemny, minimalistyczny charakter, ale nie jest już aktywnie rozwijany. W przypadku monitora systemu ma to większe znaczenie niż przy większości aplikacji, bo macOS stale zmienia API i szczegóły sprzętowe, od których zależą takie narzędzia."
+    },
+    {
+      "heading": "Lepszy wybór dla nowszych Maców",
+      "body": "Na Apple Silicon Better Resource Monitor zużywa poniżej 0,1% CPU i około 15 MB pamięci. Dzięki temu łatwiej zostawić go włączonego przez cały dzień, a przecież o to właśnie chodzi w monitorze na pasku menu."
+    },
+    {
+      "heading": "Techniczne decyzje, praktyczny efekt",
+      "body": "Better Resource Monitor korzysta z publicznych API do odczytu danych GPU, działa w piaskownicy i jest dostępny w Mac App Store z pełnym zestawem funkcji. To szczegóły techniczne, ale praktyczny efekt jest prosty: monitor, który łatwiej zainstalować, któremu łatwiej zaufać i który rzadziej przestaje działać po kolejnej aktualizacji macOS."
+    }
+  ],
+  "cta": "Jeśli podobał Ci się prostszy styl Eul, ale chcesz czegoś aktualnego, [Better Resource Monitor jest dostępny w Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306) i obsługuje te same codzienne zastosowania. Kod źródłowy jest na [GitHubie](https://github.com/alexx855/better-resource-monitor), jeśli chcesz go przejrzeć przed instalacją."
+}

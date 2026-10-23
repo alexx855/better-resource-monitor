@@ -12,6 +12,10 @@ const pageChecks = [
     markers: ["¿Para quién es Better Resource Monitor?", "¿Quién debería elegir un monitor de sistema más completo?"],
   },
   {
+    path: "/pl/",
+    markers: ["Dla kogo jest Better Resource Monitor?", "Kto powinien wybrać bardziej rozbudowany monitor systemu?"],
+  },
+  {
     path: "/pt-br/",
     markers: ["Para quem é o Better Resource Monitor?", "Quem deveria escolher um monitor de sistema mais completo?"],
   },
