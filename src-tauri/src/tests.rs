@@ -231,10 +231,352 @@ fn test_storage_block_math() {
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn test_storage_sample_reads_home_filesystem() {
-    let sample = storage::sample().expect("home filesystem storage sample");
+    let sample =
+        storage::sample_at(&storage::home_path_or_root()).expect("home filesystem storage sample");
     assert!(sample.total_bytes > 0);
     assert!(sample.available_bytes <= sample.total_bytes);
     assert!((0.0..=100.0).contains(&sample.used_percent));
+}
+
+fn volume(label: &str, mount_point: &str) -> storage::Volume {
+    storage::Volume {
+        label: label.to_string(),
+        mount_point: PathBuf::from(mount_point),
+    }
+}
+
+fn selectable(
+    raw: &[(&str, &str)],
+    home: &str,
+    layout: storage::MountLayout,
+) -> Vec<storage::Volume> {
+    storage::selectable_volumes(
+        raw.iter()
+            .map(|(name, mount)| (std::ffi::OsStr::new(*name), Path::new(*mount))),
+        Path::new(home),
+        layout,
+    )
+}
+
+#[test]
+fn test_selectable_mount_points_per_layout() {
+    use storage::MountLayout::{Linux, MacOs};
+    let cases = [
+        ("/Volumes/Backup", MacOs, true),
+        ("/Volumes/My Passport", MacOs, true),
+        ("/Volumes", MacOs, false),
+        ("/", MacOs, false),
+        ("/System/Volumes/Data", MacOs, false),
+        ("/System/Volumes/VM", MacOs, false),
+        ("/VolumesBackup", MacOs, false),
+        ("/", Linux, true),
+        ("/home", Linux, true),
+        ("/mnt/data", Linux, true),
+        ("/media/adam/USB", Linux, true),
+        ("/run/media/adam/USB", Linux, true),
+        ("/boot", Linux, false),
+        ("/boot/efi", Linux, false),
+        ("/efi", Linux, false),
+        ("/snap/core22/1380", Linux, false),
+        ("/var/snap/lxd/common", Linux, false),
+        ("relative/path", Linux, false),
+    ];
+    for (mount_point, layout, expected) in cases {
+        assert_eq!(
+            storage::is_selectable_mount_point(Path::new(mount_point), layout),
+            expected,
+            "mount_point={mount_point} layout={layout:?}"
+        );
+    }
+}
+
+#[test]
+fn test_mount_point_containing_picks_the_deepest_mount() {
+    let mounts = [
+        Path::new("/"),
+        Path::new("/home"),
+        Path::new("/home/adam/data"),
+    ];
+    let containing = |path: &str| storage::mount_point_containing(Path::new(path), mounts);
+    assert_eq!(containing("/home/adam"), Some(Path::new("/home")));
+    assert_eq!(
+        containing("/home/adam/data/x"),
+        Some(Path::new("/home/adam/data"))
+    );
+    assert_eq!(containing("/etc"), Some(Path::new("/")));
+    // Path::starts_with compares whole components, so /homework is not /home.
+    assert_eq!(containing("/homework"), Some(Path::new("/")));
+    assert_eq!(storage::mount_point_containing(Path::new("/x"), []), None);
+}
+
+#[test]
+fn test_selectable_volumes_on_macos() {
+    let volumes = selectable(
+        &[
+            ("Macintosh HD", "/"),
+            ("Macintosh HD - Data", "/System/Volumes/Data"),
+            ("Untitled", "/Volumes/Untitled"),
+            ("backup", "/Volumes/backup"),
+            ("Untitled", "/Volumes/Untitled 1"),
+            ("Photos", "/Volumes/Photos"),
+            ("Photos", "/Volumes/Photos"),
+        ],
+        "/Users/adam",
+        storage::MountLayout::MacOs,
+    );
+
+    assert_eq!(
+        volumes,
+        vec![
+            volume("backup", "/Volumes/backup"),
+            volume("Photos", "/Volumes/Photos"),
+            // Same name twice: told apart by the mount point macOS picked.
+            volume("Untitled", "/Volumes/Untitled"),
+            volume("Untitled 1", "/Volumes/Untitled 1"),
+        ]
+    );
+}
+
+#[test]
+fn test_selectable_volumes_on_linux() {
+    let volumes = selectable(
+        &[
+            ("/dev/nvme0n1p2", "/"),
+            ("/dev/nvme0n1p3", "/home"),
+            ("/dev/nvme0n1p1", "/boot/efi"),
+            ("/dev/loop3", "/snap/core22/1380"),
+            ("/dev/sdb1", "/media/adam/USB"),
+            ("", "/mnt/scratch"),
+        ],
+        "/home/adam",
+        storage::MountLayout::Linux,
+    );
+
+    // /home holds the home folder, so "Startup disk" already covers it.
+    assert_eq!(
+        volumes,
+        vec![
+            volume("/", "/"),
+            volume("scratch", "/mnt/scratch"),
+            volume("USB", "/media/adam/USB"),
+        ]
+    );
+}
+
+#[test]
+fn test_network_file_systems_are_not_offered() {
+    use std::ffi::OsStr;
+
+    // Checking capacity on these can block for minutes when the server is gone.
+    for file_system in [
+        "nfs",
+        "nfs4",
+        "cifs",
+        "smb3",
+        "9p",
+        "ceph",
+        "afpfs",
+        "webdav",
+        "fuse.sshfs",
+        "fuse.rclone",
+        "fuse.gvfsd-fuse",
+        "fuse.ceph-fuse",
+        "fuse.juicefs",
+        "FUSE.SSHFS",
+    ] {
+        assert!(
+            storage::is_network_file_system(OsStr::new(file_system)),
+            "{file_system} should count as a network file system"
+        );
+    }
+
+    // Local disks, including FUSE ones such as NTFS drives and mergerfs pools,
+    // stay in the menu.
+    for file_system in [
+        "ext4",
+        "btrfs",
+        "xfs",
+        "vfat",
+        "exfat",
+        "apfs",
+        "hfs",
+        "fuseblk",
+        "fuse.mergerfs",
+        "fuse.gocryptfs",
+        "",
+    ] {
+        assert!(
+            !storage::is_network_file_system(OsStr::new(file_system)),
+            "{file_system:?} should count as a local file system"
+        );
+    }
+}
+
+#[test]
+fn test_resolve_sample_path_falls_back_to_home() {
+    let home = Path::new("/Users/adam");
+    let volumes = [volume("Backup", "/Volumes/Backup")];
+
+    assert_eq!(storage::resolve_sample_path(None, &volumes, home), home);
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Backup")), &volumes, home),
+        Path::new("/Volumes/Backup")
+    );
+    // Unplugged: show the home folder's disk until it comes back.
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Gone")), &volumes, home),
+        home
+    );
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Backup")), &[], home),
+        home
+    );
+}
+
+#[test]
+fn test_label_for_mount_point() {
+    assert_eq!(
+        storage::label_for_mount_point(Path::new("/Volumes/Backup")),
+        "Backup"
+    );
+    assert_eq!(storage::label_for_mount_point(Path::new("/")), "/");
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[test]
+fn test_volume_watcher_lists_mounted_volumes() {
+    let mut watcher = storage::VolumeWatcher::new();
+    let volumes = watcher.refresh();
+
+    for volume in &volumes {
+        assert!(volume.mount_point.is_absolute(), "{volume:?}");
+        assert!(!volume.label.is_empty(), "{volume:?}");
+        assert!(
+            storage::is_selectable_mount_point(&volume.mount_point, storage::CURRENT_MOUNT_LAYOUT),
+            "{volume:?}"
+        );
+        assert!(
+            storage::sample_at(&volume.mount_point).is_some(),
+            "listed volume can be sampled: {volume:?}"
+        );
+    }
+    // A second refresh with nothing plugged in or out gives the same list.
+    assert_eq!(watcher.refresh(), volumes);
+}
+
+#[test]
+fn test_storage_volume_menu_ids_round_trip() {
+    assert_eq!(
+        storage_volume_from_menu_id(STORAGE_VOLUME_STARTUP_ID),
+        Some(None)
+    );
+    let id = storage_volume_menu_id(Path::new("/Volumes/My Passport"));
+    assert_eq!(id, "storage_volume:/Volumes/My Passport");
+    assert_eq!(
+        storage_volume_from_menu_id(&id),
+        Some(Some(PathBuf::from("/Volumes/My Passport")))
+    );
+    assert_eq!(storage_volume_from_menu_id(menu_id::SHOW_STORAGE), None);
+    assert_eq!(storage_volume_from_menu_id(menu_id::QUIT), None);
+    assert_eq!(storage_volume_from_menu_id("storage_volume:relative"), None);
+}
+
+#[test]
+fn test_storage_menu_entries() {
+    let t = i18n::Language::English.translations();
+    let volumes = [
+        volume("Backup", "/Volumes/Backup"),
+        volume("Photos", "/Volumes/Photos"),
+    ];
+    let entry = |id: &str, label: &str, checked: bool, enabled: bool| StorageMenuEntry {
+        id: id.to_string(),
+        label: label.to_string(),
+        checked,
+        enabled,
+    };
+
+    // Hidden while storage is off, and when the startup disk is the only choice.
+    assert!(storage_menu_entries(false, &volumes, None, t).is_empty());
+    assert!(storage_menu_entries(true, &[], None, t).is_empty());
+
+    assert_eq!(
+        storage_menu_entries(true, &volumes, None, t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", true, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry("storage_volume:/Volumes/Photos", "Photos", false, true),
+        ]
+    );
+
+    assert_eq!(
+        storage_menu_entries(true, &volumes, Some(Path::new("/Volumes/Photos")), t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", false, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry("storage_volume:/Volumes/Photos", "Photos", true, true),
+        ]
+    );
+
+    // An unplugged choice stays listed and greyed out, and the check mark
+    // moves to the startup disk the tray falls back to.
+    assert_eq!(
+        storage_menu_entries(true, &volumes[..1], Some(Path::new("/Volumes/Photos")), t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", true, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry(
+                "storage_volume:/Volumes/Photos",
+                "Photos (not connected)",
+                false,
+                false
+            ),
+        ]
+    );
+    assert_eq!(
+        storage_menu_entries(true, &[], Some(Path::new("/Volumes/Photos")), t).len(),
+        2,
+        "an unplugged choice keeps the submenu visible so it can be cleared"
+    );
+}
+
+#[test]
+fn test_storage_disk_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            ["Storage disk", "Startup disk", "not connected"],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Disco de almacenamiento",
+                "Disco de arranque",
+                "no conectado",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Disco de armazenamento",
+                "Disco de inicialização",
+                "não conectado",
+            ],
+        ),
+        (i18n::Language::Chinese, ["存储磁盘", "启动磁盘", "未连接"]),
+    ];
+
+    for (language, expected) in expected {
+        let t = language.translations();
+        assert_eq!(
+            [
+                t.storage_disk,
+                t.storage_disk_startup,
+                t.storage_disk_not_connected
+            ],
+            expected,
+            "language={language:?}"
+        );
+    }
 }
 
 #[cfg(all(target_os = "macos", feature = "app-store"))]
@@ -888,6 +1230,9 @@ fn test_all_languages_have_translations() {
         assert!(!t.show_memory.is_empty());
         assert!(!t.show_cpu.is_empty());
         assert!(!t.show_storage.is_empty());
+        assert!(!t.storage_disk.is_empty());
+        assert!(!t.storage_disk_startup.is_empty());
+        assert!(!t.storage_disk_not_connected.is_empty());
         assert!(!t.show_gpu.is_empty());
         assert!(!t.show_network.is_empty());
         assert!(!t.show_alert_colors.is_empty());
