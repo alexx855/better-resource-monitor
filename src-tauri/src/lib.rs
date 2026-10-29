@@ -162,12 +162,14 @@ fn load_settings(app: &AppHandle) -> LoadedSettings {
         }
     };
 
-    let get_bool_option = |key: &str| -> Option<bool> {
-        store
-            .as_ref()
-            .and_then(|s| s.get(key))
-            .and_then(|v| v.as_bool())
-    };
+    load_settings_from_store(store.as_deref())
+}
+
+fn load_settings_from_store<R: tauri::Runtime>(
+    store: Option<&tauri_plugin_store::Store<R>>,
+) -> LoadedSettings {
+    let get_bool_option =
+        |key: &str| -> Option<bool> { store.and_then(|s| s.get(key)).and_then(|v| v.as_bool()) };
     let get_bool = |key: &str, default: bool| -> bool { get_bool_option(key).unwrap_or(default) };
 
     let has_legacy_metric_settings = [
@@ -178,10 +180,17 @@ fn load_settings(app: &AppHandle) -> LoadedSettings {
     ]
     .iter()
     .any(|key| get_bool_option(key).is_some());
-    let show_storage = migrate_storage_setting(
-        get_bool_option(menu_id::SHOW_STORAGE),
-        has_legacy_metric_settings,
-    );
+    let stored_storage = get_bool_option(menu_id::SHOW_STORAGE);
+    let show_storage = migrate_storage_setting(stored_storage, has_legacy_metric_settings);
+    if stored_storage.is_none() {
+        if let Some(store) = store {
+            // Resolve the migration once, before an unrelated metric toggle can look legacy.
+            store.set(menu_id::SHOW_STORAGE, json!(show_storage));
+            if let Err(e) = store.save() {
+                eprintln!("Failed to save migrated storage setting: {e}");
+            }
+        }
+    }
 
     LoadedSettings {
         show_cpu: get_bool("show_cpu", true),

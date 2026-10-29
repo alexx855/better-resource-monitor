@@ -177,22 +177,114 @@ fn test_normalize_metric_flags() {
     }
 }
 
+fn with_settings_store(
+    assertion: impl FnOnce(&tauri_plugin_store::Store<tauri::test::MockRuntime>, &std::path::Path),
+) {
+    let directory = tempfile::tempdir().expect("temporary settings directory");
+    let path = directory.path().join(SETTINGS_FILE);
+    let app = tauri::test::mock_builder()
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .expect("mock app");
+    let store = tauri_plugin_store::StoreBuilder::new(&app, &path)
+        .disable_auto_save()
+        .build()
+        .expect("settings store");
+    assertion(&store, &path);
+}
+
 #[test]
-fn test_storage_setting_migration() {
-    for (stored_storage, has_legacy_metric_settings, expected) in [
-        (Some(true), true, true),
-        (Some(false), true, false),
-        (Some(true), false, true),
-        (Some(false), false, false),
-        (None, false, true),
-        (None, true, false),
+fn test_fresh_storage_default_survives_unrelated_metric_save_and_reload() {
+    for key in [
+        menu_id::SHOW_CPU,
+        menu_id::SHOW_MEM,
+        menu_id::SHOW_GPU,
+        menu_id::SHOW_NET,
     ] {
-        assert_eq!(
-            migrate_storage_setting(stored_storage, has_legacy_metric_settings),
-            expected,
-            "stored_storage={stored_storage:?}, has_legacy_metric_settings={has_legacy_metric_settings}"
-        );
+        with_settings_store(|store, path| {
+            assert!(load_settings_from_store(Some(store)).show_storage);
+            // A metric toggle saves only that metric; the migration must already be durable.
+            store.set(key, json!(false));
+            store.save().unwrap();
+            store.reload_ignore_defaults().unwrap();
+            assert!(
+                load_settings_from_store(Some(store)).show_storage,
+                "key={key}"
+            );
+            let persisted: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            assert_eq!(persisted[menu_id::SHOW_STORAGE], true);
+        });
     }
+}
+
+#[test]
+fn test_legacy_storage_default_is_persisted() {
+    for key in [
+        menu_id::SHOW_CPU,
+        menu_id::SHOW_MEM,
+        menu_id::SHOW_GPU,
+        menu_id::SHOW_NET,
+    ] {
+        for value in [false, true] {
+            with_settings_store(|store, path| {
+                store.set(key, json!(value));
+                store.save().unwrap();
+                assert!(!load_settings_from_store(Some(store)).show_storage);
+                let persisted: serde_json::Value =
+                    serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+                assert_eq!(persisted[menu_id::SHOW_STORAGE], false);
+                assert_eq!(persisted[key], value);
+
+                // Removing the old key must not change the already migrated choice.
+                store.delete(key);
+                store.save().unwrap();
+                store.reload_ignore_defaults().unwrap();
+                assert!(!load_settings_from_store(Some(store)).show_storage);
+            });
+        }
+    }
+}
+
+#[test]
+fn test_explicit_storage_setting_is_preserved_without_rewriting_store() {
+    for value in [false, true] {
+        for legacy in [false, true] {
+            with_settings_store(|store, path| {
+                store.set(menu_id::SHOW_STORAGE, json!(value));
+                store.set("unrelated", json!("preserve me"));
+                if legacy {
+                    store.set(menu_id::SHOW_CPU, json!(false));
+                }
+                store.save().unwrap();
+                let before = std::fs::read(path).unwrap();
+                store.reload_ignore_defaults().unwrap();
+                assert_eq!(load_settings_from_store(Some(store)).show_storage, value);
+                assert_eq!(std::fs::read(path).unwrap(), before);
+            });
+        }
+    }
+}
+
+#[test]
+fn test_storage_migration_save_failure_keeps_resolved_value_in_memory() {
+    with_settings_store(|store, path| {
+        std::fs::create_dir(path).unwrap(); // A directory cannot be overwritten as a settings file.
+        assert!(load_settings_from_store(Some(store)).show_storage);
+        assert_eq!(store.get(menu_id::SHOW_STORAGE), Some(json!(true)));
+        store.set(menu_id::SHOW_CPU, json!(false));
+        assert!(load_settings_from_store(Some(store)).show_storage);
+        assert!(path.is_dir());
+    });
+}
+
+#[test]
+fn test_unavailable_settings_store_uses_defaults() {
+    let settings = load_settings_from_store::<tauri::test::MockRuntime>(None);
+    assert!(settings.show_storage);
+    assert!(settings.show_cpu && settings.show_mem && settings.show_gpu && settings.show_net);
+    assert!(settings.show_alerts);
+    assert!(!settings.autostart);
 }
 
 #[test]
