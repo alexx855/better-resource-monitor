@@ -6,7 +6,7 @@ ogImage: "/images/og-privacy-en.png"
 
 # Privacy Policy
 
-**Last updated: January 2026**
+**Last updated: October 29, 2026**
 
 ## Overview
 
@@ -26,7 +26,9 @@ Storage usage is calculated from OS-reported total and free capacity for the use
 
 ## Data Storage
 
-The App stores only your preferences (such as which metrics to display and appearance settings) locally on your device using your operating system's standard configuration storage. This data never leaves your computer.
+The App stores your preferences (such as which metrics to display and appearance settings) locally on your device using your operating system's standard configuration storage.
+
+On macOS, the App also appends timestamped diagnostic entries to local `autostart.log` files in Library log directories, including app-container locations, to help troubleshoot startup, launch at login, and menu bar operation. These logs can include the App version and build commit identifier, login-item registration status, selected settings, startup and tray events, error messages, and local file paths (such as executable, App Store receipt, and process-lock paths). Preferences and diagnostic logs remain on your device; the App does not transmit them.
 
 ## Third-Party Services
 
