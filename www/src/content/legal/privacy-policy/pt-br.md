@@ -6,7 +6,7 @@ ogImage: "/images/og-privacy-pt-br.png"
 
 # Política de Privacidade
 
-**Última atualização: Janeiro de 2026**
+**Última atualização: 29 de outubro de 2026**
 
 ## Visão geral
 
@@ -26,7 +26,9 @@ O uso de armazenamento é calculado pela capacidade total e livre informada pelo
 
 ## Armazenamento de dados
 
-O Aplicativo armazena apenas suas preferências (como quais métricas exibir e configurações de aparência) localmente no seu dispositivo usando o armazenamento de configuração padrão do seu sistema operacional. Esses dados nunca saem do seu computador.
+O Aplicativo armazena suas preferências (como quais métricas exibir e configurações de aparência) localmente no seu dispositivo usando o armazenamento de configuração padrão do seu sistema operacional.
+
+No macOS, o Aplicativo também acrescenta entradas de diagnóstico com marcas de tempo a arquivos locais `autostart.log` em diretórios de logs da Library, incluindo locais dentro do contêiner do Aplicativo, para ajudar a solucionar problemas de inicialização, abertura ao iniciar sessão e funcionamento da barra de menus. Esses logs podem incluir a versão do Aplicativo e o identificador do commit da compilação, o status de registro do item de início de sessão, as configurações selecionadas, eventos de inicialização e do ícone da barra de menus, mensagens de erro e caminhos de arquivos locais (como os do executável, do recibo da App Store e do bloqueio de processos). As preferências e os logs de diagnóstico permanecem no seu dispositivo; o Aplicativo não os transmite.
 
 ## Serviços de terceiros
 
