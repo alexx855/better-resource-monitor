@@ -168,6 +168,26 @@ fn load_settings(app: &AppHandle) -> LoadedSettings {
 fn load_settings_from_store<R: tauri::Runtime>(
     store: Option<&tauri_plugin_store::Store<R>>,
 ) -> LoadedSettings {
+    let store = store.and_then(|store| {
+        if store
+            .get(menu_id::SHOW_STORAGE)
+            .and_then(|value| value.as_bool())
+            .is_none()
+        {
+            // Store creation ignores load errors; verify the disk state before migrating.
+            match store.reload() {
+                Ok(()) => {}
+                Err(tauri_plugin_store::Error::Io(error))
+                    if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => {
+                    eprintln!("Failed to load settings before storage migration: {error}");
+                    return None;
+                }
+            }
+        }
+        Some(store)
+    });
+
     let get_bool_option =
         |key: &str| -> Option<bool> { store.and_then(|s| s.get(key)).and_then(|v| v.as_bool()) };
     let get_bool = |key: &str, default: bool| -> bool { get_bool_option(key).unwrap_or(default) };
