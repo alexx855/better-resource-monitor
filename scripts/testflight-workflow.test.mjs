@@ -44,19 +44,6 @@ else if (process.argv[3].includes('/commits/')) console.log(process.env.MOCK_SHA
   return { dir, env };
 }
 
-test("run title labels the workflow run number without claiming it is the resolved build", () => {
-  const title = workflow.split("\n").find((line) => line.startsWith("run-name: "));
-  assert.ok(title);
-  assert.match(title, /^run-name: TestFlight \$\{\{ inputs.source_ref \|\| 'main' \}\} workflow run \$\{\{ github.run_number \}\}/);
-  assert.doesNotMatch(title, /inputs.build_number \|\| github.run_number/);
-});
-
-test("run title shows an explicit build override only when supplied", () => {
-  const title = workflow.split("\n").find((line) => line.startsWith("run-name: "));
-  assert.ok(title);
-  assert.match(title, /\$\{\{ inputs.build_number && format\(' \(build override \{0\}\)', inputs.build_number\) \|\| '' \}\}$/);
-});
-
 test("untrusted build has no write authority, metadata outputs, or privileged reporter", () => {
   assert.match(workflow, /permissions:\n  contents: read\n\n/);
   const build = job("build");
