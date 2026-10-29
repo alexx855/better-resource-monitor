@@ -1,5 +1,5 @@
 name: TestFlight
-run-name: TestFlight ${{ inputs.source_ref || 'main' }} build ${{ inputs.build_number || github.run_number }}
+run-name: TestFlight ${{ inputs.source_ref || 'main' }} workflow run ${{ github.run_number }}${{ inputs.build_number && format(' (build override {0})', inputs.build_number) || '' }}
 
 # Uploads and verifies a TestFlight build without changing repository version files.
 #
