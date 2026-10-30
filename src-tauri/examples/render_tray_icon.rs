@@ -51,6 +51,9 @@ fn parse_u64(s: &str, key: &str) -> u64 {
 
 fn parse_bg_hex(s: &str) -> Option<tray_render::Background> {
     let hex = s.strip_prefix('#').unwrap_or(s);
+    if !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
     let bytes = match hex.len() {
         6 => {
             let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
@@ -301,4 +304,48 @@ fn main() {
         output_width,
         output_height
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_bg_hex;
+
+    #[test]
+    fn background_hex_preserves_rgb_and_optional_alpha() {
+        for (value, expected) in [
+            ("#1234ab", (0x12, 0x34, 0xab, 255)),
+            ("ABCDEF", (0xab, 0xcd, 0xef, 255)),
+            ("#1234ab80", (0x12, 0x34, 0xab, 0x80)),
+            ("00000000", (0, 0, 0, 0)),
+        ] {
+            assert_eq!(parse_bg_hex(value).map(|bg| bg.rgba), Some(expected));
+        }
+    }
+
+    #[test]
+    fn background_hex_rejects_malformed_input_without_panicking() {
+        for value in [
+            "",
+            "#12345",
+            "#1234567",
+            "#gggggg",
+            "aé123",
+            "#aé12345",
+            "#+1+2+3",
+            "+1+2+3",
+            "#+11234",
+            "#12+134",
+            "#1234+1",
+            "#+1+2+3+4",
+            "#+1123456",
+            "#12+13456",
+            "#1234+156",
+            "#123456+1",
+            "#-11234",
+            "#12 345",
+            "#0x1234",
+        ] {
+            assert!(parse_bg_hex(value).is_none(), "input={value:?}");
+        }
+    }
 }

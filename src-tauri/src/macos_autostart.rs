@@ -62,11 +62,26 @@ fn unregister_if_registered(service: &SMAppService) -> Result<(), String> {
 }
 
 fn register_if_needed(service: &SMAppService) -> Result<(), String> {
-    unsafe {
-        if service.status() == SMAppServiceStatus::Enabled {
-            return Ok(());
+    enable_for_status(
+        unsafe { service.status() },
+        || register(service),
+        || unsafe { SMAppService::openSystemSettingsLoginItems() },
+    )
+}
+
+fn enable_for_status(
+    status: SMAppServiceStatus,
+    register: impl FnOnce() -> Result<(), String>,
+    open_settings: impl FnOnce(),
+) -> Result<(), String> {
+    match status {
+        SMAppServiceStatus::Enabled => Ok(()),
+        SMAppServiceStatus::RequiresApproval => {
+            // The service is already registered. Only the user can restore consent.
+            open_settings();
+            Ok(())
         }
-        register(service)
+        _ => register(),
     }
 }
 
@@ -96,4 +111,49 @@ pub fn is_enabled() -> bool {
     }
 
     with_main_app_service(|main| unsafe { main.status() == SMAppServiceStatus::Enabled })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+
+    #[test]
+    fn enabling_uses_system_settings_for_registered_items_awaiting_approval() {
+        for (status, should_register, should_open_settings) in [
+            (SMAppServiceStatus::NotRegistered, true, false),
+            (SMAppServiceStatus::NotFound, true, false),
+            (SMAppServiceStatus::Enabled, false, false),
+            (SMAppServiceStatus::RequiresApproval, false, true),
+        ] {
+            let registered = Cell::new(false);
+            let opened_settings = Cell::new(false);
+            enable_for_status(
+                status,
+                || {
+                    registered.set(true);
+                    Ok(())
+                },
+                || opened_settings.set(true),
+            )
+            .expect("enable request");
+
+            assert_eq!(registered.get(), should_register, "status={status:?}");
+            assert_eq!(
+                opened_settings.get(),
+                should_open_settings,
+                "status={status:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn enabling_preserves_registration_failures() {
+        let result = enable_for_status(
+            SMAppServiceStatus::NotRegistered,
+            || Err("registration failed".to_string()),
+            || panic!("registration failure must not be reported as an approval request"),
+        );
+        assert_eq!(result, Err("registration failed".to_string()));
+    }
 }

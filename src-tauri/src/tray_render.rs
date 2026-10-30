@@ -69,7 +69,7 @@ pub const SIZING_LINUX: Sizing = Sizing {
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum IconType {
+enum IconType {
     Cpu,
     Memory,
     Storage,
@@ -84,11 +84,6 @@ const METRIC_ICON_ORDER: [IconType; 4] = [
     IconType::Gpu,
     IconType::Storage,
 ];
-
-#[cfg(test)]
-pub(crate) fn metric_icon_order_for_tests() -> [IconType; 4] {
-    METRIC_ICON_ORDER
-}
 
 pub(crate) fn alert_active(value: f32) -> bool {
     value >= ALERT_THRESHOLD
