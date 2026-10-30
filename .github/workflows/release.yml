@@ -1,8 +1,7 @@
 name: Release
 
-# Bumps the marketing version, tags the release, uploads the App Store package,
-# creates the GitHub release, then dispatches Direct Download to attach the
-# signed and notarized DMG/ZIP artifacts to it.
+# Bumps the marketing version, tags the release, creates the GitHub release,
+# then dispatches Direct Download to attach the signed and notarized DMG/ZIP.
 
 on:
   workflow_dispatch:
@@ -150,12 +149,6 @@ jobs:
             --body "Automated version bump for v$NEW_VERSION.")"
           PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
           PR_HEAD_SHA="$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')"
-          existing_testflight_run_ids="$(gh run list \
-            --workflow testflight.yml \
-            --event workflow_dispatch \
-            --limit 100 \
-            --json databaseId \
-            --jq '.[].databaseId')"
           existing_ci_run_ids="$(gh run list \
             --workflow ci.yml \
             --event workflow_dispatch \
@@ -163,10 +156,6 @@ jobs:
             --json databaseId \
             --jq '.[].databaseId')"
 
-          gh workflow run testflight.yml \
-            --ref main \
-            -f source_ref="refs/pull/${PR_NUMBER}/head" \
-            -f pr_number="$PR_NUMBER"
           gh workflow run ci.yml --ref "$RELEASE_BRANCH"
 
           wait_for_new_run() {
@@ -203,10 +192,8 @@ jobs:
             return 1
           }
 
-          testflight_run_id="$(wait_for_new_run testflight.yml "$existing_testflight_run_ids" TestFlight)"
           ci_run_id="$(wait_for_new_run ci.yml "$existing_ci_run_ids" CI)"
 
-          gh run watch "$testflight_run_id" --exit-status
           gh run watch "$ci_run_id" --exit-status
 
           MERGE_STATE=""
@@ -219,7 +206,7 @@ jobs:
           done
 
           if [ "$MERGE_STATE" != "CLEAN" ]; then
-            echo "Error: release PR #$PR_NUMBER did not become mergeable after TestFlight and CI passed."
+            echo "Error: release PR #$PR_NUMBER did not become mergeable after CI passed."
             gh pr checks "$PR_NUMBER" || true
             exit 1
           fi
@@ -249,77 +236,9 @@ jobs:
           git tag "v$NEW_VERSION" "$RELEASE_SHA"
           git push origin "v$NEW_VERSION"
 
-  dispatch-testflight:
-    needs: version-bump
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    outputs:
-      testflight_run_id: ${{ steps.dispatch.outputs.testflight_run_id }}
-      appstore_build_number: ${{ steps.build-metadata.outputs.appstore_build_number }}
-    steps:
-      - name: Resolve App Store build number
-        id: build-metadata
-        run: |
-          run_number="$GITHUB_RUN_NUMBER"
-          timestamp_floor="$(date -u +%Y%m%d%H%M%S)"
-          if [ "$run_number" -lt "$timestamp_floor" ]; then
-            appstore_build_number="$timestamp_floor"
-          else
-            appstore_build_number="$run_number"
-          fi
-          echo "appstore_build_number=$appstore_build_number" >> "$GITHUB_OUTPUT"
-
-      - name: Dispatch and watch TestFlight upload
-        id: dispatch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_REF: v${{ needs.version-bump.outputs.new_version }}
-          APPSTORE_BUILD_NUMBER: ${{ steps.build-metadata.outputs.appstore_build_number }}
-        run: |
-          set -euo pipefail
-          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-          gh workflow run testflight.yml \
-            --ref main \
-            -f source_ref="$RELEASE_REF" \
-            -f build_number="$APPSTORE_BUILD_NUMBER"
-
-          expected_title="TestFlight ${RELEASE_REF} build ${APPSTORE_BUILD_NUMBER}"
-          run_id=""
-          for _ in {1..60}; do
-            run_ids="$(gh run list \
-              --workflow testflight.yml \
-              --limit 20 \
-              --json databaseId,event,displayTitle,createdAt \
-              --jq ".[] | select(.event == \"workflow_dispatch\" and .displayTitle == \"$expected_title\" and .createdAt >= \"$started_at\") | .databaseId")"
-
-            if [ "$(printf '%s\n' "$run_ids" | sed '/^$/d' | wc -l)" -gt 1 ]; then
-              echo 'Error: multiple TestFlight runs matched this release dispatch.' >&2
-              exit 1
-            fi
-            if [ -n "$run_ids" ]; then
-              run_id="$run_ids"
-              break
-            fi
-
-            sleep 5
-          done
-
-          if [ -z "$run_id" ]; then
-            echo "Error: timed out waiting for TestFlight workflow dispatch for $RELEASE_REF"
-            exit 1
-          fi
-
-          echo "testflight_run_id=$run_id" >> "$GITHUB_OUTPUT"
-          gh run watch "$run_id" --exit-status
-
   create-github-release:
     needs:
       - version-bump
-      - dispatch-testflight
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -337,8 +256,6 @@ jobs:
           RELEASE_SHA: ${{ needs.version-bump.outputs.release_sha }}
           RELEASE_TAG: v${{ needs.version-bump.outputs.new_version }}
           RELEASE_RUN_ID: ${{ github.run_id }}
-          TESTFLIGHT_RUN_ID: ${{ needs.dispatch-testflight.outputs.testflight_run_id }}
-          APPSTORE_BUILD_NUMBER: ${{ needs.dispatch-testflight.outputs.appstore_build_number }}
         run: |
           printf '%s\n' "$RELEASE_BODY" > release_notes.md
           {
@@ -348,18 +265,14 @@ jobs:
             echo "- Source commit: [\`$RELEASE_SHA\`](https://github.com/$GITHUB_REPOSITORY/commit/$RELEASE_SHA)"
             echo "- Tag: [\`$RELEASE_TAG\`](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG)"
             echo "- Release workflow run: [\`$RELEASE_RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID)"
-            echo "- TestFlight workflow run: [\`$TESTFLIGHT_RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$TESTFLIGHT_RUN_ID)"
-            echo "- App Store build number: \`$APPSTORE_BUILD_NUMBER\`"
           } >> release_notes.md
 
           gh release create "v${{ needs.version-bump.outputs.new_version }}" \
             --title "Better Resource Monitor v${{ needs.version-bump.outputs.new_version }}" \
             --notes-file release_notes.md
 
-      # Same GITHUB_TOKEN + actions:write dispatch mechanism the
-      # dispatch-testflight job already uses. The Direct Download workflow
-      # builds, signs, and notarizes the DMG/ZIP and uploads them to the
-      # release created above.
+      # Direct Download builds, signs, and notarizes the DMG/ZIP and uploads
+      # them to the release created above.
       - name: Dispatch direct-download artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
