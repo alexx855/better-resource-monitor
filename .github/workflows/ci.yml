@@ -182,7 +182,7 @@ jobs:
           targets: x86_64-apple-darwin
 
       - name: Rust cache
-        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        uses: swatinem/rust-cache@c8037a86dde8214a8310e9f54a8fc61ab362aa31 # v2
         with:
           workspaces: './src-tauri -> target'
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -200,7 +200,7 @@ jobs:
         run: pnpm install --frozen-lockfile --filter better-resource-monitor
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe # v2.87.27
+        uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
         with:
           tool: cargo-audit@0.22.2
 
