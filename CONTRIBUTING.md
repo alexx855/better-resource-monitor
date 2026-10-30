@@ -29,9 +29,15 @@ cargo clippy -- -D warnings
 For website changes, run `pnpm check:www` and `pnpm build:www` from the root.
 [CI](.github/workflows/ci.yml) defines the complete checks.
 
-App-impacting PRs also require pre-merge TestFlight against the exact PR head.
-Behavior and tray changes need confirmation from a real tester.
-See [AGENTS.md](AGENTS.md#releases) for the workflow command.
+TestFlight uploads are optional and start only when a maintainer manually runs
+[the workflow](.github/workflows/testflight.yml) from `main`. Set `source_ref`
+to `main`, a `v*` release tag, or `refs/pull/<number>/head` to choose what to test:
+
+```sh
+gh workflow run testflight.yml --ref main -f source_ref=main
+```
+
+PRs and releases do not trigger TestFlight or require it before merging.
 
 ## Pull requests
 
