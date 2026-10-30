@@ -11,33 +11,22 @@ const ciWorkflow = await readFile(
   "utf8",
 );
 
-test("release version PR passes exact-head TestFlight before merge", () => {
+test("release version PR passes CI before merge without a TestFlight upload", () => {
   const versionBumpJob = workflow.slice(
     workflow.indexOf("  version-bump:"),
-    workflow.indexOf("  dispatch-testflight:"),
+    workflow.indexOf("  create-github-release:"),
   );
 
-  const dispatch = versionBumpJob.indexOf(
-    'source_ref="refs/pull/${PR_NUMBER}/head"',
-  );
-  const testflightWatch = versionBumpJob.indexOf(
-    'gh run watch "$testflight_run_id" --exit-status',
-  );
   const ciWatch = versionBumpJob.indexOf(
     'gh run watch "$ci_run_id" --exit-status',
   );
   const merge = versionBumpJob.indexOf('gh pr merge "$PR_NUMBER"');
 
   assert.match(versionBumpJob, /permissions:\n      actions: write\n/);
-  assert.match(versionBumpJob, /existing_testflight_run_ids=/);
   assert.match(versionBumpJob, /existing_ci_run_ids=/);
-  assert.notEqual(dispatch, -1, "release PR must dispatch its exact head");
   assert.match(versionBumpJob, /gh workflow run ci\.yml --ref "\$RELEASE_BRANCH"/);
-  assert.ok(
-    testflightWatch > dispatch,
-    "release must wait for TestFlight processing",
-  );
-  assert.ok(ciWatch > testflightWatch, "release must wait for trusted CI");
+  assert.ok(ciWatch > -1, "release must wait for trusted CI");
+  assert.doesNotMatch(workflow, /testflight|TESTFLIGHT|APPSTORE_BUILD_NUMBER/i);
   assert.ok(merge > ciWatch, "release PR must merge only after all gates pass");
   assert.match(versionBumpJob, /--match-head-commit "\$PR_HEAD_SHA"/);
   assert.match(
@@ -48,12 +37,4 @@ test("release version PR passes exact-head TestFlight before merge", () => {
 
 test("CI supports trusted release-branch dispatch", () => {
   assert.match(ciWorkflow, /on:\n  pull_request:\n  workflow_dispatch:\n/);
-});
-
-test("release identifies TestFlight by requested tag/build instead of workflow main SHA", () => {
-  const job = workflow.slice(workflow.indexOf("  dispatch-testflight:"), workflow.indexOf("  create-github-release:"));
-  assert.match(job, /expected_title="TestFlight \$\{RELEASE_REF\} build \$\{APPSTORE_BUILD_NUMBER\}"/);
-  assert.match(job, /displayTitle == \\"\$expected_title\\"/);
-  assert.doesNotMatch(job, /headSha/);
-  assert.match(job, /multiple TestFlight runs matched/);
 });
