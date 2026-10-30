@@ -71,6 +71,15 @@ Better Resource Monitor 适合那些只想用一种简单方式看看自己的 M
 
 从 <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> 获取（包含自动更新），或从 <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> 下载 `.dmg` 文件（不含自动更新；每个版本需手动下载更新）。
 
+### Homebrew
+
+```bash
+brew tap alexx855/better-resource-monitor https://github.com/alexx855/better-resource-monitor
+brew install --cask alexx855/better-resource-monitor/better-resource-monitor
+```
+
+cask 更新后，运行 `brew upgrade --cask better-resource-monitor` 即可安装新版本。
+
 ### 兼容性
 
 支持运行 macOS Ventura 13 或更高版本的 Intel Mac 和 Apple Silicon Mac。
