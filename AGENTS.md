@@ -23,13 +23,6 @@ The root Tauri app has no web frontend/window: app wiring is in `src-tauri/src/l
 
 ## Releases
 
-- `.github/workflows/release.yml` owns version-bump PR/merge, tagging, TestFlight dispatch/wait, then GitHub release. Manual bumps touch `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
+- `.github/workflows/release.yml` owns version-bump PR/merge, tagging, GitHub release, then Direct Download dispatch. Manual bumps touch `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
 - `.github/workflows/testflight.yml` is the only App Store upload path, using trusted `main` scripts/config and CI provisioning; no local packaging fallback. It owns monotonic `CFBundleVersion` via run number and UTC timestamp floor.
-- App-impacting PRs need TestFlight from trusted `main` against the exact PR head, plus real tester confirmation for behavior/tray changes. After PR creation:
-
-  ```sh
-  pr_number="$(gh pr view --json number -q .number)"
-  gh workflow run testflight.yml --ref main -f source_ref="refs/pull/${pr_number}/head" -f pr_number="$pr_number"
-  ```
-
-  The workflow records `Pre-merge TestFlight` on the PR head. `.github/workflows/pre-merge-testflight-gate.yml` classifies upload exemptions; a post-merge upload never substitutes for the pre-merge app gate.
+- TestFlight uploads are optional and manually dispatched from trusted `main`; PRs and releases do not launch them. Use `source_ref` to select `main`, a `v*` tag, or `refs/pull/<number>/head`. PRs have no TestFlight merge requirement.
