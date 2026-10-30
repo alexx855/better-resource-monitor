@@ -71,6 +71,15 @@ Las alertas son solo visuales. La velocidad de red y las métricas ocultas no la
 
 Descárgalo desde la <a href="https://apps.apple.com/app/better-resource-monitor/id6758237306" target="_blank">Mac App Store</a> (incluye actualizaciones automáticas) o descarga el `.dmg` desde <a href="https://github.com/alexx855/better-resource-monitor/releases" target="_blank">GitHub Releases</a> (sin actualizaciones automáticas; descarga e instala manualmente cada nueva versión).
 
+### Homebrew
+
+```bash
+brew tap alexx855/better-resource-monitor https://github.com/alexx855/better-resource-monitor
+brew install --cask alexx855/better-resource-monitor/better-resource-monitor
+```
+
+`brew upgrade --cask better-resource-monitor` instala las nuevas versiones cuando se actualiza el cask.
+
 ### Compatibilidad
 
 Funciona en Mac con Intel y Apple Silicon con macOS Ventura 13 o posterior.
