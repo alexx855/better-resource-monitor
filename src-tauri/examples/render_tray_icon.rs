@@ -51,7 +51,7 @@ fn parse_u64(s: &str, key: &str) -> u64 {
 
 fn parse_bg_hex(s: &str) -> Option<tray_render::Background> {
     let hex = s.strip_prefix('#').unwrap_or(s);
-    if !hex.is_ascii() {
+    if !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return None;
     }
     let bytes = match hex.len() {
@@ -324,7 +324,27 @@ mod tests {
 
     #[test]
     fn background_hex_rejects_malformed_input_without_panicking() {
-        for value in ["", "#12345", "#1234567", "#gggggg", "aé123", "#aé12345"] {
+        for value in [
+            "",
+            "#12345",
+            "#1234567",
+            "#gggggg",
+            "aé123",
+            "#aé12345",
+            "#+1+2+3",
+            "+1+2+3",
+            "#+11234",
+            "#12+134",
+            "#1234+1",
+            "#+1+2+3+4",
+            "#+1123456",
+            "#12+13456",
+            "#1234+156",
+            "#123456+1",
+            "#-11234",
+            "#12 345",
+            "#0x1234",
+        ] {
             assert!(parse_bg_hex(value).is_none(), "input={value:?}");
         }
     }
