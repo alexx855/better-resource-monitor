@@ -24,6 +24,7 @@ function assertNoExecutableHtml(html: string, source: string) {
 const homeComparisonCaptions = {
   en: "Menu bar monitor comparison",
   es: "Comparación de monitores para la barra de menús",
+  pl: "Porównanie monitorów na pasek menu",
   "pt-br": "Comparação de monitores de barra de menus",
   "zh-cn": "菜单栏监视器对比",
 } satisfies Record<SiteMarketingLocale, string>;

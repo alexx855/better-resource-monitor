@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const readmes = ["README.md", "README.es.md", "README.pt-br.md", "README.zh-cn.md"];
+const readmes = ["README.md", "README.es.md", "README.pl.md", "README.pt-br.md", "README.zh-cn.md"];
 const imageFilename = "better-resource-monitor-storage.png";
 const imagePattern = new RegExp(
   `<img src="https://better-resource-monitor\\.alexpedersen\\.dev/${imageFilename}" alt="Better Resource Monitor" width="(\\d+)" height="(\\d+)">`,

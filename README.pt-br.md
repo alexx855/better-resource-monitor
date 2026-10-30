@@ -14,6 +14,7 @@
 <p align="center">
   <a href="README.md">English</a> •
   <a href="README.es.md">Español</a> •
+  <a href="README.pl.md">Polski</a> •
   Português (Brasil) •
   <a href="README.zh-cn.md">简体中文</a>
 </p>

@@ -5,7 +5,7 @@ description: Privacy Policy for Better Resource Monitor
 
 # Privacy Policy
 
-**Last updated: January 2026**
+**Last updated: October 30, 2026**
 
 ## Overview
 
@@ -21,11 +21,13 @@ The App operates entirely locally on your device. All system information (CPU us
 - Never transmitted to any external servers
 - Never stored in any external database
 
-Storage usage is calculated from OS-reported total and free capacity for the user's main storage volume. The App does not read file names, file contents, external volumes, or per-volume details.
+Storage usage is calculated from OS-reported total and free capacity for the selected local volume, which defaults to the volume containing your home folder. To offer disk choices, the App reads the names, mount points, and capacity of eligible mounted local volumes, including external disks. Your chosen mount point is saved locally as a preference. The App does not read file names or file contents.
 
 ## Data Storage
 
-The App stores only your preferences (such as which metrics to display and appearance settings) locally on your device using your operating system's standard configuration storage. This data never leaves your computer.
+The App stores your preferences (such as which metrics to display and appearance settings) locally on your device using your operating system's standard configuration storage.
+
+On macOS, the App also appends timestamped diagnostic entries to local `autostart.log` files in Library log directories, including app-container locations, to help troubleshoot startup, launch at login, and menu bar operation. These logs can include the App version and build commit identifier, login-item registration status, selected settings, startup and tray events, error messages, and local file paths (such as executable, App Store receipt, and process-lock paths). Preferences and diagnostic logs remain on your device; the App does not transmit them.
 
 ## Third-Party Services
 

@@ -648,6 +648,10 @@ fn test_storage_disk_translations_match_supported_locales() {
             ],
         ),
         (i18n::Language::Chinese, ["存储磁盘", "启动磁盘", "未连接"]),
+        (
+            i18n::Language::Polish,
+            ["Dysk", "Dysk startowy", "niepodłączony"],
+        ),
     ];
 
     for (language, expected) in expected {
@@ -1276,6 +1280,9 @@ fn test_detect_language_from_locales_recognizes_supported_tags() {
         (&["ES_mx"][..], i18n::Language::Spanish),
         (&["pt-BR"][..], i18n::Language::Portuguese),
         (&["zh-Hans"][..], i18n::Language::Chinese),
+        (&["pl-PL"][..], i18n::Language::Polish),
+        (&["pl"][..], i18n::Language::Polish),
+        (&["PL_pl"][..], i18n::Language::Polish),
         (&["en-US"][..], i18n::Language::English),
     ] {
         assert_eq!(
@@ -1291,6 +1298,7 @@ fn test_detect_language_from_locales_uses_preference_order() {
     for (locales, expected) in [
         (&["fr-FR", "es-ES"][..], i18n::Language::Spanish),
         (&["en-US", "es-ES"][..], i18n::Language::English),
+        (&["de-DE", "pl-PL", "en-US"][..], i18n::Language::Polish),
         (&["fr-FR", "de-DE", ""][..], i18n::Language::English),
     ] {
         assert_eq!(
@@ -1308,6 +1316,7 @@ fn test_all_languages_have_translations() {
         i18n::Language::Spanish,
         i18n::Language::Portuguese,
         i18n::Language::Chinese,
+        i18n::Language::Polish,
     ];
     for lang in languages {
         let t = lang.translations();
@@ -1391,6 +1400,20 @@ fn test_menu_translations_match_supported_locales() {
                 "系统监控器",
             ],
         ),
+        (
+            i18n::Language::Polish,
+            [
+                "Uruchamiaj po zalogowaniu",
+                "Pokaż pamięć",
+                "Pokaż CPU",
+                "Pokaż dysk",
+                "Pokaż GPU",
+                "Pokaż sieć",
+                "Pokaż kolory ostrzeżeń",
+                "Zakończ",
+                "Monitor systemu",
+            ],
+        ),
     ];
 
     for (language, expected) in expected {
@@ -1450,6 +1473,17 @@ fn test_thermal_translations_match_supported_locales() {
         (
             i18n::Language::Chinese,
             ["温度状态", "不可用", "正常", "偏高", "高", "危急"],
+        ),
+        (
+            i18n::Language::Polish,
+            [
+                "Stan termiczny",
+                "niedostępny",
+                "normalny",
+                "podwyższony",
+                "wysoki",
+                "krytyczny",
+            ],
         ),
     ];
 
@@ -1526,6 +1560,16 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
                 "温度状态: 高",
                 "温度状态: 危急",
                 "温度状态: 不可用",
+            ],
+        ),
+        (
+            i18n::Language::Polish,
+            [
+                "Stan termiczny: normalny",
+                "Stan termiczny: podwyższony",
+                "Stan termiczny: wysoki",
+                "Stan termiczny: krytyczny",
+                "Stan termiczny: niedostępny",
             ],
         ),
     ];
