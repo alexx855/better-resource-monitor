@@ -919,25 +919,26 @@ fn select_storage_volume(app: &AppHandle, mount_point: Option<PathBuf>) {
 
 #[cfg(target_os = "macos")]
 #[derive(Clone)]
-struct ThermalUiHandle(Arc<Mutex<Option<ThermalUi>>>);
+struct TrayUiHandle(Arc<Mutex<Option<TrayUi>>>);
 
 #[cfg(target_os = "macos")]
-impl Default for ThermalUiHandle {
+impl Default for TrayUiHandle {
     fn default() -> Self {
         Self(Arc::new(Mutex::new(None)))
     }
 }
 
 #[cfg(target_os = "macos")]
-struct ThermalUi {
+struct TrayUi {
     status_item: MenuItem<tauri::Wry>,
+    autostart_item: CheckMenuItem<tauri::Wry>,
 }
 
 #[cfg(target_os = "macos")]
 #[derive(Clone)]
 struct ThermalRuntime {
     status: Arc<Mutex<thermal::ThermalStatus>>,
-    ui: ThermalUiHandle,
+    ui: TrayUiHandle,
 }
 
 #[cfg(target_os = "macos")]
@@ -945,7 +946,7 @@ impl ThermalRuntime {
     fn new() -> Self {
         Self {
             status: Arc::new(Mutex::new(thermal::ThermalStatus::Unavailable)),
-            ui: ThermalUiHandle::default(),
+            ui: TrayUiHandle::default(),
         }
     }
 
@@ -982,20 +983,24 @@ fn thermal_status_text(
 
 #[cfg(target_os = "macos")]
 fn update_thermal_ui(
-    ui_handle: &ThermalUiHandle,
+    ui_handle: &TrayUiHandle,
     translations: &'static i18n::Translations,
     status: thermal::ThermalStatus,
 ) {
     let status_text = thermal_status_text(translations, status);
-    let mut guard = ui_handle
+    // Release the handle lock before Tauri dispatches the native menu update.
+    // The main thread also takes this lock when synchronizing login-item state.
+    let status_item = ui_handle
         .0
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let Some(ui) = guard.as_mut() else {
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .as_ref()
+        .map(|ui| ui.status_item.clone());
+    let Some(status_item) = status_item else {
         return;
     };
 
-    if let Err(error) = ui.status_item.set_text(&status_text) {
+    if let Err(error) = status_item.set_text(&status_text) {
         eprintln!("Failed to update thermal status menu text: {error}");
     }
 }
@@ -1171,18 +1176,6 @@ fn setup_tray(
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
 
-    #[cfg(target_os = "macos")]
-    {
-        thermal_runtime.set_status(thermal_status);
-        *thermal_runtime
-            .ui
-            .0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(ThermalUi {
-            status_item: thermal_status_item.clone(),
-        });
-    }
-
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
     #[cfg(target_os = "macos")]
@@ -1216,45 +1209,24 @@ fn setup_tray(
                 menu_id::AUTOSTART => {
                     #[cfg(target_os = "macos")]
                     {
-                        let enabled = macos_autostart::is_enabled();
-                        if enabled {
-                            match macos_autostart::disable() {
-                                Ok(()) => {
-                                    save_setting(app, menu_id::AUTOSTART, false);
-                                    let _ = autostart_menu_item.set_checked(false);
-                                    macos_diag_log(format!(
-                                        "menu autostart disabled status_after={}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to disable autostart: {e}");
-                                    let _ = autostart_menu_item.set_checked(true);
-                                    macos_diag_log(format!(
-                                        "menu autostart disable failed status_after={} error={e}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
+                        match macos_autostart::toggle() {
+                            Ok(requested) => {
+                                save_setting(app, menu_id::AUTOSTART, requested);
+                                macos_diag_log(format!(
+                                    "menu autostart requested={requested} status_after={}",
+                                    macos_autostart::status_label()
+                                ));
                             }
-                        } else {
-                            match macos_autostart::enable() {
-                                Ok(()) => {
-                                    save_setting(app, menu_id::AUTOSTART, true);
-                                    let _ = autostart_menu_item.set_checked(true);
-                                    macos_diag_log(format!(
-                                        "menu autostart enabled status_after={}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to enable autostart: {e}");
-                                    let _ = autostart_menu_item.set_checked(false);
-                                    macos_diag_log(format!(
-                                        "menu autostart enable failed status_after={} error={e}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
+                            Err(e) => {
+                                eprintln!("Failed to toggle autostart: {e}");
+                                macos_diag_log(format!(
+                                    "menu autostart toggle failed status_after={} error={e}",
+                                    macos_autostart::status_label()
+                                ));
                             }
+                        }
+                        if let Err(e) = macos_autostart::sync_menu(&autostart_menu_item) {
+                            eprintln!("Failed to sync autostart menu: {e}");
                         }
                     }
                     #[cfg(target_os = "linux")]
@@ -1328,6 +1300,16 @@ fn setup_tray(
         _tray
             .with_inner_tray_icon(prevent_macos_tray_image_dimming)
             .expect("failed to apply macOS tray image dimming hook");
+        // Publish only a successfully built menu. Queued refreshes resolve this
+        // handle at execution time, including after second-instance tray recovery.
+        *thermal_runtime
+            .ui
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(TrayUi {
+            status_item: thermal_status_item,
+            autostart_item,
+        });
         macos_diag_log("tray build ok");
     }
 
@@ -1555,6 +1537,21 @@ fn start_monitoring(
 
         loop {
             thread::sleep(Duration::from_millis(update_interval));
+
+            #[cfg(target_os = "macos")]
+            {
+                let ui = thermal_runtime.ui.clone();
+                if let Err(e) = app.run_on_main_thread(move || {
+                    let guard = ui.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    if let Some(ui) = guard.as_ref() {
+                        if let Err(e) = macos_autostart::sync_menu(&ui.autostart_item) {
+                            eprintln!("Failed to sync autostart menu: {e}");
+                        }
+                    }
+                }) {
+                    eprintln!("Failed to dispatch autostart menu sync: {e}");
+                }
+            }
 
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
