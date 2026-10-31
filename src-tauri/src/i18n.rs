@@ -3,6 +3,12 @@ pub struct Translations {
     pub show_memory: &'static str,
     pub show_cpu: &'static str,
     pub show_storage: &'static str,
+    /// Title of the submenu that picks which disk the storage metric shows.
+    pub storage_disk: &'static str,
+    /// The default choice: the disk that holds the user's home folder.
+    pub storage_disk_startup: &'static str,
+    /// Appended in parentheses to a chosen disk that is not plugged in.
+    pub storage_disk_not_connected: &'static str,
     pub show_gpu: &'static str,
     pub show_network: &'static str,
     pub show_alert_colors: &'static str,
@@ -22,6 +28,7 @@ pub enum Language {
     Spanish,
     Portuguese,
     Chinese,
+    Polish,
 }
 
 const ENGLISH: Translations = Translations {
@@ -29,6 +36,9 @@ const ENGLISH: Translations = Translations {
     show_memory: "Show memory",
     show_cpu: "Show CPU",
     show_storage: "Show storage",
+    storage_disk: "Storage disk",
+    storage_disk_startup: "Startup disk",
+    storage_disk_not_connected: "not connected",
     show_gpu: "Show GPU",
     show_network: "Show network",
     show_alert_colors: "Show warning colors",
@@ -47,6 +57,9 @@ const SPANISH: Translations = Translations {
     show_memory: "Mostrar memoria",
     show_cpu: "Mostrar CPU",
     show_storage: "Mostrar almacenamiento",
+    storage_disk: "Disco de almacenamiento",
+    storage_disk_startup: "Disco de arranque",
+    storage_disk_not_connected: "no conectado",
     show_gpu: "Mostrar GPU",
     show_network: "Mostrar uso de red",
     show_alert_colors: "Mostrar colores de advertencia",
@@ -65,6 +78,9 @@ const PORTUGUESE: Translations = Translations {
     show_memory: "Mostrar memória",
     show_cpu: "Mostrar CPU",
     show_storage: "Mostrar armazenamento",
+    storage_disk: "Disco de armazenamento",
+    storage_disk_startup: "Disco de inicialização",
+    storage_disk_not_connected: "não conectado",
     show_gpu: "Mostrar GPU",
     show_network: "Mostrar rede",
     show_alert_colors: "Mostrar cores de aviso",
@@ -83,6 +99,9 @@ const CHINESE: Translations = Translations {
     show_memory: "显示内存",
     show_cpu: "显示 CPU",
     show_storage: "显示存储空间",
+    storage_disk: "存储磁盘",
+    storage_disk_startup: "启动磁盘",
+    storage_disk_not_connected: "未连接",
     show_gpu: "显示 GPU",
     show_network: "显示网络",
     show_alert_colors: "显示警告颜色",
@@ -96,6 +115,27 @@ const CHINESE: Translations = Translations {
     thermal_critical: "危急",
 };
 
+const POLISH: Translations = Translations {
+    start_at_login: "Uruchamiaj po zalogowaniu",
+    show_memory: "Pokaż pamięć",
+    show_cpu: "Pokaż CPU",
+    show_storage: "Pokaż dysk",
+    storage_disk: "Dysk",
+    storage_disk_startup: "Dysk startowy",
+    storage_disk_not_connected: "niepodłączony",
+    show_gpu: "Pokaż GPU",
+    show_network: "Pokaż sieć",
+    show_alert_colors: "Pokaż kolory ostrzeżeń",
+    quit: "Zakończ",
+    system_monitor: "Monitor systemu",
+    thermal_status: "Stan termiczny",
+    thermal_unavailable: "niedostępny",
+    thermal_nominal: "normalny",
+    thermal_fair: "podwyższony",
+    thermal_serious: "wysoki",
+    thermal_critical: "krytyczny",
+};
+
 impl Language {
     pub fn translations(self) -> &'static Translations {
         match self {
@@ -103,6 +143,7 @@ impl Language {
             Language::Spanish => &SPANISH,
             Language::Portuguese => &PORTUGUESE,
             Language::Chinese => &CHINESE,
+            Language::Polish => &POLISH,
         }
     }
 }
@@ -115,6 +156,7 @@ fn language_for_locale(locale: &str) -> Option<Language> {
         "es" => Some(Language::Spanish),
         "pt" => Some(Language::Portuguese),
         "zh" => Some(Language::Chinese),
+        "pl" => Some(Language::Polish),
         _ => None,
     }
 }

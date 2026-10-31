@@ -5,18 +5,21 @@ export const embeddedFaqHeadings = {
   home: {
     en: "Common questions",
     es: "Preguntas comunes",
+    pl: "Najczęstsze pytania",
     "pt-br": "Perguntas comuns",
     "zh-cn": "常见问题",
   },
   comparisonIndex: {
     en: "Choosing a menu bar monitor",
     es: "Cómo elegir un monitor para la barra de menús",
+    pl: "Jak wybrać monitor na pasek menu",
     "pt-br": "Como escolher um monitor de barra de menus",
     "zh-cn": "如何选择菜单栏监视器",
   },
   legal: {
     en: "Product privacy questions",
     es: "Preguntas de privacidad del producto",
+    pl: "Pytania o prywatność produktu",
     "pt-br": "Perguntas de privacidade do produto",
     "zh-cn": "产品隐私问题",
   },
@@ -25,6 +28,7 @@ export const embeddedFaqHeadings = {
 export const comparisonFaqHeadings = {
   en: "Comparison questions",
   es: "Preguntas de comparación",
+  pl: "Pytania dotyczące porównania",
   "pt-br": "Perguntas sobre a comparação",
   "zh-cn": "对比问题",
 } satisfies Record<SupportedLocale, string>;
@@ -87,6 +91,18 @@ export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
           "Usa el [índice de comparaciones]({{comparisonUrl}}) cuando estés decidiendo entre herramientas específicas: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) o [Eul]({{vsEulUrl}}).",
       },
     ],
+    pl: [
+      {
+        question: "Który monitor wybrać, jeśli potrzebuję tylko podstaw?",
+        answer:
+          "Wybierz Better Resource Monitor, jeśli chcesz widzieć CPU, pamięć, dysk, GPU i sieć na pasku menu bez zagłębiania się w wentylatory, temperatury czy czujniki.",
+      },
+      {
+        question: "Kiedy warto porównać konkretne aplikacje?",
+        answer:
+          "Skorzystaj z [przeglądu porównań]({{comparisonUrl}}), gdy wybierasz między konkretnymi narzędziami: [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) lub [Eul]({{vsEulUrl}}).",
+      },
+    ],
     "pt-br": [
       {
         question: "Qual monitor devo escolher se só quero o básico?",
@@ -143,6 +159,18 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
             "Better Resource Monitor lee el estado térmico de macOS mediante APIs públicas y funciona en sandbox. No lee temperaturas de sensores individuales ni velocidades de ventiladores.",
         },
       ],
+      pl: [
+        {
+          question: "Czy Better Resource Monitor to dobra alternatywa dla Stats?",
+          answer:
+            "Tak, jeśli chcesz prostszej alternatywy dla Stats, skupionej na CPU, pamięci, dysku, GPU i sieci. Stats jest lepszy, jeśli potrzebujesz danych o wentylatorach, temperaturach i dokładniejszych informacji z czujników.",
+        },
+        {
+          question: "Czy Better Resource Monitor potrzebuje pomocnika do odczytu stanu termicznego?",
+          answer:
+            "Better Resource Monitor odczytuje stan termiczny macOS przez publiczne API i działa w piaskownicy. Nie odczytuje temperatur poszczególnych czujników ani prędkości wentylatorów.",
+        },
+      ],
       "pt-br": [
         {
           question: "O Better Resource Monitor é uma boa alternativa ao Stats?",
@@ -193,6 +221,18 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
             "Elige Better Resource Monitor si priorizas bajo consumo, precio gratuito, código abierto y disponibilidad en la Mac App Store.",
         },
       ],
+      pl: [
+        {
+          question: "Czy Better Resource Monitor może zastąpić iStat Menus?",
+          answer:
+            "Może zastąpić iStat Menus, jeśli zależy Ci przede wszystkim na lżejszym monitorze na pasku menu. Jeśli potrzebujesz bogatego panelu z wieloma czujnikami i ustawieniami, iStat Menus zwykle pasuje lepiej.",
+        },
+        {
+          question: "Dlaczego wybrać Better Resource Monitor zamiast iStat Menus?",
+          answer:
+            "Wybierz Better Resource Monitor, jeśli najbardziej zależy Ci na niskim narzucie, darmowej aplikacji, otwartym kodzie źródłowym i dostępności w Mac App Store.",
+        },
+      ],
       "pt-br": [
         {
           question: "O Better Resource Monitor substitui o iStat Menus?",
@@ -241,6 +281,18 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
           question: "¿Cuál es mejor para la monitorización diaria en la barra de menús?",
           answer:
             "Better Resource Monitor es la opción más simple si quieres una app mantenida en la Mac App Store con las métricas principales visibles todo el día.",
+        },
+      ],
+      pl: [
+        {
+          question: "Czym Better Resource Monitor różni się od Eul?",
+          answer:
+            "Obie aplikacje są lekkie. Better Resource Monitor ma węższy zakres, jest aktywnie wydawany w Mac App Store i skupia się na CPU, pamięci, dysku, GPU i sieci.",
+        },
+        {
+          question: "Która lepiej sprawdza się do codziennego monitorowania na pasku menu?",
+          answer:
+            "Better Resource Monitor to prostszy wybór, jeśli chcesz rozwijanej aplikacji z Mac App Store, która przez cały dzień pokazuje najważniejsze wskaźniki.",
         },
       ],
       "pt-br": [

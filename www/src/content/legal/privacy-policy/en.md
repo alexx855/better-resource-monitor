@@ -6,7 +6,7 @@ ogImage: "/images/og-privacy-en.png"
 
 # Privacy Policy
 
-**Last updated: October 29, 2026**
+**Last updated: October 30, 2026**
 
 ## Overview
 
@@ -22,7 +22,7 @@ The App operates entirely locally on your device. All system information (CPU us
 - Never transmitted to any external servers
 - Never stored in any external database
 
-Storage usage is calculated from OS-reported total and free capacity for the user's main storage volume. The App does not read file names, file contents, external volumes, or per-volume details.
+Storage usage is calculated from OS-reported total and free capacity for the selected local volume, which defaults to the volume containing your home folder. To offer disk choices, the App reads the names, mount points, and capacity of eligible mounted local volumes, including external disks. Your chosen mount point is saved locally as a preference. The App does not read file names or file contents.
 
 ## Data Storage
 

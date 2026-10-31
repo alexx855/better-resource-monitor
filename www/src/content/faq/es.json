@@ -38,7 +38,7 @@
     {
       "id": "privacy",
       "question": "¿Recopila algún dato?",
-      "answer": "No. Cero solicitudes de red, sin analíticas y sin telemetría. Todo se queda en tu máquina. El uso de almacenamiento se calcula localmente con la capacidad total/libre que informa el sistema operativo para tu volumen principal; no se leen nombres de archivos, contenidos, volúmenes externos ni detalles por volumen. El código fuente está en GitHub si quieres comprobarlo."
+      "answer": "No. Cero solicitudes de red, sin analíticas y sin telemetría. Todo se queda en tu máquina. El uso de almacenamiento se calcula con la capacidad total/libre que informa el sistema operativo para el volumen local seleccionado; por defecto, el que contiene tu carpeta de usuario. El selector de disco lee nombres, puntos de montaje y capacidad de los volúmenes locales, incluidos los discos externos; no lee nombres ni contenidos de archivos. El código fuente está en GitHub si quieres comprobarlo."
     },
     {
       "id": "comparison",
