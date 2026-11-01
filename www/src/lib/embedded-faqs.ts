@@ -63,8 +63,6 @@ export function pickFaqItems(items: FaqItem[], key: keyof typeof sharedFaqIds) {
   });
 }
 
-const comparisonOrder: ComparisonPageKey[] = ["vs-stats", "vs-istat-menus", "vs-eul"];
-
 export function getComparisonIndexFaqItems(locale: SupportedLocale): FaqItem[] {
   const copy = {
     en: [
@@ -322,5 +320,5 @@ export function getComparisonFaqItems(pageKey: ComparisonPageKey, locale: Suppor
     },
   } satisfies Record<ComparisonPageKey, Record<SupportedLocale, FaqItem[]>>;
 
-  return comparisonOrder.includes(pageKey) ? copy[pageKey][locale] : [];
+  return copy[pageKey][locale];
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, verify } from 'node:crypto';
 import test from 'node:test';
 
 import {
@@ -18,7 +18,7 @@ function resource(id, attributes = {}, relationships = {}) {
   return { type: 'fixture', id, attributes, relationships };
 }
 
-function createFixtureFetch({ buildStates, groups, testersByGroup = {} }) {
+function createFixtureFetch({ buildStates, groups, testersByGroup = {}, expired = false }) {
   let buildIndex = 0;
   return async (url, options) => {
     assert.equal(options.headers.Authorization, 'Bearer fixture-token');
@@ -37,7 +37,7 @@ function createFixtureFetch({ buildStates, groups, testersByGroup = {} }) {
         data: [
           resource(
             'build-1',
-            { version: '12345', processingState: state },
+            { version: '12345', processingState: state, expired },
             { betaGroups: { data: [{ type: 'betaGroups', id: 'group-1' }] } },
           ),
         ],
@@ -72,8 +72,8 @@ function testOptions(overrides) {
   };
 }
 
-test('creates an ES256 App Store Connect token with a raw 64-byte signature', () => {
-  const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+test('creates a verifiable ES256 App Store Connect token with a 15-minute lifetime', () => {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   const token = createAppStoreConnectToken({
     keyId: 'KEY123',
     issuerId: 'issuer-123',
@@ -81,9 +81,17 @@ test('creates an ES256 App Store Connect token with a raw 64-byte signature', ()
     nowMs: 1_700_000_000_000,
   });
   const [header, payload, signature] = token.split('.');
-  assert.equal(JSON.parse(Buffer.from(header, 'base64url')).kid, 'KEY123');
-  assert.equal(JSON.parse(Buffer.from(payload, 'base64url')).aud, 'appstoreconnect-v1');
+  assert.deepEqual(JSON.parse(Buffer.from(header, 'base64url')), {
+    alg: 'ES256', kid: 'KEY123', typ: 'JWT',
+  });
+  assert.deepEqual(JSON.parse(Buffer.from(payload, 'base64url')), {
+    iss: 'issuer-123', iat: 1_700_000_000, exp: 1_700_000_900, aud: 'appstoreconnect-v1',
+  });
   assert.equal(Buffer.from(signature, 'base64url').length, 64);
+  assert.equal(verify('sha256', Buffer.from(`${header}.${payload}`), {
+    key: publicKey,
+    dsaEncoding: 'ieee-p1363',
+  }, Buffer.from(signature, 'base64url')), true);
 });
 
 test('waits for processing and proves an internal tester can receive the build', async () => {
@@ -134,6 +142,95 @@ test('rejects a valid build that has no receiving internal group', async () => {
     ),
     /not available to an internal TestFlight group/,
   );
+});
+
+test('rejects an expired build even when processing succeeded and a tester is assigned', async () => {
+  await assert.rejects(
+    waitForTestFlightBuild(
+      testOptions({
+        fetchImpl: createFixtureFetch({
+          buildStates: ['VALID'],
+          expired: true,
+          groups: [resource('group-1', { isInternalGroup: true })],
+          testersByGroup: { 'group-1': [resource('tester-1')] },
+        }),
+      }),
+    ),
+    /Build 12345 has expired/,
+  );
+});
+
+test('accepts all-build access and searches past an empty internal group for a tester', async () => {
+  const result = await waitForTestFlightBuild(
+    testOptions({
+      fetchImpl: createFixtureFetch({
+        buildStates: ['VALID'],
+        groups: [
+          resource('group-1', { isInternalGroup: true }),
+          resource('group-2', { isInternalGroup: true, hasAccessToAllBuilds: true }),
+        ],
+        testersByGroup: { 'group-2': [resource('tester-1')] },
+      }),
+    }),
+  );
+  assert.deepEqual(result, { appId: 'app-1', buildId: 'build-1', groupId: 'group-2' });
+});
+
+test('rejects internal assignment when no eligible group has a tester', async () => {
+  await assert.rejects(
+    waitForTestFlightBuild(
+      testOptions({
+        fetchImpl: createFixtureFetch({
+          buildStates: ['VALID'],
+          groups: [resource('group-1', { isInternalGroup: true })],
+        }),
+      }),
+    ),
+    /no eligible group has a tester/,
+  );
+});
+
+test('retries transient Apple failures with refreshed credentials', async () => {
+  let requests = 0;
+  let tokens = 0;
+  const fixtureFetch = createFixtureFetch({
+    buildStates: ['VALID'],
+    groups: [resource('group-1', { isInternalGroup: true })],
+    testersByGroup: { 'group-1': [resource('tester-1')] },
+  });
+  const result = await waitForTestFlightBuild(
+    testOptions({
+      tokenFactory: () => `token-${++tokens}`,
+      fetchImpl: async (url, options) => {
+        requests += 1;
+        assert.equal(options.headers.Authorization, `Bearer token-${requests}`);
+        if (requests === 1) throw new Error('temporary network failure');
+        if (requests === 2) return jsonResponse({ errors: [{ code: 'RATE_LIMITED' }] }, 429);
+        return fixtureFetch(url, {
+          ...options, headers: { ...options.headers, Authorization: 'Bearer fixture-token' },
+        });
+      },
+    }),
+  );
+  assert.deepEqual(result, { appId: 'app-1', buildId: 'build-1', groupId: 'group-1' });
+  assert.equal(requests, 6);
+});
+
+test('rejects Apple authentication errors immediately and reports their details', async () => {
+  let requests = 0;
+  await assert.rejects(
+    waitForTestFlightBuild(
+      testOptions({
+        fetchImpl: async () => {
+          requests += 1;
+          return jsonResponse({ errors: [{ code: 'NOT_AUTHORIZED', detail: 'Invalid token' }] }, 401);
+        },
+        sleep: async () => assert.fail('authentication failures must not be retried'),
+      }),
+    ),
+    /HTTP 401: NOT_AUTHORIZED: Invalid token/,
+  );
+  assert.equal(requests, 1);
 });
 
 test('times out when the uploaded build never appears', async () => {

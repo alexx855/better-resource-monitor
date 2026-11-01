@@ -5,9 +5,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct StorageSample {
-    pub total_bytes: u64,
     pub available_bytes: u64,
-    pub used_percent: f32,
 }
 
 /// Samples the volume that contains `path`. Passing [`home_path_or_root`]
@@ -21,14 +19,8 @@ pub(crate) fn sample_from_bytes(total_bytes: u128, available_bytes: u128) -> Opt
         return None;
     }
 
-    let available_bytes = available_bytes.min(total_bytes);
-    let used_bytes = total_bytes.saturating_sub(available_bytes);
-    let used_percent = ((used_bytes as f64 / total_bytes as f64) * 100.0).clamp(0.0, 100.0) as f32;
-
     Some(StorageSample {
-        total_bytes: total_bytes.min(u64::MAX as u128) as u64,
-        available_bytes: available_bytes.min(u64::MAX as u128) as u64,
-        used_percent,
+        available_bytes: available_bytes.min(total_bytes).min(u64::MAX as u128) as u64,
     })
 }
 

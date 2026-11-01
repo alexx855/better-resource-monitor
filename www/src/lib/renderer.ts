@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Design tokens (matching Layout.astro CSS vars)
+// Colors used by the generated marketing images.
 export const colors = {
   bg: "#101214",
   brand: "#D14715",

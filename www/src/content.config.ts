@@ -130,8 +130,6 @@ const comparisons = defineCollection({
     title: z.string(),
     description: z.string(),
     ogImage: z.string(),
-    competitorName: z.string(),
-    competitorPrice: z.string(),
     heading: z.string(),
     intro: z.string(),
     table: comparisonTable,

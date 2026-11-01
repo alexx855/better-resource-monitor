@@ -143,7 +143,12 @@ export async function waitForTestFlightBuild({
     } else {
       build = expectSingleResource(builds, `build matching ${buildNumber}`);
       const state = build.attributes?.processingState;
-      if (state === 'VALID') break;
+      if (state === 'VALID') {
+        if (build.attributes?.expired === true) {
+          throw new Error(`Build ${buildNumber} has expired and is not available for testing`);
+        }
+        break;
+      }
       if (state === 'FAILED' || state === 'INVALID') {
         throw new Error(`Build ${buildNumber} finished processing with state ${state}`);
       }
