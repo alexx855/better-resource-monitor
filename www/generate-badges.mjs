@@ -62,6 +62,7 @@ function buildElement(badge, locale) {
       style: {
         width: "100%",
         height: "100%",
+        boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         fontFamily: locale === "zh-cn" ? "Noto Sans SC, JetBrains Mono" : "JetBrains Mono",
