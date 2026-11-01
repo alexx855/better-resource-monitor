@@ -1,0 +1,68 @@
+{
+  "title": "Alternatywa dla Stats na macOS | Better Resource Monitor",
+  "description": "Porównaj Stats z Better Resource Monitor, skupionym monitorem CPU, pamięci, dysku, GPU i sieci na pasku menu macOS. Sprawdź, który pasuje do Twojej codziennej pracy.",
+  "ogImage": "/images/og-vs-stats-pl.png",
+  "competitorName": "Stats",
+  "competitorPrice": "0",
+  "heading": "Better Resource Monitor vs Stats na macOS",
+  "intro": "Szukasz alternatywy dla Stats na macOS? Stats i Better Resource Monitor to dobre monitory na pasku menu, ale pasują do różnych nawyków. Stats sięga głębiej w wentylatory, temperatury i dodatkowe dane z czujników. Better Resource Monitor trzyma się codziennych wskaźników: CPU, pamięci, dysku, GPU i sieci. Jeśli chcesz alternatywy dla Stats, która pozostaje skupiona i sama nie dokłada dużego narzutu, ten węższy zakres jest właśnie celem.",
+  "table": {
+    "featureLabel": "Funkcja",
+    "productLabel": "Better Resource Monitor",
+    "competitorLabel": "Stats",
+    "features": [
+      "Mac App Store",
+      "Hasło administratora / uprawnienia",
+      "Stabilność API GPU",
+      "Zużycie pamięci",
+      "Wpływ na CPU / energię",
+      "Rozmiar aplikacji",
+      "Prywatność / telemetria",
+      "Status",
+      "Język",
+      "Cena",
+      "Licencja"
+    ],
+    "productValues": [
+      "Pełne funkcje",
+      "Brak (sandbox)",
+      "Publiczne API",
+      "~15 MB",
+      "< 0,1%",
+      "< 7 MB",
+      "100% offline",
+      "Aktywny",
+      "Rust",
+      "Za darmo",
+      "MIT"
+    ],
+    "competitorValues": [
+      "Nie",
+      "Wymaga pomocnika z uprawnieniami roota",
+      "Prywatne API",
+      "~50 MB",
+      "~1%",
+      "~25 MB",
+      "Offline",
+      "Aktywny",
+      "Swift / C++",
+      "Za darmo",
+      "MIT"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Do czego jest zoptymalizowana każda z aplikacji",
+      "body": "Stats oferuje więcej, jeśli zależy Ci na prędkości wentylatorów, temperaturach i dokładniejszych danych z czujników. Better Resource Monitor jest celowo węższy. Skupia się na pięciu rzeczach, które większość osób sprawdza najpierw, gdy Mac zaczyna działać dziwnie: użyciu CPU, pamięci, dysku, GPU i sieci."
+    },
+    {
+      "heading": "Dlaczego Better Resource Monitor jest lżejszy",
+      "body": "Better Resource Monitor zużywa poniżej 0,1% CPU na Apple Silicon i około 15 MB pamięci. Częściowo wynika to z tego, że nie goni za każdym możliwym czujnikiem. Jeśli zależy Ci głównie na szybkim podglądzie, a nie na pełnym panelu sprzętowym, ten kompromis sprawia, że łatwiej zostawić aplikację włączoną przez cały dzień."
+    },
+    {
+      "heading": "Dlaczego na co dzień jest prostszy",
+      "body": "Brak hasła administratora i pomocnika z uprawnieniami roota to nie główny powód, by wybrać Better Resource Monitor, ale wiele mówi o tej aplikacji. Instaluje się jak zwykła aplikacja na Maca, jest dostępna w Mac App Store z pełnym zestawem funkcji i korzysta z publicznych API do odczytu danych GPU. Dla większości osób oznacza to mniej kłopotów i mniej niespodzianek."
+    }
+  ],
+  "cta": "Stats to wciąż dobry wybór, jeśli chcesz więcej czujników. Jeśli głównie chcesz mieć oko na swojego Maca, szybciej zauważać nietypowe obciążenie i utrzymać niski narzut, [Better Resource Monitor jest dostępny w Mac App Store](https://apps.apple.com/app/better-resource-monitor/id6758237306), a kod źródłowy jest na [GitHubie](https://github.com/alexx855/better-resource-monitor)."
+}
