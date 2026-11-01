@@ -7,6 +7,7 @@ mod storage;
 pub mod thermal;
 pub mod tray_render;
 
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -21,9 +22,9 @@ use serde_json::json;
 use sysinfo::{Networks, System};
 use tauri::{
     image::Image,
-    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::TrayIconBuilder,
-    AppHandle,
+    AppHandle, Manager,
 };
 use tauri_plugin_store::StoreExt;
 
@@ -123,6 +124,9 @@ mod menu_id {
     pub const SHOW_CPU: &str = "show_cpu";
     pub const SHOW_MEM: &str = "show_mem";
     pub const SHOW_STORAGE: &str = "show_storage";
+    /// Settings key for the chosen storage disk, and the prefix of its
+    /// submenu item ids.
+    pub const STORAGE_VOLUME: &str = "storage_volume";
     pub const SHOW_GPU: &str = "show_gpu";
     pub const SHOW_NET: &str = "show_net";
     #[cfg(target_os = "macos")]
@@ -151,6 +155,7 @@ struct LoadedSettings {
     show_net: bool,
     show_alerts: bool,
     autostart: bool,
+    storage_volume: Option<PathBuf>,
 }
 
 fn load_settings(app: &AppHandle) -> LoadedSettings {
@@ -191,6 +196,11 @@ fn load_settings(app: &AppHandle) -> LoadedSettings {
         show_net: get_bool("show_net", true),
         show_alerts: get_bool("show_alerts", true),
         autostart: get_bool(menu_id::AUTOSTART, false),
+        storage_volume: store
+            .as_ref()
+            .and_then(|s| s.get(menu_id::STORAGE_VOLUME))
+            .and_then(|v| v.as_str().map(PathBuf::from))
+            .filter(|path| path.is_absolute()),
     }
 }
 
@@ -207,7 +217,29 @@ fn save_setting(app: &AppHandle, key: &str, value: bool) {
     }
 }
 
+/// Saves the chosen storage disk, or removes the setting when the startup
+/// disk is chosen so new defaults keep applying.
+fn save_storage_volume(app: &AppHandle, mount_point: Option<&Path>) {
+    if let Ok(store) = app.store(SETTINGS_FILE) {
+        match mount_point {
+            Some(mount_point) => store.set(
+                menu_id::STORAGE_VOLUME,
+                json!(mount_point.to_string_lossy()),
+            ),
+            None => {
+                store.delete(menu_id::STORAGE_VOLUME);
+            }
+        }
+        if let Err(e) = store.save() {
+            eprintln!("Failed to save setting {}: {e}", menu_id::STORAGE_VOLUME);
+        }
+    }
+}
+
 const UPDATE_INTERVAL_MS: u64 = 2000;
+/// How many update intervals pass between re-reading the mounted volumes, so
+/// a drive that is plugged in shows up in the menu within about 10 seconds.
+const VOLUME_REFRESH_TICKS: u32 = 5;
 const CPU_STABILIZE_MS: u64 = 200;
 #[cfg(target_os = "macos")]
 const MACOS_TRAY_SETUP_ATTEMPTS: usize = 5;
@@ -367,9 +399,78 @@ fn storage_display_needs_update(
 }
 
 fn sum_network_totals(networks: &Networks) -> (u64, u64) {
-    networks.iter().fold((0, 0), |(rx, tx), (_, data)| {
-        (rx + data.total_received(), tx + data.total_transmitted())
-    })
+    sum_interface_totals(networks.iter().map(|(name, data)| {
+        (
+            name.as_str(),
+            data.total_received(),
+            data.total_transmitted(),
+        )
+    }))
+}
+
+fn sum_interface_totals<'a>(
+    interfaces: impl IntoIterator<Item = (&'a str, u64, u64)>,
+) -> (u64, u64) {
+    interfaces
+        .into_iter()
+        .filter(|(name, _, _)| counts_toward_network_speed(name))
+        .fold((0, 0), |(rx, tx), (_, received, transmitted)| {
+            (rx.saturating_add(received), tx.saturating_add(transmitted))
+        })
+}
+
+/// Whether an interface's bytes belong in the network speed reading.
+///
+/// Loopback traffic never leaves the machine, so a local dev server, database
+/// or container port forward would otherwise show up as download and upload
+/// at the same time. VPN tunnels and VM/container bridges carry traffic that
+/// is also counted on the physical interface underneath, so including them
+/// double-counts it.
+fn counts_toward_network_speed(name: &str) -> bool {
+    // Interface name stems followed by an optional unit number, e.g. lo0,
+    // utun3, wg0, docker0.
+    const NUMBERED: &[&str] = &[
+        "lo",
+        "utun",
+        "tun",
+        "tap",
+        "wg",
+        "ipsec",
+        "gif",
+        "stf",
+        "tailscale",
+        "docker",
+        "podman",
+        "virbr",
+        "vmnet",
+        "vmenet",
+        "vboxnet",
+    ];
+    // Stems with free-form suffixes: Linux bridges (br-1a2b3c) and veth pairs.
+    const PREFIXED: &[&str] = &["br-", "veth"];
+
+    let unit = |stem: &str| {
+        name.strip_prefix(stem)
+            .filter(|rest| rest.bytes().all(|b| b.is_ascii_digit()))
+    };
+
+    if name == "docker_gwbridge"
+        || NUMBERED.iter().any(|stem| unit(stem).is_some())
+        || PREFIXED.iter().any(|stem| name.starts_with(stem))
+    {
+        return false;
+    }
+    // macOS uses bridge0 for Thunderbolt Bridge, a real link to another Mac,
+    // and bridge100 and up for Internet Sharing and VM networking, which
+    // forward traffic that is also counted on the uplink.
+    if unit("bridge")
+        .and_then(|n| n.parse::<u32>().ok())
+        .is_some_and(|n| n >= 100)
+    {
+        return false;
+    }
+    // Windows reports its loopback as "Loopback Pseudo-Interface 1".
+    !name.to_ascii_lowercase().contains("loopback")
 }
 
 fn normalize_metric_flags(
@@ -622,27 +723,245 @@ fn toggle_setting(
     }
 }
 
-#[cfg(target_os = "macos")]
-#[derive(Clone)]
-struct ThermalUiHandle(Arc<Mutex<Option<ThermalUi>>>);
+const STORAGE_VOLUME_STARTUP_ID: &str = "storage_volume:startup";
+const STORAGE_VOLUME_ID_PREFIX: &str = "storage_volume:";
+
+/// The submenu item id for a volume. Mount points are absolute paths, so they
+/// never collide with the startup disk's id.
+fn storage_volume_menu_id(mount_point: &Path) -> String {
+    format!("{STORAGE_VOLUME_ID_PREFIX}{}", mount_point.display())
+}
+
+/// Reads a storage disk submenu item id. Returns `None` for ids that belong
+/// to other menu items, `Some(None)` for the startup disk, and
+/// `Some(Some(mount_point))` for any other volume.
+fn storage_volume_from_menu_id(id: &str) -> Option<Option<PathBuf>> {
+    if id == STORAGE_VOLUME_STARTUP_ID {
+        return Some(None);
+    }
+    let mount_point = Path::new(id.strip_prefix(STORAGE_VOLUME_ID_PREFIX)?);
+    mount_point
+        .is_absolute()
+        .then(|| Some(mount_point.to_path_buf()))
+}
+
+/// One row of the storage disk submenu.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct StorageMenuEntry {
+    id: String,
+    label: String,
+    checked: bool,
+    enabled: bool,
+}
+
+/// Describes the storage disk submenu. An empty list means the submenu is
+/// hidden, which happens when storage is not shown or when the startup disk
+/// is the only choice.
+///
+/// The check mark always sits on the disk the tray is showing. A chosen disk
+/// that is unplugged stays listed, greyed out and marked "not connected", so
+/// the user can see it is remembered; the tray shows the startup disk until
+/// it comes back.
+fn storage_menu_entries(
+    show_storage: bool,
+    volumes: &[storage::Volume],
+    selected: Option<&Path>,
+    translations: &i18n::Translations,
+) -> Vec<StorageMenuEntry> {
+    let selected_mounted = selected.filter(|selected| {
+        volumes
+            .iter()
+            .any(|volume| volume.mount_point.as_path() == *selected)
+    });
+    let selected_missing = selected.filter(|_| selected_mounted.is_none());
+
+    if !show_storage || (volumes.is_empty() && selected_missing.is_none()) {
+        return Vec::new();
+    }
+
+    let mut entries = vec![StorageMenuEntry {
+        id: STORAGE_VOLUME_STARTUP_ID.to_string(),
+        label: translations.storage_disk_startup.to_string(),
+        checked: selected_mounted.is_none(),
+        enabled: true,
+    }];
+    entries.extend(volumes.iter().map(|volume| StorageMenuEntry {
+        id: storage_volume_menu_id(&volume.mount_point),
+        label: volume.label.clone(),
+        checked: selected_mounted == Some(volume.mount_point.as_path()),
+        enabled: true,
+    }));
+    if let Some(missing) = selected_missing {
+        entries.push(StorageMenuEntry {
+            id: storage_volume_menu_id(missing),
+            label: format!(
+                "{} ({})",
+                storage::label_for_mount_point(missing),
+                translations.storage_disk_not_connected
+            ),
+            checked: false,
+            enabled: false,
+        });
+    }
+    entries
+}
+
+/// Which disk the storage metric shows, shared by the tray menu (main thread)
+/// and the monitor thread. Kept in Tauri's managed state.
+struct StorageDiskState {
+    inner: Mutex<StorageDiskInner>,
+}
+
+struct StorageDiskInner {
+    /// The chosen volume's mount point, or `None` for the startup disk.
+    selected: Option<PathBuf>,
+    /// Volumes offered in the menu, as last read by the volume watcher thread.
+    volumes: Vec<storage::Volume>,
+    /// Lives here so only the main thread touches it; see
+    /// [`request_storage_menu_sync`].
+    menu: Option<StorageDiskMenu>,
+}
+
+impl StorageDiskState {
+    fn new(selected: Option<PathBuf>) -> Self {
+        Self {
+            inner: Mutex::new(StorageDiskInner {
+                selected,
+                volumes: Vec::new(),
+                menu: None,
+            }),
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, StorageDiskInner> {
+        self.inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+/// The tray menu pieces needed to show, hide, and rebuild the storage disk
+/// submenu.
+struct StorageDiskMenu {
+    menu: Menu<tauri::Wry>,
+    show_storage: Arc<AtomicBool>,
+    translations: &'static i18n::Translations,
+    submenu: Option<Submenu<tauri::Wry>>,
+    items: Vec<CheckMenuItem<tauri::Wry>>,
+    entries: Vec<StorageMenuEntry>,
+}
+
+impl StorageDiskMenu {
+    /// Brings the submenu in line with the current volumes and choice. It is
+    /// rebuilt only when its rows change; otherwise the check marks are
+    /// re-applied, because macOS flips a check item's mark on click even when
+    /// the click does not change the choice.
+    fn sync(&mut self, volumes: &[storage::Volume], selected: Option<&Path>) -> tauri::Result<()> {
+        let entries = storage_menu_entries(
+            self.show_storage.load(Relaxed),
+            volumes,
+            selected,
+            self.translations,
+        );
+
+        if entries == self.entries && self.submenu.is_some() == !entries.is_empty() {
+            for (item, entry) in self.items.iter().zip(&entries) {
+                item.set_checked(entry.checked)?;
+            }
+            return Ok(());
+        }
+
+        if let Some(submenu) = self.submenu.take() {
+            self.menu.remove(&submenu)?;
+        }
+        self.items.clear();
+        self.entries = entries;
+        if self.entries.is_empty() {
+            return Ok(());
+        }
+
+        let app = self.menu.app_handle();
+        let submenu = Submenu::new(app, self.translations.storage_disk, true)?;
+        for entry in &self.entries {
+            let item = CheckMenuItem::with_id(
+                app,
+                entry.id.as_str(),
+                entry.label.as_str(),
+                entry.enabled,
+                entry.checked,
+                None::<&str>,
+            )?;
+            submenu.append(&item)?;
+            self.items.push(item);
+        }
+
+        // Sit right under "Show storage", whatever comes before it.
+        let position = self
+            .menu
+            .items()?
+            .iter()
+            .position(|item| item.id() == menu_id::SHOW_STORAGE)
+            .map_or(0, |index| index + 1);
+        self.menu.insert(&submenu, position)?;
+        self.submenu = Some(submenu);
+        Ok(())
+    }
+}
+
+/// Asks the main thread to update the storage disk submenu. Menu calls made
+/// from another thread wait for the main thread, so doing every update there
+/// keeps the monitor thread from ever blocking on a menu while holding the
+/// state lock.
+fn request_storage_menu_sync(app: &AppHandle) {
+    let handle = app.clone();
+    let result = app.run_on_main_thread(move || {
+        let state = handle.state::<StorageDiskState>();
+        let mut inner = state.lock();
+        let StorageDiskInner {
+            selected,
+            volumes,
+            menu,
+        } = &mut *inner;
+        if let Some(menu) = menu {
+            if let Err(e) = menu.sync(volumes, selected.as_deref()) {
+                eprintln!("Failed to update storage disk menu: {e}");
+            }
+        }
+    });
+    if let Err(e) = result {
+        eprintln!("Failed to schedule storage disk menu update: {e}");
+    }
+}
+
+/// Handles a click on a storage disk submenu item.
+fn select_storage_volume(app: &AppHandle, mount_point: Option<PathBuf>) {
+    save_storage_volume(app, mount_point.as_deref());
+    app.state::<StorageDiskState>().lock().selected = mount_point;
+    request_storage_menu_sync(app);
+}
 
 #[cfg(target_os = "macos")]
-impl Default for ThermalUiHandle {
+#[derive(Clone)]
+struct TrayUiHandle(Arc<Mutex<Option<TrayUi>>>);
+
+#[cfg(target_os = "macos")]
+impl Default for TrayUiHandle {
     fn default() -> Self {
         Self(Arc::new(Mutex::new(None)))
     }
 }
 
 #[cfg(target_os = "macos")]
-struct ThermalUi {
+struct TrayUi {
     status_item: MenuItem<tauri::Wry>,
+    autostart_item: CheckMenuItem<tauri::Wry>,
 }
 
 #[cfg(target_os = "macos")]
 #[derive(Clone)]
 struct ThermalRuntime {
     status: Arc<Mutex<thermal::ThermalStatus>>,
-    ui: ThermalUiHandle,
+    ui: TrayUiHandle,
 }
 
 #[cfg(target_os = "macos")]
@@ -650,7 +969,7 @@ impl ThermalRuntime {
     fn new() -> Self {
         Self {
             status: Arc::new(Mutex::new(thermal::ThermalStatus::Unavailable)),
-            ui: ThermalUiHandle::default(),
+            ui: TrayUiHandle::default(),
         }
     }
 
@@ -687,20 +1006,24 @@ fn thermal_status_text(
 
 #[cfg(target_os = "macos")]
 fn update_thermal_ui(
-    ui_handle: &ThermalUiHandle,
+    ui_handle: &TrayUiHandle,
     translations: &'static i18n::Translations,
     status: thermal::ThermalStatus,
 ) {
     let status_text = thermal_status_text(translations, status);
-    let mut guard = ui_handle
+    // Release the handle lock before Tauri dispatches the native menu update.
+    // The main thread also takes this lock when synchronizing login-item state.
+    let status_item = ui_handle
         .0
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let Some(ui) = guard.as_mut() else {
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .as_ref()
+        .map(|ui| ui.status_item.clone());
+    let Some(status_item) = status_item else {
         return;
     };
 
-    if let Err(error) = ui.status_item.set_text(&status_text) {
+    if let Err(error) = status_item.set_text(&status_text) {
         eprintln!("Failed to update thermal status menu text: {error}");
     }
 }
@@ -711,7 +1034,7 @@ fn setup_tray(
     metrics: MetricToggles,
     gpu_available: bool,
     is_autostart_enabled: bool,
-    translations: &i18n::Translations,
+    translations: &'static i18n::Translations,
     #[cfg(target_os = "macos")] thermal_runtime: &ThermalRuntime,
 ) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
@@ -833,6 +1156,18 @@ fn setup_tray(
     menu.append(&quit_separator)?;
     menu.append(&quit_item)?;
 
+    // The storage disk submenu is filled in once the monitor thread has
+    // listed the mounted volumes.
+    app.state::<StorageDiskState>().lock().menu = Some(StorageDiskMenu {
+        menu: menu.clone(),
+        show_storage: metrics.show_storage.clone(),
+        translations,
+        submenu: None,
+        items: Vec::new(),
+        entries: Vec::new(),
+    });
+    request_storage_menu_sync(app);
+
     #[cfg(target_os = "linux")]
     let use_light_icons = detect_light_icons();
     #[cfg(not(target_os = "linux"))]
@@ -863,18 +1198,6 @@ fn setup_tray(
         },
     );
     let initial_icon = Image::new_owned(initial_buffer, width, height);
-
-    #[cfg(target_os = "macos")]
-    {
-        thermal_runtime.set_status(thermal_status);
-        *thermal_runtime
-            .ui
-            .0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(ThermalUi {
-            status_item: thermal_status_item.clone(),
-        });
-    }
 
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID).icon(initial_icon);
 
@@ -909,46 +1232,24 @@ fn setup_tray(
                 menu_id::AUTOSTART => {
                     #[cfg(target_os = "macos")]
                     {
-                        let enabled = macos_autostart::is_enabled();
-                        if enabled {
-                            match macos_autostart::disable() {
-                                Ok(()) => {
-                                    save_setting(app, menu_id::AUTOSTART, false);
-                                    let _ = autostart_menu_item.set_checked(false);
-                                    macos_diag_log(format!(
-                                        "menu autostart disabled status_after={}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to disable autostart: {e}");
-                                    let _ = autostart_menu_item.set_checked(true);
-                                    macos_diag_log(format!(
-                                        "menu autostart disable failed status_after={} error={e}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
+                        match macos_autostart::toggle() {
+                            Ok(requested) => {
+                                save_setting(app, menu_id::AUTOSTART, requested);
+                                macos_diag_log(format!(
+                                    "menu autostart requested={requested} status_after={}",
+                                    macos_autostart::status_label()
+                                ));
                             }
-                        } else {
-                            match macos_autostart::enable() {
-                                Ok(()) => {
-                                    let enabled = macos_autostart::is_enabled();
-                                    save_setting(app, menu_id::AUTOSTART, enabled);
-                                    let _ = autostart_menu_item.set_checked(enabled);
-                                    macos_diag_log(format!(
-                                        "menu autostart enable requested status_after={}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to enable autostart: {e}");
-                                    let _ = autostart_menu_item.set_checked(false);
-                                    macos_diag_log(format!(
-                                        "menu autostart enable failed status_after={} error={e}",
-                                        macos_autostart::status_label()
-                                    ));
-                                }
+                            Err(e) => {
+                                eprintln!("Failed to toggle autostart: {e}");
+                                macos_diag_log(format!(
+                                    "menu autostart toggle failed status_after={} error={e}",
+                                    macos_autostart::status_label()
+                                ));
                             }
+                        }
+                        if let Err(e) = macos_autostart::sync_menu(&autostart_menu_item) {
+                            eprintln!("Failed to sync autostart menu: {e}");
                         }
                     }
                     #[cfg(target_os = "linux")]
@@ -986,13 +1287,16 @@ fn setup_tray(
                 menu_id::SHOW_MEM => {
                     toggle_setting(app, menu_id::SHOW_MEM, &metrics.show_mem, flags, &mem_item)
                 }
-                menu_id::SHOW_STORAGE => toggle_setting(
-                    app,
-                    menu_id::SHOW_STORAGE,
-                    &metrics.show_storage,
-                    flags,
-                    &storage_item,
-                ),
+                menu_id::SHOW_STORAGE => {
+                    toggle_setting(
+                        app,
+                        menu_id::SHOW_STORAGE,
+                        &metrics.show_storage,
+                        flags,
+                        &storage_item,
+                    );
+                    request_storage_menu_sync(app);
+                }
                 menu_id::SHOW_GPU => {
                     toggle_setting(app, menu_id::SHOW_GPU, &metrics.show_gpu, flags, &gpu_item)
                 }
@@ -1005,7 +1309,11 @@ fn setup_tray(
                     save_setting(app, menu_id::SHOW_ALERTS, new_value);
                 }
                 menu_id::QUIT => app.exit(0),
-                _ => {}
+                id => {
+                    if let Some(mount_point) = storage_volume_from_menu_id(id) {
+                        select_storage_volume(app, mount_point);
+                    }
+                }
             }
         })
         .build(app)?;
@@ -1015,6 +1323,16 @@ fn setup_tray(
         _tray
             .with_inner_tray_icon(prevent_macos_tray_image_dimming)
             .expect("failed to apply macOS tray image dimming hook");
+        // Publish only a successfully built menu. Queued refreshes resolve this
+        // handle at execution time, including after second-instance tray recovery.
+        *thermal_runtime
+            .ui
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(TrayUi {
+            status_item: thermal_status_item,
+            autostart_item,
+        });
         macos_diag_log("tray build ok");
     }
 
@@ -1134,6 +1452,7 @@ fn handle_second_instance_launch(
             metrics.show_gpu.store(gpu, Relaxed);
             metrics.show_net.store(net, Relaxed);
             metrics.show_alerts.store(settings.show_alerts, Relaxed);
+            app.state::<StorageDiskState>().lock().selected = settings.storage_volume;
 
             let translations = i18n::detect_language().translations();
             let autostart = macos_autostart::is_enabled();
@@ -1157,6 +1476,39 @@ fn handle_second_instance_launch(
             }
         }
     }
+}
+
+/// Keeps the storage disk menu's volume list up to date on its own thread.
+///
+/// Listing volumes and checking that each one reports its capacity are file
+/// system calls, and on a stale network or FUSE mount they can block for a
+/// long time. Running them here instead of on the monitor thread means a slow
+/// mount can only delay the menu; CPU, memory, GPU, network and storage keep
+/// updating.
+fn start_volume_watcher(app: AppHandle, show_storage: Arc<AtomicBool>) {
+    let poll_interval = Duration::from_millis(get_update_interval_ms());
+    thread::spawn(move || {
+        let mut watcher = storage::VolumeWatcher::new();
+        let mut volumes: Vec<storage::Volume> = Vec::new();
+        let mut ticks: u32 = 0;
+        loop {
+            if show_storage.load(Relaxed) {
+                if ticks.is_multiple_of(VOLUME_REFRESH_TICKS) {
+                    let refreshed = watcher.refresh();
+                    if refreshed != volumes {
+                        volumes = refreshed;
+                        app.state::<StorageDiskState>().lock().volumes = volumes.clone();
+                        request_storage_menu_sync(&app);
+                    }
+                }
+                ticks = ticks.wrapping_add(1);
+            } else {
+                // Re-read volumes as soon as storage is shown again.
+                ticks = 0;
+            }
+            thread::sleep(poll_interval);
+        }
+    });
 }
 
 fn start_monitoring(
@@ -1185,7 +1537,7 @@ fn start_monitoring(
         let mut prev_mem: f32 = -100.0;
         let mut prev_storage_available: Option<String> = None;
         let mut prev_storage_available_bytes: Option<u64> = None;
-        let mut last_storage_sample: Option<storage::StorageSample> = None;
+        let mut storage_sampler = storage::StorageSampler::default();
         let mut prev_gpu: f32 = -100.0;
         let mut prev_down_speed: f64 = -1.0;
         let mut prev_up_speed: f64 = -1.0;
@@ -1209,6 +1561,21 @@ fn start_monitoring(
 
         loop {
             thread::sleep(Duration::from_millis(update_interval));
+
+            #[cfg(target_os = "macos")]
+            {
+                let ui = thermal_runtime.ui.clone();
+                if let Err(e) = app.run_on_main_thread(move || {
+                    let guard = ui.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    if let Some(ui) = guard.as_ref() {
+                        if let Err(e) = macos_autostart::sync_menu(&ui.autostart_item) {
+                            eprintln!("Failed to sync autostart menu: {e}");
+                        }
+                    }
+                }) {
+                    eprintln!("Failed to dispatch autostart menu sync: {e}");
+                }
+            }
 
             let now = std::time::Instant::now();
             let dt = now.duration_since(last_update).as_secs_f64();
@@ -1275,12 +1642,17 @@ fn start_monitoring(
                 0.0
             };
 
-            if full_tick && ss {
-                if let Some(sample) = storage::sample() {
-                    last_storage_sample = Some(sample);
-                }
-            }
-            let storage_sample = if ss { last_storage_sample } else { None };
+            let storage_sample = if ss {
+                let home = storage::home_path_or_root();
+                let storage_path = {
+                    let state = app.state::<StorageDiskState>();
+                    let inner = state.lock();
+                    storage::resolve_sample_path(inner.selected.as_deref(), &inner.volumes, &home)
+                };
+                storage_sampler.poll(&storage_path, full_tick)
+            } else {
+                None
+            };
             let storage_available_str = storage_sample
                 .map(|sample| format_storage_available(sample.available_bytes))
                 .unwrap_or_else(|| "0.0 KB".to_string());
@@ -1532,6 +1904,7 @@ pub fn run() {
             start_theme_detection_thread();
 
             let settings = load_settings(app.handle());
+            app.manage(StorageDiskState::new(settings.storage_volume.clone()));
             let (cpu, mem, storage, gpu, net) =
                 normalize_metric_flags(
                     settings.show_cpu,
@@ -1575,6 +1948,7 @@ pub fn run() {
                 thermal_status,
             )?;
 
+            start_volume_watcher(app.handle().clone(), metrics.show_storage.clone());
             start_monitoring(
                 app.handle().clone(),
                 font,

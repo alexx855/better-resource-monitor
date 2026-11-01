@@ -1,0 +1,59 @@
+{
+  "items": [
+    {
+      "id": "overview",
+      "question": "Czym jest Better Resource Monitor?",
+      "answer": "To darmowa aplikacja typu open source na pasek menu, która pokazuje użycie CPU, pamięci, dysku, GPU i sieci w systemie macOS. Jest napisana w Ruście. Zużywa poniżej 0,1% CPU i około 15 MB RAM."
+    },
+    {
+      "id": "best-fit",
+      "question": "Dla kogo jest Better Resource Monitor?",
+      "answer": "Dla użytkowników Maca, którzy chcą lekkiego, zawsze widocznego podglądu użycia CPU, pamięci, dysku, GPU i sieci na pasku menu, bez próśb o hasło administratora i bez telemetrii. Działa na Macach z procesorami Intel i Apple Silicon z systemem macOS 13 lub nowszym."
+    },
+    {
+      "id": "not-best-fit",
+      "question": "Kto powinien wybrać bardziej rozbudowany monitor systemu?",
+      "answer": "Wybierz Stats lub iStat Menus, jeśli potrzebujesz danych o wentylatorach, temperaturach i baterii, szczegółowej historii czujników lub szerszej kontroli nad sprzętem. Better Resource Monitor celowo skupia się na podstawowych wskaźnikach sprawdzanych na co dzień."
+    },
+    {
+      "id": "macos-support",
+      "question": "Które wersje macOS są obsługiwane?",
+      "answer": "Aplikacja działa na Macach z procesorami Intel i Apple Silicon z systemem macOS Ventura 13 lub nowszym."
+    },
+    {
+      "id": "pricing",
+      "question": "Czy jest darmowy?",
+      "answer": "Tak. Obie dystrybucje są darmowe, objęte licencją MIT i mają te same funkcje monitorowania. Mac App Store aktualizuje aplikację automatycznie; wersję z GitHuba aktualizuje się ręcznie."
+    },
+    {
+      "id": "resource-use",
+      "question": "Ile CPU i pamięci zużywa?",
+      "answer": "Poniżej 0,1% CPU i około 15 MB RAM na Apple M1. Dla porównania Stats zużywa ~50 MB, a iStat Menus ponad 100 MB. Plik aplikacji ma mniej niż 7 MB."
+    },
+    {
+      "id": "gpu-monitoring",
+      "question": "Jak działa monitorowanie GPU?",
+      "answer": "W systemie macOS aplikacja odczytuje wykorzystanie GPU Apple Silicon przez publiczne API IOAccelerator firmy Apple. Dzięki temu monitorowanie GPU działa zarówno w wersji z App Store, jak i z GitHuba, bez prywatnych API i bez sudo."
+    },
+    {
+      "id": "privacy",
+      "question": "Czy zbiera jakiekolwiek dane?",
+      "answer": "Nie. Zero żądań sieciowych, zero analityki, zero telemetrii. Wszystko zostaje na Twoim komputerze. Użycie dysku jest obliczane na podstawie całkowitej i wolnej pojemności wybranego woluminu lokalnego, zgłaszanej przez system. Domyślnie jest to wolumin zawierający folder domowy użytkownika. Wybór dysku wymaga odczytania nazw, punktów montowania i pojemności woluminów lokalnych, w tym dysków zewnętrznych; aplikacja nie odczytuje nazw ani zawartości plików. Kod źródłowy jest na GitHubie, jeśli chcesz to sprawdzić samodzielnie."
+    },
+    {
+      "id": "comparison",
+      "question": "Czy Better Resource Monitor to alternatywa dla Stats lub iStat Menus?",
+      "answer": "Tak, jeśli chcesz prostszego monitora na pasku menu macOS, skupionego na użyciu CPU, pamięci, dysku, GPU i sieci. Stats i iStat Menus sięgają głębiej w czujniki; Eul był podobną lekką opcją, ale nie jest już aktywnie rozwijany. Better Resource Monitor pozostaje lżejszy, darmowy i w pełni dostępny w Mac App Store. Zobacz wszystkie [porównania]({{comparisonUrl}}) albo przejdź od razu do [Stats]({{vsStatsUrl}}), [iStat Menus]({{vsIstatMenusUrl}}) lub [Eul]({{vsEulUrl}})."
+    },
+    {
+      "id": "battery",
+      "question": "Czy rozładowuje baterię MacBooka?",
+      "answer": "Aplikacja jest zaprojektowana z myślą o niskim narzucie, ale wpływ na baterię zależy od Twojego Maca i obciążenia. Odczytuje stan termiczny macOS przez publiczne API; nie pokazuje temperatur poszczególnych czujników ani prędkości wentylatorów."
+    },
+    {
+      "id": "activity-monitor",
+      "question": "Czy Better Resource Monitor to alternatywa dla Monitora aktywności w macOS?",
+      "answer": "To zawsze widoczny pomocnik na pasku menu do szybkiego podglądu użycia CPU, pamięci, dysku, GPU i sieci. Nie zastępuje szczegółowej listy procesów ani pełnoekranowych narzędzi Monitora aktywności; otwórz Monitor aktywności, gdy musisz sprawdzić poszczególne procesy lub nimi zarządzać."
+    }
+  ]
+}

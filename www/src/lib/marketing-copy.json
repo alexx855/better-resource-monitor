@@ -71,6 +71,42 @@
       }
     }
   },
+  "pl": {
+    "meta": {
+      "langTag": "pl",
+      "ogLocale": "pl_PL",
+      "label": "Polski",
+      "language": "Polish"
+    },
+    "screenshotLang": "pl",
+    "screenshots": {
+      "simplicity": "CPU, GPU, pamięć, dysk, sieć\nna pasku menu",
+      "performance": "Zawsze widoczne\nbez klikania",
+      "privacy": "Działa lokalnie\nbez telemetrii"
+    },
+    "ogTitles": {
+      "index": "Monitor na pasku\nmenu macOS",
+      "privacy": "Polityka\nprywatności",
+      "terms": "Regulamin",
+      "vs-stats": "Better Resource Monitor\nvs Stats",
+      "vs-istat-menus": "Better Resource Monitor\nvs iStat Menus",
+      "vs-eul": "Better Resource Monitor\nvs Eul"
+    },
+    "badges": {
+      "appstore": {
+        "topText": "POBIERZ Z",
+        "bottomText": "Apple Store dla Maca"
+      },
+      "macos": {
+        "topText": "POBIERZ Z",
+        "bottomText": "GitHub Releases"
+      },
+      "ubuntu": {
+        "topText": "POBIERZ Z",
+        "bottomText": "GitHub Releases"
+      }
+    }
+  },
   "pt-br": {
     "meta": {
       "langTag": "pt-BR",
