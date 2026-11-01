@@ -108,6 +108,7 @@ const BADGE_SRC_RE = new RegExp(
 const README_BY_LOCALE = {
   en: join(REPO_ROOT, "README.md"),
   es: join(REPO_ROOT, "README.es.md"),
+  pl: join(REPO_ROOT, "README.pl.md"),
   "pt-br": join(REPO_ROOT, "README.pt-br.md"),
   "zh-cn": join(REPO_ROOT, "README.zh-cn.md"),
 };

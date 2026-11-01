@@ -1,0 +1,13 @@
+{
+  "backToHome": "Powrót do strony głównej",
+  "footer": {
+    "internalNavigation": "Linki do stron serwisu w stopce",
+    "externalNavigation": "Linki do zasobów w stopce",
+    "comparison": "Porównania",
+    "privacyPolicy": "Polityka prywatności",
+    "terms": "Regulamin",
+    "license": "Licencja",
+    "support": "Pomoc",
+    "github": "GitHub"
+  }
+}
