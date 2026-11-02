@@ -38,7 +38,7 @@
     {
       "id": "privacy",
       "question": "Does it collect any data?",
-      "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. Storage usage is calculated locally from OS-reported total/free capacity for your main storage volume; no file names, contents, external volumes, or per-volume details are read. The source code is on GitHub if you want to verify that yourself."
+      "answer": "No. Zero network requests, no analytics, no telemetry. Everything stays on your machine. Storage usage comes from OS-reported total/free capacity for the selected local volume, defaulting to the volume containing your home folder. The disk picker reads local volume names, mount points, and capacity, including external disks; it does not read file names or contents. The source code is on GitHub if you want to verify that yourself."
     },
     {
       "id": "comparison",

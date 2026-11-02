@@ -6,7 +6,7 @@ ogImage: "/images/og-privacy-pt-br.png"
 
 # Política de Privacidade
 
-**Última atualização: 29 de outubro de 2026**
+**Última atualização: 30 de outubro de 2026**
 
 ## Visão geral
 
@@ -22,7 +22,7 @@ O Aplicativo opera inteiramente localmente no seu dispositivo. Todas as informa�
 - Nunca transmitidas para servidores externos
 - Nunca armazenadas em nenhum banco de dados externo
 
-O uso de armazenamento é calculado pela capacidade total e livre informada pelo sistema operacional para o volume principal do usuário. O Aplicativo não lê nomes de arquivos, conteúdos de arquivos, volumes externos nem detalhes por volume.
+O uso de armazenamento é calculado pela capacidade total e livre informada pelo sistema operacional para o volume local selecionado; por padrão, o que contém sua pasta de usuário. Para oferecer opções de disco, o Aplicativo lê os nomes, pontos de montagem e capacidade dos volumes locais montados compatíveis, incluindo discos externos. O ponto de montagem escolhido é salvo localmente como preferência. O Aplicativo não lê nomes nem conteúdos de arquivos.
 
 ## Armazenamento de dados
 

@@ -14,6 +14,7 @@
 <p align="center">
   English •
   <a href="README.es.md">Español</a> •
+  <a href="README.pl.md">Polski</a> •
   <a href="README.pt-br.md">Português (Brasil)</a> •
   <a href="README.zh-cn.md">简体中文</a>
 </p>
@@ -69,7 +70,7 @@ If this is useful, star the repo so other Mac users can find it.
 
 With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, or GPU usage reaches **81%**, or when available storage falls below **10 GB**. It returns to normal when the percentage metrics are below 81% and at least 10 GB of storage is available.
 
-Alerts are visual only. Network speed and hidden metrics do not trigger them. The threshold is fixed, but warning colors can be turned off from the tray menu.
+Alerts are visual only. Network speed and hidden metrics do not trigger them. The threshold is fixed, but warning colors can be turned off from the tray menu. The storage alert follows the disk shown in the tray: the startup disk, or another connected disk picked under **Storage disk**.
 
 ## Installation
 

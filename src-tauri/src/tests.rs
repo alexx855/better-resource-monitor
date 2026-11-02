@@ -123,21 +123,48 @@ fn test_cap_percent() {
 }
 
 #[test]
-fn test_should_update_threshold() {
-    for (previous, new, threshold, expected) in [
-        (10.0, 12.0, 2.0, true),
-        (10.0, 8.0, 2.0, true),
-        (10.0, 12.001, 2.0, true),
-        (10.0, 11.9, 2.0, false),
-        (10.0, 9.1, 2.0, false),
-        (10.0, 10.0, 2.0, false),
+fn test_metric_display_update_uses_visibility_threshold_and_alert_state() {
+    for (visible, previous, current, show_alerts, expected) in [
+        (true, 10.0, 12.0, true, true),
+        (true, 10.0, 8.0, true, true),
+        (true, 10.0, 12.001, true, true),
+        (true, 10.0, 11.9, true, false),
+        (true, 10.0, 9.1, true, false),
+        (true, 10.0, 10.0, true, false),
+        // A hidden metric must not force repeated redraws from its initial or old value.
+        (false, -100.0, 0.0, true, false),
+        (false, 60.0, 0.0, true, false),
+        (true, -100.0, 0.0, true, true),
+        // Warning transitions redraw even when the value change is below hysteresis.
+        (true, 80.5, 81.0, true, true),
+        (true, 81.0, 80.5, true, true),
+        (true, 80.5, 81.0, false, false),
+        (true, 81.0, 80.5, false, false),
+        (false, 80.5, 81.0, true, false),
     ] {
         assert_eq!(
-            should_update(previous, new, threshold),
+            metric_display_needs_update(visible, previous, current, show_alerts),
             expected,
-            "previous={previous}, new={new}, threshold={threshold}"
+            "visible={visible}, previous={previous}, current={current}, show_alerts={show_alerts}"
         );
     }
+}
+
+#[test]
+fn test_tray_update_retries_failed_frames_until_applied() {
+    let mut updates = TrayUpdateTracker::default();
+    assert!(!updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(true));
+
+    // Failed frames remain pending even after the sampled values stop changing.
+    assert!(updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(false));
+
+    updates.mark_applied();
+    assert!(!updates.begin_if_needed(false));
+    assert!(updates.begin_if_needed(true));
+    updates.mark_applied();
+    assert!(!updates.begin_if_needed(false));
 }
 
 #[test]
@@ -374,51 +401,476 @@ fn test_unavailable_settings_store_uses_defaults() {
 }
 
 #[test]
-fn test_storage_sample_math() {
+fn test_storage_sample_validates_and_clamps_available_bytes() {
     let sample = storage::sample_from_bytes(1_000, 250).expect("valid sample");
-    assert_eq!(sample.total_bytes, 1_000);
     assert_eq!(sample.available_bytes, 250);
-    assert_eq!(sample.used_percent, 75.0);
 
     assert_eq!(storage::sample_from_bytes(0, 0), None);
+    assert_eq!(storage::sample_from_bytes(0, 1_000), None);
 
     let clamped = storage::sample_from_bytes(1_000, 2_000).expect("clamped sample");
     assert_eq!(clamped.available_bytes, 1_000);
-    assert_eq!(clamped.used_percent, 0.0);
+
+    let full = storage::sample_from_bytes(1_000, 0).expect("full filesystem");
+    assert_eq!(full.available_bytes, 0);
+
+    let huge = storage::sample_from_bytes(u128::MAX, u128::MAX).expect("bounded sample");
+    assert_eq!(huge.available_bytes, u64::MAX);
 }
 
 #[test]
 fn test_storage_block_math() {
     let sample = storage::sample_from_blocks(10, 4, 1024, 512).expect("valid statvfs sample");
-    assert_eq!(sample.total_bytes, 10 * 1024);
     assert_eq!(sample.available_bytes, 4 * 1024);
-    assert_eq!(sample.used_percent, 60.0);
 
     let fallback = storage::sample_from_blocks(10, 4, 0, 512).expect("block size fallback");
-    assert_eq!(fallback.total_bytes, 10 * 512);
     assert_eq!(fallback.available_bytes, 4 * 512);
 
     assert_eq!(storage::sample_from_blocks(10, 4, 0, 0), None);
+    assert_eq!(storage::sample_from_blocks(0, 4, 1024, 512), None);
+
+    let clamped = storage::sample_from_blocks(10, 20, 1024, 512).expect("clamped blocks");
+    assert_eq!(clamped.available_bytes, 10 * 1024);
 
     let huge = storage::sample_from_blocks(u128::MAX, u128::MAX / 2, u128::MAX, 0)
         .expect("huge values saturate");
-    assert_eq!(huge.total_bytes, u64::MAX);
-    assert!(huge.used_percent <= 100.0);
+    assert_eq!(huge.available_bytes, u64::MAX);
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn test_storage_sample_reads_home_filesystem() {
-    let sample = storage::sample().expect("home filesystem storage sample");
-    assert!(sample.total_bytes > 0);
-    assert!(sample.available_bytes <= sample.total_bytes);
-    assert!((0.0..=100.0).contains(&sample.used_percent));
+    storage::sample_at(&storage::home_path_or_root()).expect("home filesystem storage sample");
 }
 
-#[cfg(all(target_os = "macos", feature = "app-store"))]
+fn volume(label: &str, mount_point: &str) -> storage::Volume {
+    storage::Volume {
+        label: label.to_string(),
+        mount_point: PathBuf::from(mount_point),
+    }
+}
+
+fn selectable(
+    raw: &[(&str, &str)],
+    home: &str,
+    layout: storage::MountLayout,
+) -> Vec<storage::Volume> {
+    storage::selectable_volumes(
+        raw.iter()
+            .map(|(name, mount)| (std::ffi::OsStr::new(*name), Path::new(*mount))),
+        Path::new(home),
+        layout,
+    )
+}
+
 #[test]
-fn test_app_store_feature_uses_macos_gpu_sampler() {
-    assert_eq!(crate::gpu::IMPLEMENTATION, "macos_ioaccelerator");
+fn test_selectable_mount_points_per_layout() {
+    use storage::MountLayout::{Linux, MacOs};
+    let cases = [
+        ("/Volumes/Backup", MacOs, true),
+        ("/Volumes/My Passport", MacOs, true),
+        ("/Volumes", MacOs, false),
+        ("/", MacOs, false),
+        ("/System/Volumes/Data", MacOs, false),
+        ("/System/Volumes/VM", MacOs, false),
+        ("/VolumesBackup", MacOs, false),
+        ("/", Linux, true),
+        ("/home", Linux, true),
+        ("/mnt/data", Linux, true),
+        ("/media/adam/USB", Linux, true),
+        ("/run/media/adam/USB", Linux, true),
+        ("/boot", Linux, false),
+        ("/boot/efi", Linux, false),
+        ("/efi", Linux, false),
+        ("/snap/core22/1380", Linux, false),
+        ("/var/snap/lxd/common", Linux, false),
+        ("relative/path", Linux, false),
+    ];
+    for (mount_point, layout, expected) in cases {
+        assert_eq!(
+            storage::is_selectable_mount_point(Path::new(mount_point), layout),
+            expected,
+            "mount_point={mount_point} layout={layout:?}"
+        );
+    }
+}
+
+#[test]
+fn test_mount_point_containing_picks_the_deepest_mount() {
+    let mounts = [
+        Path::new("/"),
+        Path::new("/home"),
+        Path::new("/home/adam/data"),
+    ];
+    let containing = |path: &str| storage::mount_point_containing(Path::new(path), mounts);
+    assert_eq!(containing("/home/adam"), Some(Path::new("/home")));
+    assert_eq!(
+        containing("/home/adam/data/x"),
+        Some(Path::new("/home/adam/data"))
+    );
+    assert_eq!(containing("/etc"), Some(Path::new("/")));
+    // Path::starts_with compares whole components, so /homework is not /home.
+    assert_eq!(containing("/homework"), Some(Path::new("/")));
+    assert_eq!(storage::mount_point_containing(Path::new("/x"), []), None);
+}
+
+#[test]
+fn test_selectable_volumes_on_macos() {
+    let volumes = selectable(
+        &[
+            ("Macintosh HD", "/"),
+            ("Macintosh HD - Data", "/System/Volumes/Data"),
+            ("Untitled", "/Volumes/Untitled"),
+            ("backup", "/Volumes/backup"),
+            ("Untitled", "/Volumes/Untitled 1"),
+            ("Photos", "/Volumes/Photos"),
+            ("Photos", "/Volumes/Photos"),
+        ],
+        "/Users/adam",
+        storage::MountLayout::MacOs,
+    );
+
+    assert_eq!(
+        volumes,
+        vec![
+            volume("backup", "/Volumes/backup"),
+            volume("Photos", "/Volumes/Photos"),
+            // Same name twice: told apart by the mount point macOS picked.
+            volume("Untitled", "/Volumes/Untitled"),
+            volume("Untitled 1", "/Volumes/Untitled 1"),
+        ]
+    );
+}
+
+#[test]
+fn test_selectable_volumes_on_linux() {
+    let volumes = selectable(
+        &[
+            ("/dev/nvme0n1p2", "/"),
+            ("/dev/nvme0n1p3", "/home"),
+            ("/dev/nvme0n1p1", "/boot/efi"),
+            ("/dev/loop3", "/snap/core22/1380"),
+            ("/dev/sdb1", "/media/adam/USB"),
+            ("", "/mnt/scratch"),
+        ],
+        "/home/adam",
+        storage::MountLayout::Linux,
+    );
+
+    // /home holds the home folder, so "Startup disk" already covers it.
+    assert_eq!(
+        volumes,
+        vec![
+            volume("/", "/"),
+            volume("scratch", "/mnt/scratch"),
+            volume("USB", "/media/adam/USB"),
+        ]
+    );
+}
+
+#[test]
+fn test_network_file_systems_are_not_offered() {
+    use std::ffi::OsStr;
+
+    // Checking capacity on these can block for minutes when the server is gone.
+    for file_system in [
+        "nfs",
+        "nfs4",
+        "cifs",
+        "smb3",
+        "9p",
+        "ceph",
+        "afpfs",
+        "webdav",
+        "fuse.sshfs",
+        "fuse.rclone",
+        "fuse.gvfsd-fuse",
+        "fuse.ceph-fuse",
+        "fuse.juicefs",
+        "FUSE.SSHFS",
+    ] {
+        assert!(
+            storage::is_network_file_system(OsStr::new(file_system)),
+            "{file_system} should count as a network file system"
+        );
+    }
+
+    // Local disks, including FUSE ones such as NTFS drives and mergerfs pools,
+    // stay in the menu.
+    for file_system in [
+        "ext4",
+        "btrfs",
+        "xfs",
+        "vfat",
+        "exfat",
+        "apfs",
+        "hfs",
+        "fuseblk",
+        "fuse.mergerfs",
+        "fuse.gocryptfs",
+        "",
+    ] {
+        assert!(
+            !storage::is_network_file_system(OsStr::new(file_system)),
+            "{file_system:?} should count as a local file system"
+        );
+    }
+}
+
+#[test]
+fn test_resolve_sample_path_falls_back_to_home() {
+    let home = Path::new("/Users/adam");
+    let volumes = [volume("Backup", "/Volumes/Backup")];
+
+    assert_eq!(storage::resolve_sample_path(None, &volumes, home), home);
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Backup")), &volumes, home),
+        Path::new("/Volumes/Backup")
+    );
+    // Unplugged: show the home folder's disk until it comes back.
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Gone")), &volumes, home),
+        home
+    );
+    assert_eq!(
+        storage::resolve_sample_path(Some(Path::new("/Volumes/Backup")), &[], home),
+        home
+    );
+}
+
+#[test]
+fn test_label_for_mount_point() {
+    assert_eq!(
+        storage::label_for_mount_point(Path::new("/Volumes/Backup")),
+        "Backup"
+    );
+    assert_eq!(storage::label_for_mount_point(Path::new("/")), "/");
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[test]
+fn test_volume_watcher_lists_mounted_volumes() {
+    let mut watcher = storage::VolumeWatcher::new();
+    let volumes = watcher.refresh();
+
+    for volume in &volumes {
+        assert!(volume.mount_point.is_absolute(), "{volume:?}");
+        assert!(!volume.label.is_empty(), "{volume:?}");
+        assert!(
+            storage::is_selectable_mount_point(&volume.mount_point, storage::CURRENT_MOUNT_LAYOUT),
+            "{volume:?}"
+        );
+        assert!(
+            storage::sample_at(&volume.mount_point).is_some(),
+            "listed volume can be sampled: {volume:?}"
+        );
+    }
+    // A second refresh with nothing plugged in or out gives the same list.
+    assert_eq!(watcher.refresh(), volumes);
+}
+
+#[test]
+fn test_storage_sampler_rejects_previous_disk_and_failed_reads() {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    let mut sampler = storage::StorageSampler::default();
+    let disk_a = Path::new("/Volumes/A");
+    let disk_b = Path::new("/Volumes/B");
+    let sample_a = storage::sample_from_bytes(1_000, 250).unwrap();
+    let (release_a, blocked_a) = mpsc::channel();
+    assert_eq!(
+        sampler.poll_with(disk_a, true, move |_| {
+            blocked_a.recv().unwrap();
+            Some(sample_a)
+        }),
+        None
+    );
+    // A blocked read must neither block polling nor start duplicate workers.
+    let (duplicate, duplicates) = mpsc::channel();
+    for _ in 0..10 {
+        let duplicate = duplicate.clone();
+        assert_eq!(
+            sampler.poll_with(disk_a, true, move |_| {
+                duplicate.send(()).unwrap();
+                None
+            }),
+            None
+        );
+    }
+    assert_eq!(
+        duplicates.recv_timeout(Duration::from_millis(100)),
+        Err(mpsc::RecvTimeoutError::Timeout)
+    );
+    assert_eq!(sampler.poll_with(disk_b, true, |_| None), None);
+    release_a.send(()).unwrap();
+    // A's late result must never appear while B is selected.
+    let deadline = Instant::now() + Duration::from_millis(100);
+    while Instant::now() < deadline {
+        assert_eq!(sampler.poll_with(disk_b, false, |_| None), None);
+        std::thread::yield_now();
+    }
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        if sampler.poll_with(disk_a, false, move |_| Some(sample_a)) == Some(sample_a) {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "background disk read did not complete"
+        );
+        std::thread::yield_now();
+    }
+    // Even after A was displayed successfully, a failing B clears its value.
+    assert_eq!(sampler.poll_with(disk_b, false, |_| None), None);
+}
+
+#[test]
+fn test_storage_sampler_can_switch_away_from_a_blocked_disk() {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    let mut sampler = storage::StorageSampler::default();
+    let (release, blocked) = mpsc::channel();
+    let stuck = Path::new("/Volumes/Stuck");
+    let home = Path::new("/home/test");
+    let sample = storage::sample_from_bytes(10_000, 8_000).unwrap();
+    sampler.poll_with(stuck, true, move |_| {
+        blocked.recv().unwrap();
+        None
+    });
+    assert_eq!(sampler.poll_with(home, true, move |_| Some(sample)), None);
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        if sampler.poll_with(home, false, |_| panic!("unexpected read")) == Some(sample) {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "healthy disk was blocked by old disk"
+        );
+        std::thread::yield_now();
+    }
+    release.send(()).unwrap();
+}
+
+#[test]
+fn test_storage_volume_menu_ids_round_trip() {
+    assert_eq!(
+        storage_volume_from_menu_id(STORAGE_VOLUME_STARTUP_ID),
+        Some(None)
+    );
+    let id = storage_volume_menu_id(Path::new("/Volumes/My Passport"));
+    assert_eq!(id, "storage_volume:/Volumes/My Passport");
+    assert_eq!(
+        storage_volume_from_menu_id(&id),
+        Some(Some(PathBuf::from("/Volumes/My Passport")))
+    );
+    assert_eq!(storage_volume_from_menu_id(menu_id::SHOW_STORAGE), None);
+    assert_eq!(storage_volume_from_menu_id(menu_id::QUIT), None);
+    assert_eq!(storage_volume_from_menu_id("storage_volume:relative"), None);
+}
+
+#[test]
+fn test_storage_menu_entries() {
+    let t = i18n::Language::English.translations();
+    let volumes = [
+        volume("Backup", "/Volumes/Backup"),
+        volume("Photos", "/Volumes/Photos"),
+    ];
+    let entry = |id: &str, label: &str, checked: bool, enabled: bool| StorageMenuEntry {
+        id: id.to_string(),
+        label: label.to_string(),
+        checked,
+        enabled,
+    };
+
+    // Hidden while storage is off, and when the startup disk is the only choice.
+    assert!(storage_menu_entries(false, &volumes, None, t).is_empty());
+    assert!(storage_menu_entries(true, &[], None, t).is_empty());
+
+    assert_eq!(
+        storage_menu_entries(true, &volumes, None, t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", true, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry("storage_volume:/Volumes/Photos", "Photos", false, true),
+        ]
+    );
+
+    assert_eq!(
+        storage_menu_entries(true, &volumes, Some(Path::new("/Volumes/Photos")), t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", false, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry("storage_volume:/Volumes/Photos", "Photos", true, true),
+        ]
+    );
+
+    // An unplugged choice stays listed and greyed out, and the check mark
+    // moves to the startup disk the tray falls back to.
+    assert_eq!(
+        storage_menu_entries(true, &volumes[..1], Some(Path::new("/Volumes/Photos")), t),
+        vec![
+            entry(STORAGE_VOLUME_STARTUP_ID, "Startup disk", true, true),
+            entry("storage_volume:/Volumes/Backup", "Backup", false, true),
+            entry(
+                "storage_volume:/Volumes/Photos",
+                "Photos (not connected)",
+                false,
+                false
+            ),
+        ]
+    );
+    assert_eq!(
+        storage_menu_entries(true, &[], Some(Path::new("/Volumes/Photos")), t).len(),
+        2,
+        "an unplugged choice keeps the submenu visible so it can be cleared"
+    );
+}
+
+#[test]
+fn test_storage_disk_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            ["Storage disk", "Startup disk", "not connected"],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Disco de almacenamiento",
+                "Disco de arranque",
+                "no conectado",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Disco de armazenamento",
+                "Disco de inicialização",
+                "não conectado",
+            ],
+        ),
+        (i18n::Language::Chinese, ["存储磁盘", "启动磁盘", "未连接"]),
+        (
+            i18n::Language::Polish,
+            ["Dysk", "Dysk startowy", "niepodłączony"],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let t = language.translations();
+        assert_eq!(
+            [
+                t.storage_disk,
+                t.storage_disk_startup,
+                t.storage_disk_not_connected
+            ],
+            expected,
+            "language={language:?}"
+        );
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -651,33 +1103,59 @@ fn test_alert_colors_all_segments() {
     let mut buffer: Vec<u8> = Vec::new();
     let mut renderer = tray_render::TrayRenderer::new();
 
-    for (cpu_usage, show_alerts, expected_alert) in [
-        (50.0, true, false),
-        (80.0, true, false),
-        (81.0, true, true),
-        (81.0, false, false),
+    let assert_alert_pixels = |buffer: &[u8], expected_alert: bool| {
+        let (background, foreground) = if expected_alert {
+            ([209, 71, 21, 255], [255, 255, 255, 255])
+        } else {
+            ([0, 0, 0, 0], [0, 0, 0, 255])
+        };
+        assert_eq!(&buffer[..4], &background);
+        assert!(buffer.as_chunks::<4>().0.contains(&foreground));
+    };
+
+    for (show_cpu, show_mem, show_gpu) in [
+        (true, false, false),
+        (false, true, false),
+        (false, false, true),
     ] {
-        let (_, _, has_alert) = renderer.render_tray_icon_into(
-            &font,
-            &mut buffer,
-            &tray_render::RenderConfig {
-                cpu_usage,
-                show_alerts,
-                ..base_render_config()
-            },
-        );
-        assert_eq!(
-            has_alert, expected_alert,
-            "cpu_usage={cpu_usage}, show_alerts={show_alerts}"
-        );
+        for (usage, visible, show_alerts, expected_alert) in [
+            (50.0, true, true, false),
+            (80.0, true, true, false),
+            (81.0, true, true, true),
+            (81.0, true, false, false),
+            (81.0, false, true, false),
+        ] {
+            let (_, _, has_alert) = renderer.render_tray_icon_into(
+                &font,
+                &mut buffer,
+                &tray_render::RenderConfig {
+                    cpu_usage: usage,
+                    mem_percent: usage,
+                    gpu_usage: usage,
+                    show_cpu: show_cpu && visible,
+                    show_mem: show_mem && visible,
+                    show_gpu: show_gpu && visible,
+                    show_net: true,
+                    show_alerts,
+                    use_light_icons: false,
+                    ..base_render_config()
+                },
+            );
+            assert_eq!(
+                has_alert, expected_alert,
+                "show_cpu={show_cpu}, show_mem={show_mem}, show_gpu={show_gpu}, usage={usage}, visible={visible}, show_alerts={show_alerts}"
+            );
+            assert_alert_pixels(&buffer, expected_alert);
+        }
     }
 
-    for (storage_available_bytes, show_alerts, expected_alert) in [
-        (Some(10_000_000_001), true, false),
-        (Some(10_000_000_000), true, false),
-        (Some(9_999_999_999), true, true),
-        (Some(9_999_999_999), false, false),
-        (None, true, false),
+    for (storage_available_bytes, show_storage, show_alerts, expected_alert) in [
+        (Some(10_000_000_001), true, true, false),
+        (Some(10_000_000_000), true, true, false),
+        (Some(9_999_999_999), true, true, true),
+        (Some(9_999_999_999), true, false, false),
+        (Some(9_999_999_999), false, true, false),
+        (None, true, true, false),
     ] {
         let (_, _, has_alert) = renderer.render_tray_icon_into(
             &font,
@@ -688,15 +1166,18 @@ fn test_alert_colors_all_segments() {
                 storage_available_bytes,
                 show_cpu: false,
                 show_mem: false,
-                show_storage: true,
+                show_storage,
+                show_net: true,
                 show_alerts,
+                use_light_icons: false,
                 ..base_render_config()
             },
         );
         assert_eq!(
             has_alert, expected_alert,
-            "storage_available_bytes={storage_available_bytes:?}, show_alerts={show_alerts}"
+            "storage_available_bytes={storage_available_bytes:?}, show_storage={show_storage}, show_alerts={show_alerts}"
         );
+        assert_alert_pixels(&buffer, expected_alert);
     }
 }
 
@@ -1001,15 +1482,62 @@ fn test_render_buffer_matches_rgba_dimensions() {
 }
 
 #[test]
-fn test_metric_icon_order() {
+fn test_rendered_metric_order_is_memory_cpu_gpu_storage() {
+    let font = load_system_font().expect("test font required");
+    let mut renderer = tray_render::TrayRenderer::new();
+    let config = tray_render::RenderConfig {
+        mem_percent: 23.0,
+        cpu_usage: 45.0,
+        gpu_usage: 67.0,
+        storage_available_str: "19.5 GB",
+        show_mem: true,
+        show_cpu: true,
+        show_gpu: true,
+        show_storage: true,
+        ..base_render_config()
+    };
+    let mut combined = Vec::new();
+    let (combined_width, height, _) = renderer.render_tray_icon_into(&font, &mut combined, &config);
+    let mut segment = Vec::new();
+    let mut segment_left = APP_SIZING.edge_padding;
+
+    for (show_mem, show_cpu, show_gpu, show_storage) in [
+        (true, false, false, false),
+        (false, true, false, false),
+        (false, false, true, false),
+        (false, false, false, true),
+    ] {
+        let (width, segment_height, _) = renderer.render_tray_icon_into(
+            &font,
+            &mut segment,
+            &tray_render::RenderConfig {
+                show_mem,
+                show_cpu,
+                show_gpu,
+                show_storage,
+                ..config
+            },
+        );
+        assert_eq!(segment_height, height);
+        let segment_width = width - APP_SIZING.edge_padding * 2;
+        for y in 0..height {
+            let combined_start = ((y * combined_width + segment_left) * 4) as usize;
+            let segment_start = ((y * width + APP_SIZING.edge_padding) * 4) as usize;
+            // Cached icons have exact pixels at every offset. Text layout uses
+            // floating point positions whose rounding can vary with the offset.
+            let row_bytes = APP_SIZING.icon_height as usize * 4;
+            assert_eq!(
+                &combined[combined_start..combined_start + row_bytes],
+                &segment[segment_start..segment_start + row_bytes],
+                "metric at x={segment_left}, row={y}"
+            );
+        }
+        segment_left += segment_width + APP_SIZING.segment_gap;
+    }
+
     assert_eq!(
-        tray_render::metric_icon_order_for_tests(),
-        [
-            tray_render::IconType::Memory,
-            tray_render::IconType::Cpu,
-            tray_render::IconType::Gpu,
-            tray_render::IconType::Storage,
-        ]
+        segment_left - APP_SIZING.segment_gap + APP_SIZING.edge_padding,
+        combined_width
     );
 }
 
@@ -1027,6 +1555,9 @@ fn test_detect_language_from_locales_recognizes_supported_tags() {
         (&["ES_mx"][..], i18n::Language::Spanish),
         (&["pt-BR"][..], i18n::Language::Portuguese),
         (&["zh-Hans"][..], i18n::Language::Chinese),
+        (&["pl-PL"][..], i18n::Language::Polish),
+        (&["pl"][..], i18n::Language::Polish),
+        (&["PL_pl"][..], i18n::Language::Polish),
         (&["en-US"][..], i18n::Language::English),
     ] {
         assert_eq!(
@@ -1042,6 +1573,7 @@ fn test_detect_language_from_locales_uses_preference_order() {
     for (locales, expected) in [
         (&["fr-FR", "es-ES"][..], i18n::Language::Spanish),
         (&["en-US", "es-ES"][..], i18n::Language::English),
+        (&["de-DE", "pl-PL", "en-US"][..], i18n::Language::Polish),
         (&["fr-FR", "de-DE", ""][..], i18n::Language::English),
     ] {
         assert_eq!(
@@ -1049,34 +1581,6 @@ fn test_detect_language_from_locales_uses_preference_order() {
             expected,
             "locales={locales:?}"
         );
-    }
-}
-
-#[test]
-fn test_all_languages_have_translations() {
-    let languages = [
-        i18n::Language::English,
-        i18n::Language::Spanish,
-        i18n::Language::Portuguese,
-        i18n::Language::Chinese,
-    ];
-    for lang in languages {
-        let t = lang.translations();
-        assert!(!t.start_at_login.is_empty());
-        assert!(!t.show_memory.is_empty());
-        assert!(!t.show_cpu.is_empty());
-        assert!(!t.show_storage.is_empty());
-        assert!(!t.show_gpu.is_empty());
-        assert!(!t.show_network.is_empty());
-        assert!(!t.show_alert_colors.is_empty());
-        assert!(!t.quit.is_empty());
-        assert!(!t.system_monitor.is_empty());
-        assert!(!t.thermal_status.is_empty());
-        assert!(!t.thermal_unavailable.is_empty());
-        assert!(!t.thermal_nominal.is_empty());
-        assert!(!t.thermal_fair.is_empty());
-        assert!(!t.thermal_serious.is_empty());
-        assert!(!t.thermal_critical.is_empty());
     }
 }
 
@@ -1139,6 +1643,20 @@ fn test_menu_translations_match_supported_locales() {
                 "系统监控器",
             ],
         ),
+        (
+            i18n::Language::Polish,
+            [
+                "Uruchamiaj po zalogowaniu",
+                "Pokaż pamięć",
+                "Pokaż CPU",
+                "Pokaż dysk",
+                "Pokaż GPU",
+                "Pokaż sieć",
+                "Pokaż kolory ostrzeżeń",
+                "Zakończ",
+                "Monitor systemu",
+            ],
+        ),
     ];
 
     for (language, expected) in expected {
@@ -1199,6 +1717,17 @@ fn test_thermal_translations_match_supported_locales() {
             i18n::Language::Chinese,
             ["温度状态", "不可用", "正常", "偏高", "高", "危急"],
         ),
+        (
+            i18n::Language::Polish,
+            [
+                "Stan termiczny",
+                "niedostępny",
+                "normalny",
+                "podwyższony",
+                "wysoki",
+                "krytyczny",
+            ],
+        ),
     ];
 
     for (language, expected) in expected {
@@ -1214,22 +1743,6 @@ fn test_thermal_translations_match_supported_locales() {
 
         assert_eq!(actual, expected, "language={language:?}");
     }
-}
-
-#[test]
-fn test_english_defaults() {
-    let t = i18n::Language::English.translations();
-    assert_eq!(t.quit, "Quit");
-    assert_eq!(t.start_at_login, "Start at login");
-    assert_eq!(t.show_memory, "Show memory");
-    assert_eq!(t.show_cpu, "Show CPU");
-    assert_eq!(t.show_storage, "Show storage");
-    assert_eq!(t.show_gpu, "Show GPU");
-    assert_eq!(t.show_network, "Show network");
-    assert_eq!(t.show_alert_colors, "Show warning colors");
-    assert_eq!(t.system_monitor, "System monitor");
-    assert_eq!(t.thermal_status, "Thermal status");
-    assert_eq!(t.thermal_unavailable, "unavailable");
 }
 
 #[cfg(target_os = "macos")]
@@ -1276,6 +1789,16 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
                 "温度状态: 不可用",
             ],
         ),
+        (
+            i18n::Language::Polish,
+            [
+                "Stan termiczny: normalny",
+                "Stan termiczny: podwyższony",
+                "Stan termiczny: wysoki",
+                "Stan termiczny: krytyczny",
+                "Stan termiczny: niedostępny",
+            ],
+        ),
     ];
 
     for (language, expected) in expected {
@@ -1290,4 +1813,96 @@ fn test_thermal_menu_status_text_is_localized_for_every_locale() {
 
         assert_eq!(actual, expected, "language={language:?}");
     }
+}
+
+#[test]
+fn network_speed_ignores_loopback_tunnels_and_virtual_bridges() {
+    for name in [
+        "lo",
+        "lo0",
+        "utun0",
+        "utun12",
+        "tun0",
+        "tap1",
+        "wg0",
+        "ipsec0",
+        "gif0",
+        "stf0",
+        "tailscale0",
+        "docker0",
+        "docker_gwbridge",
+        "podman0",
+        "podman12",
+        "br-3f2a9c1d4e5b",
+        "veth12ab34c",
+        "virbr0",
+        "vmnet8",
+        "vmenet0",
+        "vboxnet0",
+        "bridge100",
+        "bridge101",
+        "Loopback Pseudo-Interface 1",
+    ] {
+        assert!(
+            !counts_toward_network_speed(name),
+            "{name} should be excluded"
+        );
+    }
+}
+
+#[test]
+fn network_speed_keeps_physical_and_peer_to_peer_links() {
+    for name in [
+        "en0",
+        "en7",
+        "eth0",
+        "enp3s0",
+        "wlan0",
+        "wlp2s0",
+        "bridge0",
+        "awdl0",
+        "llw0",
+        "ap1",
+        "anpi0",
+        "ppp0",
+        "Wi-Fi",
+        "Ethernet",
+        "lowpan0",
+        "tunnel-like",
+        "wgx",
+        "podman-like",
+        "docker_gwbridge-uplink",
+        "vmenet-uplink",
+    ] {
+        assert!(
+            counts_toward_network_speed(name),
+            "{name} should be counted"
+        );
+    }
+}
+
+#[test]
+fn network_totals_skip_excluded_interfaces() {
+    let interfaces = [
+        ("lo0", 19_000_000_000, 19_000_000_000),
+        ("en0", 5_000, 700),
+        ("utun4", 4_000, 600),
+        ("en5", 250, 50),
+        ("bridge100", 1_000, 1_000),
+        ("vmenet0", 2_000, 2_000),
+        ("docker_gwbridge", 3_000, 3_000),
+        ("podman0", 4_000, 4_000),
+    ];
+    assert_eq!(sum_interface_totals(interfaces), (5_250, 750));
+}
+
+#[test]
+fn network_totals_saturate_instead_of_overflowing() {
+    let interfaces = [("en0", u64::MAX, 1), ("en1", 10, u64::MAX)];
+    assert_eq!(sum_interface_totals(interfaces), (u64::MAX, u64::MAX));
+}
+
+#[test]
+fn network_totals_are_zero_with_only_loopback() {
+    assert_eq!(sum_interface_totals([("lo0", 123, 456)]), (0, 0));
 }

@@ -149,50 +149,19 @@ jobs:
             --body "Automated version bump for v$NEW_VERSION.")"
           PR_NUMBER="$(gh pr view "$PR_URL" --json number -q '.number')"
           PR_HEAD_SHA="$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')"
-          existing_ci_run_ids="$(gh run list \
-            --workflow ci.yml \
-            --event workflow_dispatch \
-            --limit 100 \
-            --json databaseId \
-            --jq '.[].databaseId')"
-
-          gh workflow run ci.yml --ref "$RELEASE_BRANCH"
-
-          wait_for_new_run() {
-            local workflow="$1"
-            local existing_ids="$2"
-            local label="$3"
-
-            for _ in {1..60}; do
-              mapfile -t run_ids < <(gh run list \
-                --workflow "$workflow" \
-                --event workflow_dispatch \
-                --limit 100 \
-                --json databaseId \
-                --jq '.[].databaseId' \
-                | while IFS= read -r candidate; do
-                    if ! grep -Fqx "$candidate" <<< "$existing_ids"; then
-                      echo "$candidate"
-                    fi
-                  done)
-
-              if [ "${#run_ids[@]}" -gt 1 ]; then
-                echo "Error: multiple $label runs matched the release PR dispatch window." >&2
-                return 1
-              fi
-              if [ "${#run_ids[@]}" -eq 1 ]; then
-                echo "${run_ids[0]}"
-                return 0
-              fi
-
-              sleep 5
-            done
-
-            echo "Error: timed out waiting for $label workflow dispatch for PR #$PR_NUMBER." >&2
-            return 1
-          }
-
-          ci_run_id="$(wait_for_new_run ci.yml "$existing_ci_run_ids" CI)"
+          ci_run_id="$(gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            -f "ref=$RELEASE_BRANCH" \
+            --jq '.workflow_run_id')"
+          case "$ci_run_id" in
+            ''|*[!0-9]*)
+              echo "Error: CI dispatch did not return a numeric run ID" >&2
+              exit 1
+              ;;
+          esac
 
           gh run watch "$ci_run_id" --exit-status
 
