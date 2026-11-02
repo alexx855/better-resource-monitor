@@ -36,6 +36,10 @@ font-kit = "0.14"
 resvg = { version = "0.48", default-features = false }
 sys-locale = "0.3"
 
+[dev-dependencies]
+tauri = { version = "2", default-features = false, features = ["test"] }
+tempfile = "3"
+
 [features]
 default = []
 app-store = []
