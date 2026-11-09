@@ -1191,7 +1191,8 @@ fn test_storage_alert_uses_available_space_instead_of_percentage() {
         ("100 GB", Some(100_000_000_000), false),
         ("10.0 GB", Some(10_000_000_000), false),
         ("9.9 GB", Some(9_900_000_000), true),
-        ("0.0 KB", None, false),
+        (STORAGE_PENDING_LABEL, None, false),
+        ("0.0 KB", Some(0), true),
     ] {
         let (_, _, has_alert) = renderer.render_tray_icon_into(
             &font,
@@ -1359,8 +1360,21 @@ fn test_render_all_default_visible_metrics_width() {
 fn test_storage_visual_geometry_matches_network_and_fits_extremes() {
     let font = load_system_font().expect("test font required");
     let labels = [
-        "0.0 KB", "999 KB", "1.0 MB", "999 MB", "1.0 GB", "<10 GB", "38.7 GB", "999 GB", "1.0 TB",
-        "999 TB", "1.0 PB", "999 PB", "1.0 EB", "18.4 EB",
+        STORAGE_PENDING_LABEL,
+        "0.0 KB",
+        "999 KB",
+        "1.0 MB",
+        "999 MB",
+        "1.0 GB",
+        "<10 GB",
+        "38.7 GB",
+        "999 GB",
+        "1.0 TB",
+        "999 TB",
+        "1.0 PB",
+        "999 PB",
+        "1.0 EB",
+        "18.4 EB",
     ];
 
     for sizing in [tray_render::SIZING_MACOS, tray_render::SIZING_LINUX] {

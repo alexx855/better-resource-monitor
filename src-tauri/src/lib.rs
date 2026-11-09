@@ -9,9 +9,9 @@ pub mod tray_render;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use font_kit::family_name::FamilyName;
 use font_kit::handle::Handle;
@@ -266,6 +266,9 @@ fn save_storage_volume(app: &AppHandle, mount_point: Option<&Path>) {
 }
 
 const UPDATE_INTERVAL_MS: u64 = 2000;
+const STORAGE_PENDING_LABEL: &str = "—";
+const STORAGE_SWITCH_POLL_INTERVAL: Duration = Duration::from_millis(250);
+const STORAGE_SWITCH_POLL_WINDOW: Duration = Duration::from_secs(8);
 /// How many update intervals pass between re-reading the mounted volumes, so
 /// a drive that is plugged in shows up in the menu within about 10 seconds.
 const VOLUME_REFRESH_TICKS: u32 = 5;
@@ -839,6 +842,7 @@ fn storage_menu_entries(
 /// and the monitor thread. Kept in Tauri's managed state.
 struct StorageDiskState {
     inner: Mutex<StorageDiskInner>,
+    selection_changed: mpsc::SyncSender<()>,
 }
 
 struct StorageDiskInner {
@@ -852,13 +856,14 @@ struct StorageDiskInner {
 }
 
 impl StorageDiskState {
-    fn new(selected: Option<PathBuf>) -> Self {
+    fn new(selected: Option<PathBuf>, selection_changed: mpsc::SyncSender<()>) -> Self {
         Self {
             inner: Mutex::new(StorageDiskInner {
                 selected,
                 volumes: Vec::new(),
                 menu: None,
             }),
+            selection_changed,
         }
     }
 
@@ -965,7 +970,15 @@ fn request_storage_menu_sync(app: &AppHandle) {
 /// Handles a click on a storage disk submenu item.
 fn select_storage_volume(app: &AppHandle, mount_point: Option<PathBuf>) {
     save_storage_volume(app, mount_point.as_deref());
-    app.state::<StorageDiskState>().lock().selected = mount_point;
+    let state = app.state::<StorageDiskState>();
+    {
+        let mut inner = state.lock();
+        if inner.selected != mount_point {
+            inner.selected = mount_point;
+            // A queued notification also covers any newer choice in shared state.
+            let _ = state.selection_changed.try_send(());
+        }
+    }
     request_storage_menu_sync(app);
 }
 
@@ -1211,7 +1224,7 @@ fn setup_tray(
             sizing: APP_SIZING,
             cpu_usage: 0.0,
             mem_percent: 0.0,
-            storage_available_str: "0.0 KB",
+            storage_available_str: STORAGE_PENDING_LABEL,
             storage_available_bytes: None,
             gpu_usage: 0.0,
             down_str: "0 KB",
@@ -1544,6 +1557,7 @@ fn start_monitoring(
     app: AppHandle,
     font: Font<'static>,
     metrics: MetricToggles,
+    storage_selection_changed: mpsc::Receiver<()>,
     mut gpu_sampler: Option<GpuSampler>,
     #[cfg(target_os = "macos")] thermal_runtime: ThermalRuntime,
     #[cfg(target_os = "macos")] translations: &'static i18n::Translations,
@@ -1559,7 +1573,9 @@ fn start_monitoring(
         // Initialize network counters from current values to avoid spike on first iteration
         let (mut prev_rx, mut prev_tx) = sum_network_totals(&networks);
         let mut gpu_usage: f32 = 0.0;
-        let mut last_update = std::time::Instant::now();
+        let mut last_update = Instant::now();
+        let mut network_speeds = (0.0, 0.0);
+        let mut net_was_enabled = false;
 
         // Track previous values for hysteresis-based updates (prevents compositor leak on Linux)
         let mut prev_cpu: f32 = -100.0; // Force initial update
@@ -1578,7 +1594,9 @@ fn start_monitoring(
         let mut thermal_last_sample: Option<std::time::Instant> = None;
         #[cfg(target_os = "macos")]
         let mut prev_thermal_status = thermal_tracker.displayed();
-        let update_interval = get_update_interval_ms();
+        let update_interval = Duration::from_millis(get_update_interval_ms());
+        let mut next_update = last_update + update_interval;
+        let mut storage_poll_until: Option<Instant> = None;
         let mut tick_count: u32 = 0;
 
         // Reusable buffer owned by monitoring thread - prevents compositor resource
@@ -1589,10 +1607,33 @@ fn start_monitoring(
         let mut tray_updates = TrayUpdateTracker::default();
 
         loop {
-            thread::sleep(Duration::from_millis(update_interval));
+            let now = Instant::now();
+            let wait = next_update.saturating_duration_since(now);
+            // During a switch, check for the worker result between regular
+            // ticks without refreshing the other metrics.
+            let wait = if let Some(until) = storage_poll_until {
+                wait.min(STORAGE_SWITCH_POLL_INTERVAL)
+                    .min(until.saturating_duration_since(now))
+            } else {
+                wait
+            };
+            let selection_changed = match storage_selection_changed.recv_timeout(wait) {
+                Ok(()) => true,
+                Err(mpsc::RecvTimeoutError::Timeout) => false,
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            };
+            let now = Instant::now();
+            if selection_changed {
+                storage_poll_until = Some(now + STORAGE_SWITCH_POLL_WINDOW);
+            }
+            let regular_tick = now >= next_update;
+            let full_tick = regular_tick && tick_count.is_multiple_of(2);
+            if regular_tick {
+                tick_count = tick_count.wrapping_add(1);
+            }
 
             #[cfg(target_os = "macos")]
-            {
+            if regular_tick {
                 let ui = thermal_runtime.ui.clone();
                 if let Err(e) = app.run_on_main_thread(move || {
                     let guard = ui.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -1605,12 +1646,6 @@ fn start_monitoring(
                     eprintln!("Failed to dispatch autostart menu sync: {e}");
                 }
             }
-
-            let now = std::time::Instant::now();
-            let dt = now.duration_since(last_update).as_secs_f64();
-            last_update = now;
-            let full_tick = tick_count.is_multiple_of(2);
-            tick_count = tick_count.wrapping_add(1);
 
             let sc = metrics.show_cpu.load(Relaxed);
             let sm = metrics.show_mem.load(Relaxed);
@@ -1626,10 +1661,8 @@ fn start_monitoring(
             let current_flags = (sc, sm, ss, sg, sn, sa, false);
 
             let flags_changed = prev_flags != current_flags;
-            let net_was_enabled = prev_flags.4;
-
             #[cfg(target_os = "macos")]
-            if thermal::should_poll(thermal_last_sample, now) {
+            if regular_tick && thermal::should_poll(thermal_last_sample, now) {
                 let sampled = thermal::sample();
                 thermal_last_sample = Some(now);
                 thermal_tracker.observe(sampled);
@@ -1647,13 +1680,13 @@ fn start_monitoring(
             }
 
             // Refresh only metrics currently visible in the tray
-            if sc {
+            if regular_tick && sc {
                 sys.refresh_cpu_usage();
             }
             if full_tick && sm {
                 sys.refresh_memory();
             }
-            if sn {
+            if regular_tick && sn {
                 networks.refresh(false);
             }
 
@@ -1682,25 +1715,38 @@ fn start_monitoring(
             } else {
                 None
             };
+            if !ss
+                || storage_sample.is_some()
+                || storage_poll_until.is_some_and(|until| now >= until)
+            {
+                storage_poll_until = None;
+            }
             let storage_available_str = storage_sample
                 .map(|sample| format_storage_available(sample.available_bytes))
-                .unwrap_or_else(|| "0.0 KB".to_string());
+                .unwrap_or_else(|| STORAGE_PENDING_LABEL.to_string());
             let storage_available_bytes = storage_sample.map(|sample| sample.available_bytes);
 
-            let (down_speed, up_speed) = if sn {
-                let (total_rx, total_tx) = sum_network_totals(&networks);
-                if net_was_enabled {
-                    let down_speed = total_rx.saturating_sub(prev_rx) as f64 / dt;
-                    let up_speed = total_tx.saturating_sub(prev_tx) as f64 / dt;
+            if regular_tick {
+                network_speeds = if sn {
+                    let (total_rx, total_tx) = sum_network_totals(&networks);
+                    let dt = now.duration_since(last_update).as_secs_f64();
+                    let speeds = if net_was_enabled {
+                        (
+                            total_rx.saturating_sub(prev_rx) as f64 / dt,
+                            total_tx.saturating_sub(prev_tx) as f64 / dt,
+                        )
+                    } else {
+                        (0.0, 0.0)
+                    };
                     (prev_rx, prev_tx) = (total_rx, total_tx);
-                    (down_speed, up_speed)
+                    speeds
                 } else {
-                    (prev_rx, prev_tx) = (total_rx, total_tx);
                     (0.0, 0.0)
-                }
-            } else {
-                (0.0, 0.0)
-            };
+                };
+                net_was_enabled = sn;
+                last_update = now;
+            }
+            let (down_speed, up_speed) = if sn { network_speeds } else { (0.0, 0.0) };
 
             if sg && full_tick {
                 if let Some(ref mut sampler) = gpu_sampler {
@@ -1797,10 +1843,7 @@ fn start_monitoring(
                         render_buffer.len(),
                         4 * width * height
                     ));
-                    continue;
-                }
-
-                if let Some(tray) = app.tray_by_id(TRAY_ID) {
+                } else if let Some(tray) = app.tray_by_id(TRAY_ID) {
                     // A transient failure here (e.g. AppKit contention during
                     // display sleep/wake) must not kill the monitor thread;
                     // Leave the update pending until the native setter succeeds.
@@ -1855,6 +1898,9 @@ fn start_monitoring(
                         }
                     }
                 }
+            }
+            if regular_tick {
+                next_update = Instant::now() + update_interval;
             }
         }
     });
@@ -1933,7 +1979,8 @@ pub fn run() {
             start_theme_detection_thread();
 
             let settings = load_settings(app.handle());
-            app.manage(StorageDiskState::new(settings.storage_volume.clone()));
+            let (storage_wake, storage_selection_changed) = mpsc::sync_channel(1);
+            app.manage(StorageDiskState::new(settings.storage_volume.clone(), storage_wake));
             let (cpu, mem, storage, gpu, net) =
                 normalize_metric_flags(
                     settings.show_cpu,
@@ -1982,6 +2029,7 @@ pub fn run() {
                 app.handle().clone(),
                 font,
                 metrics,
+                storage_selection_changed,
                 gpu_sampler,
                 #[cfg(target_os = "macos")]
                 thermal_runtime,
