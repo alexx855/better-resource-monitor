@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { isIndexablePath } from './src/lib/search-indexing.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -18,7 +19,7 @@ export default defineConfig({
   },
   site: 'https://better-resource-monitor.alexpedersen.dev',
   trailingSlash: 'always',
-  integrations: [sitemap()],
+  integrations: [sitemap({ filter: (page) => isIndexablePath(new URL(page).pathname) })],
   vite: {
     build: {
       rollupOptions: {
