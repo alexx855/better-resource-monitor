@@ -22,35 +22,9 @@ jobs:
     name: Website and tooling checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    outputs:
-      macos: ${{ steps.changes.outputs.macos }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Classify macOS checks
-        id: changes
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          # Manual/release dispatches and new branches always run the full checks.
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-          else
-            if [ "$EVENT_NAME" = "pull_request" ]; then
-              range="$BASE_SHA...$HEAD_SHA"
-            else
-              range="$BASE_SHA..$HEAD_SHA"
-            fi
-            # --no-renames includes both paths when a file moves across surfaces.
-            git diff --name-only --no-renames "$range" | node scripts/classify-ci-changes.mjs >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -63,9 +37,6 @@ jobs:
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Audit JavaScript dependencies
-        run: pnpm audit --prod --audit-level high
 
       - name: Check locale parity
         run: node scripts/check-locale-parity.mjs
@@ -86,12 +57,19 @@ jobs:
       - name: Test CI and release tooling
         run: node --test scripts/*.test.mjs
 
+      - name: Audit JavaScript dependencies
+        run: pnpm audit --prod --audit-level high
+
   rust:
-    name: macOS app checks
-    needs: checks
-    if: ${{ needs.checks.outputs.macos == 'true' }}
+    name: macOS app checks (${{ matrix.task }})
     runs-on: macos-15-intel
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Main and release dispatches build both profiles in one job so main
+        # seeds a single dependency cache that both PR jobs can restore.
+        task: ${{ fromJSON(github.event_name == 'pull_request' && '["quality", "bundle"]' || '["all"]') }}
 
     steps:
       - name: Checkout repository
@@ -109,35 +87,44 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Setup pnpm
+        if: matrix.task != 'quality'
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - name: Setup Node.js
+        if: matrix.task != 'quality'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
           cache: 'pnpm'
 
       - name: Install app build dependencies
+        if: matrix.task != 'quality'
         run: pnpm install --frozen-lockfile --filter better-resource-monitor
 
       - name: Install cargo-audit
+        if: matrix.task != 'bundle'
         uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
         with:
           tool: cargo-audit@0.22.2
 
       - name: Audit Rust dependencies
+        if: matrix.task != 'bundle'
         run: cargo audit --file src-tauri/Cargo.lock
 
       - name: Check formatting
+        if: matrix.task != 'bundle'
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
       - name: Run tests
+        if: matrix.task != 'bundle'
         run: cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
       - name: Run clippy
+        if: matrix.task != 'bundle'
         run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Verify macOS app bundle layout
+        if: matrix.task != 'quality'
         run: |
           pnpm tauri build --bundles app --target x86_64-apple-darwin
           APP_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Better Resource Monitor.app"
@@ -158,17 +145,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require all applicable checks
+      - name: Require website and macOS checks
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
-          MACOS_REQUIRED: ${{ needs.checks.outputs.macos }}
           RUST_RESULT: ${{ needs.rust.result }}
         run: |
           set -euo pipefail
           test "$CHECKS_RESULT" = "success"
-          if [ "$MACOS_REQUIRED" = "true" ]; then
-            test "$RUST_RESULT" = "success"
-          else
-            test "$MACOS_REQUIRED" = "false"
-            test "$RUST_RESULT" = "skipped"
-          fi
+          test "$RUST_RESULT" = "success"
