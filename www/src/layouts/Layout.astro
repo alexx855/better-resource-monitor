@@ -1,6 +1,6 @@
 ---
 import { getEntry } from "astro:content";
-import { getAlternateLinks, getLocaleMeta, getLocalizedPath, type SupportedLocale } from "../lib/site";
+import { getAlternateLinks, getLocaleMeta, getLocalizedInternalLinks, getLocalizedPath, type SupportedLocale } from "../lib/site";
 
 
 interface Props {
@@ -20,7 +20,7 @@ const {
   description,
   locale,
   slug,
-  ogImage = "/images/og-index-en.png",
+  ogImage = `/images/og-index-${locale}.png`,
   ogImageAlt = title,
   preloadImage,
   robots = "index, follow",
@@ -37,6 +37,12 @@ const ogAlternateLocales = alternateLinks
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
 const ogImageUrl = new URL(ogImage, Astro.site).href;
 const siteUrl = new URL("/", Astro.site).href;
+const { comparisonUrl, privacyPolicyUrl, termsUrl } = getLocalizedInternalLinks(locale);
+const footerPages = [
+  { href: comparisonUrl, label: labels.footer.comparison },
+  { href: privacyPolicyUrl, label: labels.footer.privacyPolicy },
+  { href: termsUrl, label: labels.footer.terms },
+];
 ---
 
 <!doctype html>
@@ -44,6 +50,7 @@ const siteUrl = new URL("/", Astro.site).href;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="text-scale" content="scale" />
     <meta name="description" content={description} />
     <meta name="author" content="Alex Pedersen" />
     <meta name="application-name" content="Better Resource Monitor" />
@@ -60,7 +67,7 @@ const siteUrl = new URL("/", Astro.site).href;
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:alt" content={ogImageAlt} />
     <meta property="og:locale" content={localeMeta.ogLocale} />
-    {ogAlternateLocales.map((value) => <meta property="og:locale:alternate" content={value} />)}
+    {!omitCanonical && ogAlternateLocales.map((value) => <meta property="og:locale:alternate" content={value} />)}
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -157,11 +164,6 @@ const siteUrl = new URL("/", Astro.site).href;
       body {
         margin: 0;
         padding: 0;
-        overflow-x: clip;
-      }
-
-      html {
-        scroll-behavior: smooth;
       }
 
       img,
@@ -172,7 +174,7 @@ const siteUrl = new URL("/", Astro.site).href;
       }
 
       body {
-        font: 400 16px/1.6 var(--font-mono);
+        font: 400 1rem/1.6 var(--font-mono);
         background: var(--c-bg);
         color: var(--c-text);
         -webkit-font-smoothing: antialiased;
@@ -201,12 +203,12 @@ const siteUrl = new URL("/", Astro.site).href;
 
       @media (min-width: 700px) {
         body {
-          font-size: 17px;
+          font-size: 1.0625rem;
         }
       }
       @media (min-width: 1100px) {
         body {
-          font-size: 18px;
+          font-size: 1.125rem;
         }
       }
 
@@ -281,8 +283,6 @@ const siteUrl = new URL("/", Astro.site).href;
         overflow-wrap: anywhere;
         display: inline-block;
         font-size: 0.95em;
-        transform: translateY(0) scale(1);
-        transition: transform 120ms var(--ease-out);
         vertical-align: baseline;
       }
 
@@ -297,11 +297,6 @@ const siteUrl = new URL("/", Astro.site).href;
         display: inline;
         transform: none;
         transition: none;
-      }
-
-      /* Touch / non-hover pointers: press scale without needing :hover */
-      a:not(:has(img)):not(.comparison-card):active {
-        transform: scale(0.97);
       }
 
       a[aria-disabled="true"] {
@@ -345,7 +340,6 @@ const siteUrl = new URL("/", Astro.site).href;
         max-width: 100%;
         padding: var(--space-2) var(--space-3);
         margin: 0 0 var(--space-6);
-        overflow-wrap: normal;
       }
 
       .home-link__arrow {
@@ -370,7 +364,7 @@ const siteUrl = new URL("/", Astro.site).href;
         text-decoration: none;
         font-size: 1em;
         line-height: 1;
-        white-space: nowrap;
+        min-width: 0;
       }
 
       /* Container */
@@ -546,24 +540,23 @@ const siteUrl = new URL("/", Astro.site).href;
         font-size: var(--fs-sm);
         line-height: 1.35;
         text-align: center;
-        overflow-wrap: normal;
       }
 
-      @media (hover: hover) and (pointer: fine) {
-        /* Lift only — no color change */
-        a:not(:has(img)):not(.comparison-card):hover {
-          transform: translateY(-1px);
-          color: var(--c-on-brand);
-          background-color: var(--c-brand);
-          background-image: none;
-          box-shadow: none;
-          text-decoration: none;
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
         }
 
-        /*
-          Press must follow hover: same specificity, later source order so
-          :active scale wins over :hover lift while the pointer is down.
-        */
+        a:not(:has(img)):not(.comparison-card) {
+          transition: transform 120ms var(--ease-out);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          a:not(:has(img)):not(.comparison-card):hover {
+            transform: translateY(-1px);
+          }
+        }
+
         a:not(:has(img)):not(.comparison-card):active {
           transform: scale(0.97);
         }
@@ -590,14 +583,8 @@ const siteUrl = new URL("/", Astro.site).href;
           border-right: 0;
         }
 
-        table {
-          display: block;
-          overflow-x: auto;
-        }
-
-        .table-scroll table {
-          display: table;
-          overflow-x: visible;
+        pre:focus-visible {
+          outline-offset: calc(-1 * var(--border-width-thick));
         }
       }
 
@@ -620,9 +607,17 @@ const siteUrl = new URL("/", Astro.site).href;
           gap: var(--space-2) var(--space-3);
         }
 
-        .footer-link {
+        a.footer-link:not(:has(img)) {
           justify-content: flex-start;
           text-align: left;
+        }
+      }
+
+      @media (pointer: coarse) {
+        a.home-link:not(:has(img)),
+        a.footer-link:not(:has(img)) {
+          min-block-size: var(--touch-target);
+          min-inline-size: var(--touch-target);
         }
       }
 
@@ -632,18 +627,6 @@ const siteUrl = new URL("/", Astro.site).href;
         }
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          transition-duration: 0.01ms !important;
-          scroll-behavior: auto !important;
-        }
-
-        a:not(:has(img)):not(.comparison-card):active {
-          transform: none;
-        }
-      }
     </style>
   </head>
   <body>
@@ -653,9 +636,9 @@ const siteUrl = new URL("/", Astro.site).href;
     <footer class="site-footer">
       <div class="container">
         <nav class="footer-links" aria-label={labels.footer.internalNavigation}>
-          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "comparison")}>{labels.footer.comparison}</a>
-          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "privacy-policy")}>{labels.footer.privacyPolicy}</a>
-          <a class="footer-link footer-link--internal" href={getLocalizedPath(locale, "terms")}>{labels.footer.terms}</a>
+          {footerPages.map(({ href, label }) => (
+            <a class="footer-link footer-link--internal" href={href} aria-current={Astro.url.pathname === href ? "page" : undefined}>{label}</a>
+          ))}
         </nav>
         <nav class="footer-links" aria-label={labels.footer.externalNavigation}>
           <a

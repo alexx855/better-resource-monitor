@@ -39,7 +39,7 @@ const pageSlug = `comparison/${pageKey}`;
       <HomeLink href={getLocalizedPath(locale)} label={ui.backToHome} />
 
       <h1>{page.heading}</h1>
-      <Fragment set:html={introHtml} />
+      <p set:html={introHtml} />
 
       <ComparisonTable
         caption={page.heading}
@@ -54,11 +54,11 @@ const pageSlug = `comparison/${pageKey}`;
       {sections.map((section) => (
         <>
           <h2>{section.heading}</h2>
-          <Fragment set:html={section.html} />
+          <p set:html={section.html} />
         </>
       ))}
 
-      <Fragment set:html={ctaHtml} />
+      <p set:html={ctaHtml} />
 
       <FaqSection locale={locale} heading={comparisonFaqHeadings[locale]} items={faqItems} />
     </div>
