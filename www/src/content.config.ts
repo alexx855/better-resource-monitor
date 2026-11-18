@@ -3,6 +3,7 @@ import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { getAlternateLinks, getLocaleMeta } from "./lib/site";
 import { siteMarketingLocales, type SiteMarketingLocale } from "./lib/translations";
 
 const productionOrigin = "https://better-resource-monitor.alexpedersen.dev";
@@ -21,13 +22,33 @@ function assertNoExecutableHtml(html: string, source: string) {
   }
 }
 
-const homeComparisonCaptions = {
-  en: "Menu bar monitor comparison",
-  es: "Comparación de monitores para la barra de menús",
-  pl: "Porównanie monitorów na pasek menu",
-  "pt-br": "Comparação de monitores de barra de menus",
-  "zh-cn": "菜单栏监视器对比",
-} satisfies Record<SiteMarketingLocale, string>;
+const homeReadmeLabels = {
+  en: {
+    languages: "Choose language",
+    comparison: "Menu bar monitor comparison",
+    preview: "Example menu bar readings for CPU, memory, storage, GPU, and network in normal and warning states",
+  },
+  es: {
+    languages: "Elegir idioma",
+    comparison: "Comparación de monitores para la barra de menús",
+    preview: "Ejemplos en la barra de menús de CPU, memoria, almacenamiento, GPU y red en estado normal y de alerta",
+  },
+  pl: {
+    languages: "Wybierz język",
+    comparison: "Porównanie monitorów na pasek menu",
+    preview: "Przykładowe odczyty CPU, pamięci, dysku, GPU i sieci na pasku menu w stanie normalnym i ostrzegawczym",
+  },
+  "pt-br": {
+    languages: "Escolher idioma",
+    comparison: "Comparação de monitores de barra de menus",
+    preview: "Exemplos na barra de menus de CPU, memória, armazenamento, GPU e rede em estado normal e de alerta",
+  },
+  "zh-cn": {
+    languages: "选择语言",
+    comparison: "菜单栏监视器对比",
+    preview: "菜单栏示例，展示正常和警告状态下的 CPU、内存、存储、GPU 和网络读数",
+  },
+} satisfies Record<SiteMarketingLocale, { languages: string; comparison: string; preview: string }>;
 
 const ui = defineCollection({
   loader: glob({ pattern: "*.json", base: "./src/content/ui" }),
@@ -66,33 +87,45 @@ const homeBody = defineCollection({
       for (const locale of siteMarketingLocales) {
         const filename = locale === "en" ? "README.md" : `README.${locale}.md`;
         const raw = await readFile(resolve(rootDir, filename), "utf-8");
+        const labels = homeReadmeLabels[locale];
+        const languageLinks = getAlternateLinks()
+          .filter((link) => link.locale !== locale)
+          .map(({ locale, hrefLang, href }) =>
+            `<a href="${href}" lang="${hrefLang}" hreflang="${hrefLang}">${getLocaleMeta(locale).label}</a>`,
+          );
         const body = raw
-          // Keep locale links, without GitHub's current-locale text and separators.
-          .replace(/<!-- README-LANG-START -->[\s\S]*?<!-- README-LANG-END -->/, (block) => {
-            const links = block.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
-            return `<p class="language-switcher">${links.join(" ")}</p>`;
-          })
+          // Use the shared site locale metadata for switcher links.
+          .replace(/<!-- README-LANG-START -->[\s\S]*?<!-- README-LANG-END -->/,
+            `<nav class="language-switcher" aria-label="${labels.languages}">${languageLinks.join(" ")}</nav>`,
+          )
           .replace(/<p align="center">\n {2}<a href="#[\s\S]*?<\/p>\n\n/s, "")
           .trim();
 
         const rendered = await renderMarkdown(body);
-        const comparisonCaption = homeComparisonCaptions[locale];
+        let headingId: string | undefined;
         const html = rendered.html
-          .replace(/href="README\.md"/g, 'href="/"')
-          .replace(/href="README\.([\w-]+)\.md"/g, (_, loc) => `href="/${loc}/"`)
+          .replace(/(<(?:h1|p|td)) align="center"/g, "$1")
           .replace(
             "<table>",
-            `<div class="table-scroll" tabindex="0" aria-label="${comparisonCaption}"><table>\n<caption class="sr-only">${comparisonCaption}</caption>`,
+            `<div class="table-scroll" tabindex="0" role="region" aria-labelledby="home-comparison-caption"><table>\n<caption id="home-comparison-caption" class="sr-only">${labels.comparison}</caption>`,
           )
           .replace("</table>", "</table></div>")
-          .replace(/<th width="20%">/g, '<th scope="col" width="20%">')
+          .replace(/<th width="20%">/g, '<th scope="col">')
           .replaceAll(`src="${productionOrigin}/`, 'src="/')
           .replaceAll(`href="${productionOrigin}/`, 'href="/')
           .replace(/target="_blank"(?![^>]*\srel=)/g, 'target="_blank" rel="noopener noreferrer"')
           .replace(
-            '<img src="/better-resource-monitor-storage.png"',
-            '<img src="/better-resource-monitor-storage.png" fetchpriority="high" decoding="async"',
-          );
+            '<img src="/better-resource-monitor-storage.png" alt="Better Resource Monitor"',
+            `<img src="/better-resource-monitor-storage.png" alt="${labels.preview}" fetchpriority="high" decoding="async"`,
+          )
+          // Name scrollable code blocks after the preceding Markdown heading.
+          .replace(/<h[1-6](?: id="([^"]+)")?[^>]*>|<pre\b/g, (tag, id: string | undefined) => {
+            if (tag !== "<pre") {
+              headingId = id;
+              return tag;
+            }
+            return headingId ? `<pre role="region" aria-labelledby="${headingId}"` : tag;
+          });
         assertNoExecutableHtml(html, filename);
         store.set({ id: locale, data: {}, rendered: { html } });
       }
