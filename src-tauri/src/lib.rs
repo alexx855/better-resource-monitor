@@ -132,6 +132,7 @@ mod menu_id {
     #[cfg(target_os = "macos")]
     pub const THERMAL_STATUS: &str = "thermal_status";
     pub const SHOW_ALERTS: &str = "show_alerts";
+    pub const COMPACT: &str = "compact";
     pub const QUIT: &str = "quit";
 }
 
@@ -145,6 +146,7 @@ struct MetricToggles {
     show_gpu: Arc<AtomicBool>,
     show_net: Arc<AtomicBool>,
     show_alerts: Arc<AtomicBool>,
+    compact: Arc<AtomicBool>,
 }
 
 struct LoadedSettings {
@@ -154,6 +156,7 @@ struct LoadedSettings {
     show_gpu: bool,
     show_net: bool,
     show_alerts: bool,
+    compact: bool,
     autostart: bool,
     storage_volume: Option<PathBuf>,
 }
@@ -174,18 +177,17 @@ fn load_settings_from_store<R: tauri::Runtime>(
     store: Option<&tauri_plugin_store::Store<R>>,
 ) -> LoadedSettings {
     let store = store.and_then(|store| {
-        if store
-            .get(menu_id::SHOW_STORAGE)
-            .and_then(|value| value.as_bool())
-            .is_none()
-        {
+        let needs_migration = [menu_id::SHOW_STORAGE, menu_id::COMPACT]
+            .iter()
+            .any(|key| store.get(key).and_then(|value| value.as_bool()).is_none());
+        if needs_migration {
             // Store creation ignores load errors; verify the disk state before migrating.
             match store.reload() {
                 Ok(()) => {}
                 Err(tauri_plugin_store::Error::Io(error))
                     if error.kind() == std::io::ErrorKind::NotFound => {}
                 Err(error) => {
-                    eprintln!("Failed to load settings before storage migration: {error}");
+                    eprintln!("Failed to load settings before migration: {error}");
                     return None;
                 }
             }
@@ -207,12 +209,19 @@ fn load_settings_from_store<R: tauri::Runtime>(
     .any(|key| get_bool_option(key).is_some());
     let stored_storage = get_bool_option(menu_id::SHOW_STORAGE);
     let show_storage = migrate_storage_setting(stored_storage, has_legacy_metric_settings);
-    if stored_storage.is_none() {
+    let stored_compact = get_bool_option(menu_id::COMPACT);
+    let compact = migrate_compact_setting(stored_compact, has_legacy_metric_settings);
+    if stored_storage.is_none() || stored_compact.is_none() {
         if let Some(store) = store {
             // Resolve the migration once, before an unrelated metric toggle can look legacy.
-            store.set(menu_id::SHOW_STORAGE, json!(show_storage));
+            if stored_storage.is_none() {
+                store.set(menu_id::SHOW_STORAGE, json!(show_storage));
+            }
+            if stored_compact.is_none() {
+                store.set(menu_id::COMPACT, json!(compact));
+            }
             if let Err(e) = store.save() {
-                eprintln!("Failed to save migrated storage setting: {e}");
+                eprintln!("Failed to save migrated settings: {e}");
             }
         }
     }
@@ -224,6 +233,7 @@ fn load_settings_from_store<R: tauri::Runtime>(
         show_gpu: get_bool("show_gpu", true),
         show_net: get_bool("show_net", true),
         show_alerts: get_bool("show_alerts", true),
+        compact,
         autostart: get_bool(menu_id::AUTOSTART, false),
         storage_volume: store
             .as_ref()
@@ -235,6 +245,14 @@ fn load_settings_from_store<R: tauri::Runtime>(
 
 fn migrate_storage_setting(stored_storage: Option<bool>, has_legacy_metric_settings: bool) -> bool {
     stored_storage.unwrap_or(!has_legacy_metric_settings)
+}
+
+/// New installs start compact: the full strip of every metric is several
+/// hundred points wide and, beside the notch on a MacBook, it pushes other
+/// apps' menu bar items out of sight. Anyone who already picked which metrics
+/// to show keeps the full strip they set up.
+fn migrate_compact_setting(stored_compact: Option<bool>, has_legacy_metric_settings: bool) -> bool {
+    stored_compact.unwrap_or(!has_legacy_metric_settings)
 }
 
 fn save_setting(app: &AppHandle, key: &str, value: bool) {
@@ -519,6 +537,212 @@ fn normalize_metric_flags(
         (show_cpu, show_mem, show_storage, show_gpu, show_net)
     } else {
         (true, show_mem, show_storage, show_gpu, show_net)
+    }
+}
+
+/// Metric flag arrays in this file are ordered CPU, memory, storage, GPU,
+/// network. Compact mode shows the first shown metric in this order.
+const COMPACT_METRIC_PRIORITY: [usize; 5] = [0, 1, 3, 2, 4];
+
+/// Picks the metrics drawn in the menu bar. The full strip draws every shown
+/// metric. Compact mode draws one: the first shown metric that is in its
+/// warning state, so a warning is never hidden in the menu, or else the first
+/// shown metric by [`COMPACT_METRIC_PRIORITY`].
+fn tray_metric_flags(compact: bool, shown: [bool; 5], alerting: [bool; 5]) -> [bool; 5] {
+    if !compact {
+        return shown;
+    }
+
+    let lead = COMPACT_METRIC_PRIORITY
+        .iter()
+        .copied()
+        .find(|&index| shown[index] && alerting[index])
+        .or_else(|| {
+            COMPACT_METRIC_PRIORITY
+                .iter()
+                .copied()
+                .find(|&index| shown[index])
+        });
+    let mut flags = [false; 5];
+    if let Some(index) = lead {
+        flags[index] = true;
+    }
+    flags
+}
+
+/// Current values for the readings listed in the menu.
+struct Readings<'a> {
+    cpu_usage: f32,
+    mem_percent: f32,
+    storage_available: &'a str,
+    gpu_usage: f32,
+    down: &'a str,
+    up: &'a str,
+}
+
+/// One read-only line at the top of the tray menu.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ReadingRow {
+    id: &'static str,
+    text: String,
+}
+
+/// Lists the readings shown at the top of the menu in compact mode, one per
+/// shown metric, in the same order as the metric toggles below them. The full
+/// strip already shows every value, so it gets no rows.
+fn reading_rows(
+    compact: bool,
+    shown: [bool; 5],
+    readings: &Readings,
+    translations: &i18n::Translations,
+) -> Vec<ReadingRow> {
+    if !compact {
+        return Vec::new();
+    }
+
+    let [show_cpu, show_mem, show_storage, show_gpu, show_net] = shown;
+    let percent =
+        |label: &str, value: f32| format!("{label}: {:.0}%", tray_render::cap_percent(value));
+    let mut rows = Vec::with_capacity(5);
+    if show_mem {
+        rows.push(ReadingRow {
+            id: "reading_mem",
+            text: percent(translations.memory, readings.mem_percent),
+        });
+    }
+    if show_cpu {
+        rows.push(ReadingRow {
+            id: "reading_cpu",
+            text: percent(translations.cpu, readings.cpu_usage),
+        });
+    }
+    if show_storage {
+        rows.push(ReadingRow {
+            id: "reading_storage",
+            text: format!(
+                "{}: {}",
+                translations.free_storage, readings.storage_available
+            ),
+        });
+    }
+    if show_gpu {
+        rows.push(ReadingRow {
+            id: "reading_gpu",
+            text: percent(translations.gpu, readings.gpu_usage),
+        });
+    }
+    if show_net {
+        rows.push(ReadingRow {
+            id: "reading_net",
+            text: format!(
+                "{}: \u{2193} {}/s  \u{2191} {}/s",
+                translations.network, readings.down, readings.up
+            ),
+        });
+    }
+    rows
+}
+
+/// The readings rows, shared by the monitor thread, which works out what they
+/// say, and the main thread, which owns the menu. Kept in Tauri's managed
+/// state.
+#[derive(Default)]
+struct ReadingsState(Mutex<ReadingsInner>);
+
+#[derive(Default)]
+struct ReadingsInner {
+    rows: Vec<ReadingRow>,
+    /// Lives here so only the main thread touches it; see
+    /// [`request_readings_menu_sync`].
+    menu: Option<ReadingsMenu>,
+}
+
+impl ReadingsState {
+    fn lock(&self) -> std::sync::MutexGuard<'_, ReadingsInner> {
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+struct ReadingsMenu {
+    menu: Menu<tauri::Wry>,
+    items: Vec<MenuItem<tauri::Wry>>,
+    separator: Option<PredefinedMenuItem<tauri::Wry>>,
+    rows: Vec<ReadingRow>,
+}
+
+impl ReadingsMenu {
+    fn new(menu: Menu<tauri::Wry>) -> Self {
+        Self {
+            menu,
+            items: Vec::new(),
+            separator: None,
+            rows: Vec::new(),
+        }
+    }
+
+    /// Updates the text of rows that changed, or rebuilds the rows when the
+    /// set of shown metrics changed.
+    fn sync(&mut self, rows: &[ReadingRow]) -> tauri::Result<()> {
+        let same_layout = rows.len() == self.rows.len()
+            && rows
+                .iter()
+                .zip(&self.rows)
+                .all(|(new, old)| new.id == old.id);
+        if same_layout {
+            for ((item, new), old) in self.items.iter().zip(rows).zip(&mut self.rows) {
+                if new.text != old.text {
+                    item.set_text(&new.text)?;
+                    old.text.clone_from(&new.text);
+                }
+            }
+            return Ok(());
+        }
+
+        for item in self.items.drain(..) {
+            self.menu.remove(&item)?;
+        }
+        if let Some(separator) = self.separator.take() {
+            self.menu.remove(&separator)?;
+        }
+        self.rows = rows.to_vec();
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        let app = self.menu.app_handle();
+        for (position, row) in rows.iter().enumerate() {
+            let item = MenuItem::with_id(app, row.id, &row.text, false, None::<&str>)?;
+            self.menu.insert(&item, position)?;
+            self.items.push(item);
+        }
+        let separator = PredefinedMenuItem::separator(app)?;
+        self.menu.insert(&separator, rows.len())?;
+        self.separator = Some(separator);
+        Ok(())
+    }
+}
+
+/// Stores new readings rows and asks the main thread to show them. Passing
+/// `None` re-applies the stored rows, for a menu that was just rebuilt.
+fn request_readings_menu_sync(app: &AppHandle, rows: Option<Vec<ReadingRow>>) {
+    if let Some(rows) = rows {
+        app.state::<ReadingsState>().lock().rows = rows;
+    }
+    let handle = app.clone();
+    let result = app.run_on_main_thread(move || {
+        let state = handle.state::<ReadingsState>();
+        let mut inner = state.lock();
+        let ReadingsInner { rows, menu } = &mut *inner;
+        if let Some(menu) = menu {
+            if let Err(e) = menu.sync(rows) {
+                eprintln!("Failed to update readings menu: {e}");
+            }
+        }
+    });
+    if let Err(e) = result {
+        eprintln!("Failed to schedule readings menu update: {e}");
     }
 }
 
@@ -1150,6 +1374,15 @@ fn setup_tray(
 
     let settings_separator = PredefinedMenuItem::separator(app)?;
 
+    let compact_item = CheckMenuItem::with_id(
+        app,
+        menu_id::COMPACT,
+        translations.compact_menu_bar,
+        true,
+        metrics.compact.load(Relaxed),
+        None::<&str>,
+    )?;
+
     let autostart_item = CheckMenuItem::with_id(
         app,
         menu_id::AUTOSTART,
@@ -1193,6 +1426,7 @@ fn setup_tray(
     }
     menu.append(&show_net_item)?;
     menu.append(&settings_separator)?;
+    menu.append(&compact_item)?;
     menu.append(&autostart_item)?;
     menu.append(&show_alerts_item)?;
     menu.append(&quit_separator)?;
@@ -1210,11 +1444,27 @@ fn setup_tray(
     });
     request_storage_menu_sync(app);
 
+    // Readings rows come from the monitor thread; a rebuilt menu gets the
+    // last ones right away.
+    app.state::<ReadingsState>().lock().menu = Some(ReadingsMenu::new(menu.clone()));
+    request_readings_menu_sync(app, None);
+
     #[cfg(target_os = "linux")]
     let use_light_icons = detect_light_icons();
     #[cfg(not(target_os = "linux"))]
     let use_light_icons = true;
 
+    let [show_cpu, show_mem, show_storage, show_gpu, show_net] = tray_metric_flags(
+        metrics.compact.load(Relaxed),
+        [
+            metrics.show_cpu.load(Relaxed),
+            metrics.show_mem.load(Relaxed),
+            metrics.show_storage.load(Relaxed),
+            metrics.show_gpu.load(Relaxed) && gpu_available,
+            metrics.show_net.load(Relaxed),
+        ],
+        [false; 5],
+    );
     let mut renderer = tray_render::TrayRenderer::new();
     let mut initial_buffer = Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
     let (width, height, _has_alert) = renderer.render_tray_icon_into(
@@ -1229,11 +1479,11 @@ fn setup_tray(
             gpu_usage: 0.0,
             down_str: "0 KB",
             up_str: "0 KB",
-            show_cpu: metrics.show_cpu.load(Relaxed),
-            show_mem: metrics.show_mem.load(Relaxed),
-            show_storage: metrics.show_storage.load(Relaxed),
-            show_gpu: metrics.show_gpu.load(Relaxed) && gpu_available,
-            show_net: metrics.show_net.load(Relaxed),
+            show_cpu,
+            show_mem,
+            show_storage,
+            show_gpu,
+            show_net,
             show_alerts: metrics.show_alerts.load(Relaxed),
             use_light_icons,
             background: None,
@@ -1349,6 +1599,11 @@ fn setup_tray(
                     let new_value = !metrics.show_alerts.load(Relaxed);
                     metrics.show_alerts.store(new_value, Relaxed);
                     save_setting(app, menu_id::SHOW_ALERTS, new_value);
+                }
+                menu_id::COMPACT => {
+                    let new_value = !metrics.compact.load(Relaxed);
+                    metrics.compact.store(new_value, Relaxed);
+                    save_setting(app, menu_id::COMPACT, new_value);
                 }
                 menu_id::QUIT => app.exit(0),
                 id => {
@@ -1494,6 +1749,7 @@ fn handle_second_instance_launch(
             metrics.show_gpu.store(gpu, Relaxed);
             metrics.show_net.store(net, Relaxed);
             metrics.show_alerts.store(settings.show_alerts, Relaxed);
+            metrics.compact.store(settings.compact, Relaxed);
             app.state::<StorageDiskState>().lock().selected = settings.storage_volume;
 
             let translations = i18n::detect_language().translations();
@@ -1560,7 +1816,7 @@ fn start_monitoring(
     storage_selection_changed: mpsc::Receiver<()>,
     mut gpu_sampler: Option<GpuSampler>,
     #[cfg(target_os = "macos")] thermal_runtime: ThermalRuntime,
-    #[cfg(target_os = "macos")] translations: &'static i18n::Translations,
+    translations: &'static i18n::Translations,
 ) {
     thread::spawn(move || {
         let mut sys = System::new();
@@ -1588,6 +1844,7 @@ fn start_monitoring(
         let mut prev_up_speed: f64 = -1.0;
         let mut prev_flags: (bool, bool, bool, bool, bool, bool, bool) =
             (false, false, false, false, false, false, false);
+        let mut prev_reading_rows: Option<Vec<ReadingRow>> = None;
         #[cfg(target_os = "macos")]
         let mut thermal_tracker = thermal::ThermalTracker::new(thermal_runtime.status());
         #[cfg(target_os = "macos")]
@@ -1654,13 +1911,7 @@ fn start_monitoring(
             let sg = show_gpu_enabled && gpu_sampler.is_some();
             let sn = metrics.show_net.load(Relaxed);
             let sa = metrics.show_alerts.load(Relaxed);
-
-            #[cfg(target_os = "linux")]
-            let current_flags = (sc, sm, ss, sg, sn, sa, detect_light_icons());
-            #[cfg(not(target_os = "linux"))]
-            let current_flags = (sc, sm, ss, sg, sn, sa, false);
-
-            let flags_changed = prev_flags != current_flags;
+            let compact = metrics.compact.load(Relaxed);
             #[cfg(target_os = "macos")]
             if regular_tick && thermal::should_poll(thermal_last_sample, now) {
                 let sampled = thermal::sample();
@@ -1679,7 +1930,7 @@ fn start_monitoring(
                 update_thermal_ui(&thermal_runtime.ui, translations, prev_thermal_status);
             }
 
-            // Refresh only metrics currently visible in the tray
+            // Refresh only the metrics the user chose to show
             if regular_tick && sc {
                 sys.refresh_cpu_usage();
             }
@@ -1756,24 +2007,71 @@ fn start_monitoring(
                 gpu_usage = 0.0;
             }
 
+            // Every shown metric is sampled; compact mode draws only one of them
+            // and lists the rest in the menu.
+            let alerting = if sa {
+                [
+                    tray_render::alert_active(cpu_usage),
+                    tray_render::alert_active(mem_percent),
+                    tray_render::storage_alert_active(storage_available_bytes),
+                    tray_render::alert_active(gpu_usage),
+                    false,
+                ]
+            } else {
+                [false; 5]
+            };
+            let shown = [sc, sm, ss, sg, sn];
+            let [tc, tm, ts, tg, tn] = tray_metric_flags(compact, shown, alerting);
+
+            let rows = if compact {
+                let down_str = format_speed(down_speed);
+                let up_str = format_speed(up_speed);
+                reading_rows(
+                    compact,
+                    shown,
+                    &Readings {
+                        cpu_usage,
+                        mem_percent,
+                        storage_available: &storage_available_str,
+                        gpu_usage,
+                        down: &down_str,
+                        up: &up_str,
+                    },
+                    translations,
+                )
+            } else {
+                Vec::new()
+            };
+            if prev_reading_rows.as_ref() != Some(&rows) {
+                prev_reading_rows = Some(rows.clone());
+                request_readings_menu_sync(&app, Some(rows));
+            }
+
+            #[cfg(target_os = "linux")]
+            let current_flags = (tc, tm, ts, tg, tn, sa, detect_light_icons());
+            #[cfg(not(target_os = "linux"))]
+            let current_flags = (tc, tm, ts, tg, tn, sa, false);
+
+            let flags_changed = prev_flags != current_flags;
+
             // Hysteresis: only update if values change by meaningful threshold
             // This dramatically reduces icon updates, preventing compositor resource
             // accumulation that causes cursor slowdown on Ubuntu/GNOME
-            let cpu_changed = metric_display_needs_update(sc, prev_cpu, cpu_usage, sa);
-            let mem_changed = metric_display_needs_update(sm, prev_mem, mem_percent, sa);
-            let storage_changed = ss
+            let cpu_changed = metric_display_needs_update(tc, prev_cpu, cpu_usage, sa);
+            let mem_changed = metric_display_needs_update(tm, prev_mem, mem_percent, sa);
+            let storage_changed = ts
                 && storage_display_needs_update(
                     prev_storage_available.as_deref(),
                     prev_storage_available_bytes,
                     &storage_available_str,
                     storage_available_bytes,
                 );
-            let gpu_changed = metric_display_needs_update(sg, prev_gpu, gpu_usage, sa);
+            let gpu_changed = metric_display_needs_update(tg, prev_gpu, gpu_usage, sa);
             let down_diff = (down_speed - prev_down_speed).abs();
             let up_diff = (up_speed - prev_up_speed).abs();
             let net_value_changed =
                 down_diff >= NET_HYSTERESIS_BPS || up_diff >= NET_HYSTERESIS_BPS;
-            let net_changed = sn && net_value_changed;
+            let net_changed = tn && net_value_changed;
 
             if tray_updates.begin_if_needed(
                 cpu_changed
@@ -1787,20 +2085,20 @@ fn start_monitoring(
                 let down_str = format_speed(down_speed);
                 let up_str = format_speed(up_speed);
 
-                if sc {
+                if tc {
                     prev_cpu = cpu_usage;
                 }
-                if sm {
+                if tm {
                     prev_mem = mem_percent;
                 }
-                if ss {
+                if ts {
                     prev_storage_available = Some(storage_available_str.clone());
                     prev_storage_available_bytes = storage_available_bytes;
                 }
-                if sg {
+                if tg {
                     prev_gpu = gpu_usage;
                 }
-                if sn {
+                if tn {
                     prev_down_speed = down_speed;
                     prev_up_speed = up_speed;
                 }
@@ -1817,11 +2115,11 @@ fn start_monitoring(
                         gpu_usage,
                         down_str: &down_str,
                         up_str: &up_str,
-                        show_cpu: sc,
-                        show_mem: sm,
-                        show_storage: ss,
-                        show_gpu: sg,
-                        show_net: sn,
+                        show_cpu: tc,
+                        show_mem: tm,
+                        show_storage: ts,
+                        show_gpu: tg,
+                        show_net: tn,
                         show_alerts: sa,
                         use_light_icons: current_flags.6,
                         background: None,
@@ -1927,6 +2225,7 @@ pub fn run() {
         show_gpu: Arc::new(AtomicBool::new(true)),
         show_net: Arc::new(AtomicBool::new(true)),
         show_alerts: Arc::new(AtomicBool::new(true)),
+        compact: Arc::new(AtomicBool::new(true)),
     };
     let tray_metrics = metrics.clone();
     let second_instance_metrics = metrics.clone();
@@ -1981,6 +2280,7 @@ pub fn run() {
             let settings = load_settings(app.handle());
             let (storage_wake, storage_selection_changed) = mpsc::sync_channel(1);
             app.manage(StorageDiskState::new(settings.storage_volume.clone(), storage_wake));
+            app.manage(ReadingsState::default());
             let (cpu, mem, storage, gpu, net) =
                 normalize_metric_flags(
                     settings.show_cpu,
@@ -2007,6 +2307,7 @@ pub fn run() {
             tray_metrics.show_gpu.store(gpu, Relaxed);
             tray_metrics.show_net.store(net, Relaxed);
             tray_metrics.show_alerts.store(settings.show_alerts, Relaxed);
+            tray_metrics.compact.store(settings.compact, Relaxed);
             let translations = i18n::detect_language().translations();
 
             #[cfg(target_os = "macos")]
@@ -2033,7 +2334,6 @@ pub fn run() {
                 gpu_sampler,
                 #[cfg(target_os = "macos")]
                 thermal_runtime,
-                #[cfg(target_os = "macos")]
                 translations,
             );
 
