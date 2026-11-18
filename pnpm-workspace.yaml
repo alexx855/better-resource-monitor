@@ -1,2 +1,12 @@
 packages:
   - 'www'
+
+auditConfig:
+  ignoreGhsas:
+    # picomatch ReDoS requires an attacker-controlled extglob pattern.
+    # Astro and its watcher use repository-defined patterns during builds/dev.
+    # Production serves static files, with no Node server or user-supplied globs.
+    # No patched release exists as of 2026-11-18. Recheck when upgrading picomatch,
+    # or before introducing server rendering or untrusted glob input.
+    # https://github.com/advisories/GHSA-fc5q-39xc-vjpf
+    - GHSA-fc5q-39xc-vjpf

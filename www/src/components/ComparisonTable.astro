@@ -12,9 +12,9 @@ interface Props {
 const { caption, featureLabel, productLabel, competitorLabel, features, productValues, competitorValues } = Astro.props;
 ---
 
-<div class="table-scroll" tabindex="0" aria-label={caption}>
+<div class="table-scroll" tabindex="0" role="region" aria-labelledby="comparison-caption">
   <table>
-    <caption class="sr-only">{caption}</caption>
+    <caption id="comparison-caption" class="sr-only">{caption}</caption>
     <thead>
       <tr>
         <th scope="col">{featureLabel}</th>

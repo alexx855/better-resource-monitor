@@ -28,7 +28,7 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
   preloadImage="/better-resource-monitor-storage.png"
 >
   <style is:global>
-    .home-document {
+    .container.home-document {
       padding-top: clamp(var(--space-5), 7vw, var(--space-10));
     }
 
@@ -46,37 +46,29 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       text-align: left;
     }
 
-    p[align="center"] img[alt="Better Resource Monitor"] {
-      width: auto;
-      max-width: 100%;
-      height: auto;
-      border-radius: 0;
+    .home-document article > p:has(> img[src="/better-resource-monitor-storage.png"]) {
+      text-align: center;
     }
 
-    p[align="center"] img[src*="/badges/"] {
+    .home-document img[src^="/badges/"] {
       width: 270px;
       max-width: 100%;
       height: auto;
       aspect-ratio: 270 / 65;
     }
 
-    p[align="center"] img[src*="/images/simplicity-"] {
-      width: 100%;
-      max-width: 100%;
-      height: auto;
-      border: var(--border-width) solid var(--c-border);
-    }
-
-    p[align="center"]:has(img[src*="/badges/"]) {
+    .home-document article > p:has(img[src^="/badges/"]) {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-start;
       align-items: center;
       gap: var(--space-5);
       padding-top: var(--space-5);
     }
 
-    p[align="center"]:has(img[src*="/badges/"]) a {
+    .home-document article > p:has(img[src^="/badges/"]) a {
       line-height: 1;
+      max-inline-size: 100%;
     }
 
     .home-document .language-switcher {
@@ -84,11 +76,29 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
       flex-wrap: wrap;
       align-items: center;
       gap: var(--space-2);
+      margin-bottom: var(--space-5);
     }
 
     .home-document .language-switcher a {
       font-size: var(--fs-sm);
-      white-space: nowrap;
+      max-inline-size: 100%;
+    }
+
+    @media (pointer: coarse) {
+      .home-document .language-switcher a {
+        display: inline-flex;
+        align-items: center;
+        min-block-size: var(--touch-target);
+        min-inline-size: var(--touch-target);
+      }
+    }
+
+    .home-document thead th {
+      width: 20%;
+    }
+
+    .home-document td {
+      text-align: center;
     }
 
     .home-document article > h2 {
@@ -106,10 +116,8 @@ const faqItems = pickFaqItems(faqEntry.data.items, "home");
     }
 
     @media (max-width: 600px) {
-      p[align="center"]:has(img[src*="/badges/"]) {
-        justify-content: flex-start;
+      .home-document article > p:has(img[src^="/badges/"]) {
         gap: var(--space-3);
-        flex-wrap: wrap;
       }
     }
   </style>
