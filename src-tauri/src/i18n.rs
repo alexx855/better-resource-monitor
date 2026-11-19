@@ -20,6 +20,14 @@ pub struct Translations {
     pub thermal_fair: &'static str,
     pub thermal_serious: &'static str,
     pub thermal_critical: &'static str,
+    /// Menu toggle that shrinks the menu bar item to a single metric.
+    pub compact_menu_bar: &'static str,
+    /// Labels for the live readings listed in the menu in compact mode.
+    pub cpu: &'static str,
+    pub memory: &'static str,
+    pub gpu: &'static str,
+    pub free_storage: &'static str,
+    pub network: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -50,6 +58,12 @@ const ENGLISH: Translations = Translations {
     thermal_fair: "fair",
     thermal_serious: "serious",
     thermal_critical: "critical",
+    compact_menu_bar: "Compact menu bar",
+    cpu: "CPU",
+    memory: "Memory",
+    gpu: "GPU",
+    free_storage: "Free storage",
+    network: "Network",
 };
 
 const SPANISH: Translations = Translations {
@@ -71,6 +85,12 @@ const SPANISH: Translations = Translations {
     thermal_fair: "elevado",
     thermal_serious: "alto",
     thermal_critical: "crítico",
+    compact_menu_bar: "Barra de menús compacta",
+    cpu: "CPU",
+    memory: "Memoria",
+    gpu: "GPU",
+    free_storage: "Almacenamiento libre",
+    network: "Red",
 };
 
 const PORTUGUESE: Translations = Translations {
@@ -92,6 +112,12 @@ const PORTUGUESE: Translations = Translations {
     thermal_fair: "elevado",
     thermal_serious: "alto",
     thermal_critical: "crítico",
+    compact_menu_bar: "Barra de menus compacta",
+    cpu: "CPU",
+    memory: "Memória",
+    gpu: "GPU",
+    free_storage: "Armazenamento livre",
+    network: "Rede",
 };
 
 const CHINESE: Translations = Translations {
@@ -113,6 +139,12 @@ const CHINESE: Translations = Translations {
     thermal_fair: "偏高",
     thermal_serious: "高",
     thermal_critical: "危急",
+    compact_menu_bar: "紧凑菜单栏",
+    cpu: "CPU",
+    memory: "内存",
+    gpu: "GPU",
+    free_storage: "可用存储空间",
+    network: "网络",
 };
 
 const POLISH: Translations = Translations {
@@ -134,6 +166,12 @@ const POLISH: Translations = Translations {
     thermal_fair: "podwyższony",
     thermal_serious: "wysoki",
     thermal_critical: "krytyczny",
+    compact_menu_bar: "Kompaktowy pasek menu",
+    cpu: "CPU",
+    memory: "Pamięć",
+    gpu: "GPU",
+    free_storage: "Wolne miejsce",
+    network: "Sieć",
 };
 
 impl Language {

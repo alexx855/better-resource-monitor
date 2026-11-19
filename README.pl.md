@@ -61,6 +61,10 @@ Nie. Better Resource Monitor nie wykonuje żadnych żądań sieciowych. Nie wysy
 
 Nie. Został zaprojektowany tak, by działać w tle przy bardzo niskim wpływie na system i pozostać użyteczny podczas codziennej pracy.
 
+## Kompaktowy pasek menu
+
+Gdy wszystkie wskaźniki są włączone, pełny pasek ma około 440 punktów szerokości. Na MacBooku z notchem może to zasłonić ikony innych aplikacji na pasku menu. Dlatego nowe instalacje startują z włączoną opcją **Kompaktowy pasek menu**: na pasku widać jeden wskaźnik, a po kliknięciu menu pokazuje bieżące odczyty wszystkich włączonych wskaźników. Na pasku widać CPU, a gdy CPU jest wyłączone, pierwszy dostępny z wskaźników: pamięć, GPU, dysk, sieć. Wskaźnik, który osiągnie poziom ostrzeżenia, zajmuje to miejsce, dopóki nie wróci do normy. Wyłącz **Kompaktowy pasek menu**, aby zobaczyć wszystkie wskaźniki obok siebie. Jeśli wcześniej zmieniono, które wskaźniki są widoczne, aktualizacja zachowuje pełny pasek.
+
 ## Alerty
 
 Gdy opcja **Pokaż kolory ostrzeżeń** jest włączona, ikona na pasku menu zmienia kolor na pomarańczowy, kiedy widoczne użycie CPU, pamięci lub GPU osiągnie **81%** albo gdy ilość wolnego miejsca na dysku spadnie poniżej **10 GB**. Wraca do normalnego wyglądu, gdy wskaźniki procentowe są poniżej 81%, a na dysku jest co najmniej 10 GB wolnego miejsca.
