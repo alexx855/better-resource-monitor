@@ -545,18 +545,34 @@ fn normalize_metric_flags(
 const COMPACT_METRIC_PRIORITY: [usize; 5] = [0, 1, 3, 2, 4];
 
 /// Picks the metrics drawn in the menu bar. The full strip draws every shown
-/// metric. Compact mode draws one: the first shown metric that is in its
-/// warning state, so a warning is never hidden in the menu, or else the first
-/// shown metric by [`COMPACT_METRIC_PRIORITY`].
-fn tray_metric_flags(compact: bool, shown: [bool; 5], alerting: [bool; 5]) -> [bool; 5] {
+/// metric. Compact mode draws one: a shown metric in its warning state, so a
+/// warning is never hidden in the menu, or else the first shown metric by
+/// [`COMPACT_METRIC_PRIORITY`].
+///
+/// `previous` is what the last call returned. A warning metric that already
+/// holds the slot keeps it until it recovers or is hidden, so a second metric
+/// reaching its warning level does not make the menu bar switch back and forth.
+fn tray_metric_flags(
+    compact: bool,
+    shown: [bool; 5],
+    alerting: [bool; 5],
+    previous: [bool; 5],
+) -> [bool; 5] {
     if !compact {
         return shown;
     }
 
+    let warning = |index: usize| shown[index] && alerting[index];
     let lead = COMPACT_METRIC_PRIORITY
         .iter()
         .copied()
-        .find(|&index| shown[index] && alerting[index])
+        .find(|&index| previous[index] && warning(index))
+        .or_else(|| {
+            COMPACT_METRIC_PRIORITY
+                .iter()
+                .copied()
+                .find(|&index| warning(index))
+        })
         .or_else(|| {
             COMPACT_METRIC_PRIORITY
                 .iter()
@@ -685,7 +701,9 @@ impl ReadingsMenu {
     /// Updates the text of rows that changed, or rebuilds the rows when the
     /// set of shown metrics changed.
     fn sync(&mut self, rows: &[ReadingRow]) -> tauri::Result<()> {
+        // A partly built section has items but no rows, so it never matches.
         let same_layout = rows.len() == self.rows.len()
+            && self.items.len() == self.rows.len()
             && rows
                 .iter()
                 .zip(&self.rows)
@@ -700,13 +718,11 @@ impl ReadingsMenu {
             return Ok(());
         }
 
-        for item in self.items.drain(..) {
-            self.menu.remove(&item)?;
-        }
-        if let Some(separator) = self.separator.take() {
-            self.menu.remove(&separator)?;
-        }
-        self.rows = rows.to_vec();
+        // Until every row and the separator are in the menu, `self.rows` stays
+        // empty. A failed build then never matches `same_layout`, so the next
+        // sync removes whatever was inserted and builds the section again.
+        self.rows.clear();
+        self.clear()?;
         if rows.is_empty() {
             return Ok(());
         }
@@ -720,6 +736,21 @@ impl ReadingsMenu {
         let separator = PredefinedMenuItem::separator(app)?;
         self.menu.insert(&separator, rows.len())?;
         self.separator = Some(separator);
+        self.rows = rows.to_vec();
+        Ok(())
+    }
+
+    /// Removes the tracked rows and separator from the menu. Anything that
+    /// fails to come out stays tracked, so a later sync tries again.
+    fn clear(&mut self) -> tauri::Result<()> {
+        while let Some(item) = self.items.last() {
+            self.menu.remove(item)?;
+            self.items.pop();
+        }
+        if let Some(separator) = &self.separator {
+            self.menu.remove(separator)?;
+            self.separator = None;
+        }
         Ok(())
     }
 }
@@ -1464,6 +1495,7 @@ fn setup_tray(
             metrics.show_net.load(Relaxed),
         ],
         [false; 5],
+        [false; 5],
     );
     let mut renderer = tray_render::TrayRenderer::new();
     let mut initial_buffer = Vec::with_capacity(4 * 800 * APP_SIZING.icon_height as usize);
@@ -1845,6 +1877,8 @@ fn start_monitoring(
         let mut prev_flags: (bool, bool, bool, bool, bool, bool, bool) =
             (false, false, false, false, false, false, false);
         let mut prev_reading_rows: Option<Vec<ReadingRow>> = None;
+        // The metrics drawn last tick, so compact mode keeps a warning in place.
+        let mut prev_tray_flags = [false; 5];
         #[cfg(target_os = "macos")]
         let mut thermal_tracker = thermal::ThermalTracker::new(thermal_runtime.status());
         #[cfg(target_os = "macos")]
@@ -2021,7 +2055,9 @@ fn start_monitoring(
                 [false; 5]
             };
             let shown = [sc, sm, ss, sg, sn];
-            let [tc, tm, ts, tg, tn] = tray_metric_flags(compact, shown, alerting);
+            let tray_flags = tray_metric_flags(compact, shown, alerting, prev_tray_flags);
+            prev_tray_flags = tray_flags;
+            let [tc, tm, ts, tg, tn] = tray_flags;
 
             let rows = if compact {
                 let down_str = format_speed(down_speed);

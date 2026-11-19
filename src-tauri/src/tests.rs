@@ -455,41 +455,42 @@ fn test_tray_metric_flags() {
     let all = [true; 5];
     let none = [false; 5];
 
-    assert_eq!(tray_metric_flags(false, all, none), all);
+    assert_eq!(tray_metric_flags(false, all, none, [false; 5]), all);
     assert_eq!(
         tray_metric_flags(
             false,
             [true, false, true, false, true],
-            [false, true, true, false, false]
+            [false, true, true, false, false],
+            [false; 5]
         ),
         [true, false, true, false, true]
     );
 
     assert_eq!(
-        tray_metric_flags(true, all, none),
+        tray_metric_flags(true, all, none, [false; 5]),
         [true, false, false, false, false]
     );
     assert_eq!(
-        tray_metric_flags(true, [false, true, true, true, true], none),
+        tray_metric_flags(true, [false, true, true, true, true], none, [false; 5]),
         [false, true, false, false, false]
     );
     // GPU comes before storage.
     assert_eq!(
-        tray_metric_flags(true, [false, false, true, true, true], none),
+        tray_metric_flags(true, [false, false, true, true, true], none, [false; 5]),
         [false, false, false, true, false]
     );
     assert_eq!(
-        tray_metric_flags(true, [false, false, false, false, true], none),
+        tray_metric_flags(true, [false, false, false, false, true], none, [false; 5]),
         [false, false, false, false, true]
     );
 
     // A metric in its warning state takes the slot so the warning stays visible.
     assert_eq!(
-        tray_metric_flags(true, all, [false, true, false, false, false]),
+        tray_metric_flags(true, all, [false, true, false, false, false], [false; 5]),
         [false, true, false, false, false]
     );
     assert_eq!(
-        tray_metric_flags(true, all, [false, false, true, true, false]),
+        tray_metric_flags(true, all, [false, false, true, true, false], [false; 5]),
         [false, false, false, true, false]
     );
     // Metrics the user hid never take the slot.
@@ -497,10 +498,45 @@ fn test_tray_metric_flags() {
         tray_metric_flags(
             true,
             [true, false, false, false, false],
-            [false, true, true, true, false]
+            [false, true, true, true, false],
+            [false; 5]
         ),
         [true, false, false, false, false]
     );
+}
+
+#[test]
+fn test_compact_warning_keeps_the_slot_until_it_recovers() {
+    // Order: CPU, memory, storage, GPU, network.
+    let all = [true; 5];
+    let memory = [false, true, false, false, false];
+    let cpu = [true, false, false, false, false];
+    let gpu = [false, false, false, true, false];
+
+    // Memory warns first and takes the slot.
+    let held = tray_metric_flags(true, all, memory, cpu);
+    assert_eq!(held, memory);
+
+    // CPU also warns. Memory still warns, so it keeps the slot even though
+    // CPU comes first in the priority order.
+    let both = [true, true, false, false, false];
+    assert_eq!(tray_metric_flags(true, all, both, held), memory);
+
+    // Memory recovers, so the remaining warning (CPU) takes over.
+    assert_eq!(tray_metric_flags(true, all, cpu, held), cpu);
+
+    // Hiding the warning metric hands the slot to another warning.
+    let memory_hidden = [true, false, true, true, true];
+    assert_eq!(
+        tray_metric_flags(true, memory_hidden, [false, true, false, true, false], held),
+        gpu
+    );
+
+    // With no warnings left the slot goes back to the first shown metric.
+    assert_eq!(tray_metric_flags(true, all, [false; 5], held), cpu);
+
+    // A metric that held the slot without a warning has no claim to keep it.
+    assert_eq!(tray_metric_flags(true, all, gpu, cpu), gpu);
 }
 
 fn sample_readings() -> Readings<'static> {
@@ -653,12 +689,12 @@ fn test_compact_tray_is_a_fraction_of_the_full_strip() {
     let full = render(
         &mut renderer,
         &mut buffer,
-        tray_metric_flags(false, all, [false; 5]),
+        tray_metric_flags(false, all, [false; 5], [false; 5]),
     );
     let compact = render(
         &mut renderer,
         &mut buffer,
-        tray_metric_flags(true, all, [false; 5]),
+        tray_metric_flags(true, all, [false; 5], [false; 5]),
     );
     assert!(full > 400.0, "full strip is {full} pt");
     assert!(compact < 70.0, "compact item is {compact} pt");
