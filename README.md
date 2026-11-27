@@ -66,6 +66,10 @@ Yes. It is built to sit in the background with very low impact so it stays usabl
 
 If this is useful, star the repo so other Mac users can find it.
 
+## Compact menu bar
+
+With every metric turned on, the full strip is about 440 points wide. On a MacBook with a notch, that can push other apps' menu bar icons out of sight. New installs therefore start with **Compact menu bar** on: the menu bar shows one metric, and clicking it opens the menu with live readings for every metric you turned on. The menu bar shows CPU, or the first of memory, GPU, storage, and network if CPU is off. A shown metric that reaches its warning level takes over that spot until it recovers. Turn off **Compact menu bar** to show every metric side by side. If you had already changed which metrics are shown, the update keeps the full strip.
+
 ## Alerts
 
 With **Show warning colors** enabled, the tray turns orange when visible CPU, memory, or GPU usage reaches **81%**, or when available storage falls below **10 GB**. It returns to normal when the percentage metrics are below 81% and at least 10 GB of storage is available.

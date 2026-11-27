@@ -286,6 +286,7 @@ fn test_explicit_storage_setting_is_preserved_without_rewriting_store() {
         for legacy in [false, true] {
             with_settings_store(|store, path| {
                 store.set(menu_id::SHOW_STORAGE, json!(value));
+                store.set(menu_id::COMPACT, json!(!value));
                 store.set("unrelated", json!("preserve me"));
                 if legacy {
                     store.set(menu_id::SHOW_CPU, json!(false));
@@ -293,7 +294,9 @@ fn test_explicit_storage_setting_is_preserved_without_rewriting_store() {
                 store.save().unwrap();
                 let before = std::fs::read(path).unwrap();
                 store.reload_ignore_defaults().unwrap();
-                assert_eq!(load_settings_from_store(Some(store)).show_storage, value);
+                let settings = load_settings_from_store(Some(store));
+                assert_eq!(settings.show_storage, value);
+                assert_eq!(settings.compact, !value);
                 assert_eq!(std::fs::read(path).unwrap(), before);
             });
         }
@@ -397,7 +400,304 @@ fn test_unavailable_settings_store_uses_defaults() {
     assert!(settings.show_storage);
     assert!(settings.show_cpu && settings.show_mem && settings.show_gpu && settings.show_net);
     assert!(settings.show_alerts);
+    assert!(settings.compact);
     assert!(!settings.autostart);
+}
+
+#[test]
+fn test_fresh_install_defaults_to_compact_and_persists_it() {
+    with_settings_store(|store, path| {
+        assert!(load_settings_from_store(Some(store)).compact);
+        let persisted: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        assert_eq!(persisted[menu_id::COMPACT], true);
+
+        // Hiding a metric later must not flip the layout back to the full strip.
+        store.set(menu_id::SHOW_GPU, json!(false));
+        store.save().unwrap();
+        store.reload_ignore_defaults().unwrap();
+        assert!(load_settings_from_store(Some(store)).compact);
+    });
+}
+
+#[test]
+fn test_customized_metrics_keep_the_full_strip() {
+    for key in [
+        menu_id::SHOW_CPU,
+        menu_id::SHOW_MEM,
+        menu_id::SHOW_GPU,
+        menu_id::SHOW_NET,
+    ] {
+        with_settings_store(|store, path| {
+            store.set(menu_id::SHOW_STORAGE, json!(true));
+            store.set(key, json!(false));
+            store.save().unwrap();
+            assert!(!load_settings_from_store(Some(store)).compact, "key={key}");
+            let persisted: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            assert_eq!(persisted[menu_id::COMPACT], false);
+            assert_eq!(persisted[menu_id::SHOW_STORAGE], true);
+        });
+    }
+}
+
+#[test]
+fn test_migrate_compact_setting() {
+    assert!(migrate_compact_setting(None, false));
+    assert!(!migrate_compact_setting(None, true));
+    assert!(migrate_compact_setting(Some(true), true));
+    assert!(!migrate_compact_setting(Some(false), false));
+}
+
+#[test]
+fn test_tray_metric_flags() {
+    // Order: CPU, memory, storage, GPU, network.
+    let all = [true; 5];
+    let none = [false; 5];
+
+    assert_eq!(tray_metric_flags(false, all, none, [false; 5]), all);
+    assert_eq!(
+        tray_metric_flags(
+            false,
+            [true, false, true, false, true],
+            [false, true, true, false, false],
+            [false; 5]
+        ),
+        [true, false, true, false, true]
+    );
+
+    assert_eq!(
+        tray_metric_flags(true, all, none, [false; 5]),
+        [true, false, false, false, false]
+    );
+    assert_eq!(
+        tray_metric_flags(true, [false, true, true, true, true], none, [false; 5]),
+        [false, true, false, false, false]
+    );
+    // GPU comes before storage.
+    assert_eq!(
+        tray_metric_flags(true, [false, false, true, true, true], none, [false; 5]),
+        [false, false, false, true, false]
+    );
+    assert_eq!(
+        tray_metric_flags(true, [false, false, false, false, true], none, [false; 5]),
+        [false, false, false, false, true]
+    );
+
+    // A metric in its warning state takes the slot so the warning stays visible.
+    assert_eq!(
+        tray_metric_flags(true, all, [false, true, false, false, false], [false; 5]),
+        [false, true, false, false, false]
+    );
+    assert_eq!(
+        tray_metric_flags(true, all, [false, false, true, true, false], [false; 5]),
+        [false, false, false, true, false]
+    );
+    // Metrics the user hid never take the slot.
+    assert_eq!(
+        tray_metric_flags(
+            true,
+            [true, false, false, false, false],
+            [false, true, true, true, false],
+            [false; 5]
+        ),
+        [true, false, false, false, false]
+    );
+}
+
+#[test]
+fn test_compact_warning_keeps_the_slot_until_it_recovers() {
+    // Order: CPU, memory, storage, GPU, network.
+    let all = [true; 5];
+    let memory = [false, true, false, false, false];
+    let cpu = [true, false, false, false, false];
+    let gpu = [false, false, false, true, false];
+
+    // Memory warns first and takes the slot.
+    let held = tray_metric_flags(true, all, memory, cpu);
+    assert_eq!(held, memory);
+
+    // CPU also warns. Memory still warns, so it keeps the slot even though
+    // CPU comes first in the priority order.
+    let both = [true, true, false, false, false];
+    assert_eq!(tray_metric_flags(true, all, both, held), memory);
+
+    // Memory recovers, so the remaining warning (CPU) takes over.
+    assert_eq!(tray_metric_flags(true, all, cpu, held), cpu);
+
+    // Hiding the warning metric hands the slot to another warning.
+    let memory_hidden = [true, false, true, true, true];
+    assert_eq!(
+        tray_metric_flags(true, memory_hidden, [false, true, false, true, false], held),
+        gpu
+    );
+
+    // With no warnings left the slot goes back to the first shown metric.
+    assert_eq!(tray_metric_flags(true, all, [false; 5], held), cpu);
+
+    // A metric that held the slot without a warning has no claim to keep it.
+    assert_eq!(tray_metric_flags(true, all, gpu, cpu), gpu);
+}
+
+fn sample_readings() -> Readings<'static> {
+    Readings {
+        cpu_usage: 23.4,
+        mem_percent: 61.6,
+        storage_available: "120 GB",
+        gpu_usage: 100.0,
+        down: "1.2 MB",
+        up: "30 KB",
+    }
+}
+
+#[test]
+fn test_reading_rows() {
+    let english = i18n::Language::English.translations();
+    assert!(reading_rows(false, [true; 5], &sample_readings(), english).is_empty());
+
+    let rows = reading_rows(true, [true; 5], &sample_readings(), english);
+    let texts: Vec<&str> = rows.iter().map(|row| row.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        [
+            "Memory: 62%",
+            "CPU: 23%",
+            "Free storage: 120 GB",
+            "GPU: 99%",
+            "Network: \u{2193} 1.2 MB/s  \u{2191} 30 KB/s",
+        ]
+    );
+
+    let rows = reading_rows(
+        true,
+        [true, false, false, false, true],
+        &sample_readings(),
+        i18n::Language::Polish.translations(),
+    );
+    let texts: Vec<&str> = rows.iter().map(|row| row.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        ["CPU: 23%", "Sieć: \u{2193} 1.2 MB/s  \u{2191} 30 KB/s"]
+    );
+    assert_eq!(rows[0].id, "reading_cpu");
+    assert_eq!(rows[1].id, "reading_net");
+}
+
+#[test]
+fn test_compact_translations_match_supported_locales() {
+    let expected = [
+        (
+            i18n::Language::English,
+            [
+                "Compact menu bar",
+                "CPU",
+                "Memory",
+                "GPU",
+                "Free storage",
+                "Network",
+            ],
+        ),
+        (
+            i18n::Language::Spanish,
+            [
+                "Barra de menús compacta",
+                "CPU",
+                "Memoria",
+                "GPU",
+                "Almacenamiento libre",
+                "Red",
+            ],
+        ),
+        (
+            i18n::Language::Portuguese,
+            [
+                "Barra de menus compacta",
+                "CPU",
+                "Memória",
+                "GPU",
+                "Armazenamento livre",
+                "Rede",
+            ],
+        ),
+        (
+            i18n::Language::Chinese,
+            ["紧凑菜单栏", "CPU", "内存", "GPU", "可用存储空间", "网络"],
+        ),
+        (
+            i18n::Language::Polish,
+            [
+                "Kompaktowy pasek menu",
+                "CPU",
+                "Pamięć",
+                "GPU",
+                "Wolne miejsce",
+                "Sieć",
+            ],
+        ),
+    ];
+
+    for (language, expected) in expected {
+        let t = language.translations();
+        assert_eq!(
+            [
+                t.compact_menu_bar,
+                t.cpu,
+                t.memory,
+                t.gpu,
+                t.free_storage,
+                t.network
+            ],
+            expected,
+            "language={language:?}"
+        );
+    }
+}
+
+/// macOS draws the tray image 18 points tall, so this is its width in points.
+fn menu_bar_points(width: u32, height: u32) -> f32 {
+    width as f32 * 18.0 / height as f32
+}
+
+#[test]
+fn test_compact_tray_is_a_fraction_of_the_full_strip() {
+    let font = load_system_font().expect("test font required");
+    let mut buffer = Vec::new();
+    let mut renderer = tray_render::TrayRenderer::new();
+    let all = [true; 5];
+    let render = |renderer: &mut tray_render::TrayRenderer,
+                  buffer: &mut Vec<u8>,
+                  [cpu, mem, storage, gpu, net]: [bool; 5]| {
+        let (width, height, _) = renderer.render_tray_icon_into(
+            &font,
+            buffer,
+            &tray_render::RenderConfig {
+                sizing: tray_render::SIZING_MACOS,
+                storage_available_str: "999.9 GB",
+                down_str: "999.9 MB",
+                up_str: "999.9 MB",
+                show_cpu: cpu,
+                show_mem: mem,
+                show_storage: storage,
+                show_gpu: gpu,
+                show_net: net,
+                ..base_render_config()
+            },
+        );
+        menu_bar_points(width, height)
+    };
+
+    let full = render(
+        &mut renderer,
+        &mut buffer,
+        tray_metric_flags(false, all, [false; 5], [false; 5]),
+    );
+    let compact = render(
+        &mut renderer,
+        &mut buffer,
+        tray_metric_flags(true, all, [false; 5], [false; 5]),
+    );
+    assert!(full > 400.0, "full strip is {full} pt");
+    assert!(compact < 70.0, "compact item is {compact} pt");
 }
 
 #[test]

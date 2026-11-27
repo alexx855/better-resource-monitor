@@ -61,6 +61,10 @@ No. Better Resource Monitor no hace solicitudes de red. No hay analíticas ni te
 
 Sí. Está diseñado para permanecer en segundo plano con bajo impacto y resultar útil durante el trabajo diario.
 
+## Barra de menús compacta
+
+Con todas las métricas activadas, la barra completa ocupa unos 440 puntos de ancho. En un MacBook con notch eso puede dejar fuera de la vista los iconos de otras apps. Por eso las instalaciones nuevas empiezan con **Barra de menús compacta** activada: la barra muestra una sola métrica y, al hacer clic, el menú muestra las lecturas en vivo de todas las métricas activadas. Se muestra la CPU o, si está desactivada, la primera disponible entre memoria, GPU, almacenamiento y red. Si una métrica visible llega a su nivel de advertencia, ocupa ese lugar hasta que se normaliza. Desactiva **Barra de menús compacta** para ver todas las métricas una al lado de otra. Si ya habías cambiado qué métricas se muestran, la actualización conserva la barra completa.
+
 ## Alertas
 
 Con **Mostrar colores de advertencia** activado, la barra se vuelve naranja cuando el uso visible de CPU, memoria o GPU llega al **81%**, o cuando el almacenamiento disponible baja de **10 GB**. Recupera su aspecto normal cuando los porcentajes están por debajo del 81% y hay al menos 10 GB disponibles.
