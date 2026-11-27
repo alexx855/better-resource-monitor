@@ -671,6 +671,9 @@ struct ReadingsInner {
     /// Lives here so only the main thread touches it; see
     /// [`request_readings_menu_sync`].
     menu: Option<ReadingsMenu>,
+    /// Set when the last sync failed or could not be scheduled, so the
+    /// monitor thread asks again on a later tick even if the rows match.
+    sync_failed: bool,
 }
 
 impl ReadingsState {
@@ -765,14 +768,23 @@ fn request_readings_menu_sync(app: &AppHandle, rows: Option<Vec<ReadingRow>>) {
     let result = app.run_on_main_thread(move || {
         let state = handle.state::<ReadingsState>();
         let mut inner = state.lock();
-        let ReadingsInner { rows, menu } = &mut *inner;
+        let ReadingsInner {
+            rows,
+            menu,
+            sync_failed,
+        } = &mut *inner;
         if let Some(menu) = menu {
-            if let Err(e) = menu.sync(rows) {
-                eprintln!("Failed to update readings menu: {e}");
+            match menu.sync(rows) {
+                Ok(()) => *sync_failed = false,
+                Err(e) => {
+                    *sync_failed = true;
+                    eprintln!("Failed to update readings menu: {e}");
+                }
             }
         }
     });
     if let Err(e) = result {
+        app.state::<ReadingsState>().lock().sync_failed = true;
         eprintln!("Failed to schedule readings menu update: {e}");
     }
 }
@@ -2078,7 +2090,8 @@ fn start_monitoring(
             } else {
                 Vec::new()
             };
-            if prev_reading_rows.as_ref() != Some(&rows) {
+            let retry_readings = app.state::<ReadingsState>().lock().sync_failed;
+            if retry_readings || prev_reading_rows.as_ref() != Some(&rows) {
                 prev_reading_rows = Some(rows.clone());
                 request_readings_menu_sync(&app, Some(rows));
             }
